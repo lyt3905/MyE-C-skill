@@ -1,0 +1,7 @@
+{
+  "sender_name": "Customer Service",
+  "sender_email": "toyssuppor@foxmail.com",
+  "smtp_host": "smtp.qq.com",
+  "smtp_port": 465,
+  "password": "yjfmqttzsrbqbfha"
+}
