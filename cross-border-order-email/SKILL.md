@@ -239,9 +239,12 @@ These rules were established through user feedback and must be followed exactly.
 ## SMTP Configuration
 
 Pre-configured, do NOT ask user to re-enter unless sending fails:
-- Sender: Customer Service <hezhen226102@126.com> (updated 2026-08-08, switched from QQ to 126)
-- SMTP: smtp.126.com:465 (SSL)
-- Config path: `email_sop_tool/smtp_config.json`
+- **Default sender (user preference 2026-08-10)**: Customer Service <toyssuppor@foxmail.com> via QQ
+  SMTP: smtp.qq.com:465 (SSL), config path `email_sop_tool/smtp_config.json`
+- **Fallback (126 account)**: <hezhen226102@126.com>, SMTP smtp.126.com:465 (SSL),
+  config path `email_sop_tool/smtp_config_126.json` — pass `config_path='email_sop_tool/smtp_config_126.json'`
+  to `send_email()` only if the user explicitly asks for the 126 account.
+- The project copy of `smtp_config.json` must hold the QQ account; do not overwrite it with the 126 config.
 
 ## Important Reminders
 
