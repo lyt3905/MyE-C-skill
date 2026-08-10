@@ -162,7 +162,9 @@ def send_email(to_email: str, subject: str, body_en: str, images=None, config_pa
 
     context = ssl.create_default_context()
     try:
-        with smtplib.SMTP_SSL(cfg["smtp_host"], cfg["smtp_port"], context=context) as server:
+        # timeout: avoid hanging forever on a stuck SMTP connection (learned 2026-08-10)
+        with smtplib.SMTP_SSL(cfg["smtp_host"], cfg["smtp_port"], context=context,
+                              timeout=45) as server:
             server.login(cfg["sender_email"], password)
             server.send_message(msg)
         return {
