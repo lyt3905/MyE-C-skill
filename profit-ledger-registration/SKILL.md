@@ -122,7 +122,7 @@ except: pass
 
 ## 关键技术坑
 
-1. **不动格式**：只 `ws.cell(row, col).value = xxx`，不设 font/border/alignment/fill，保持文件原有背景色和样式。
+1. **不动格式**：只 `ws.cell(row, col).value = xxx`，不设 font/border/alignment/fill/row_height，保持文件原有背景色、样式和行高（sheet 默认 25.0）。
 2. **A/I/J 公式已预填**：不需要写入公式，文件里已有。
 3. **找空行用 C 列**：C 列是订单编号，有值 = 有数据。
 4. **WPS 部件保留**：openpyxl 保存会丢 cellimages/customStorage/sharedStrings，必须备份恢复。
