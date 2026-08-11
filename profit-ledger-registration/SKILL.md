@@ -49,7 +49,7 @@
 ```python
 import shutil, os, datetime
 fp = r"C:\Users\shana\Desktop\62店8月利润表.xlsx"
-bak_dir = r"C:\Users\shana\Desktop\62店台账备份"
+bak_dir = r"C:\Users\shana\Desktop\62店台账备份\利润表备份"
 os.makedirs(bak_dir, exist_ok=True)
 ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 shutil.copy2(fp, os.path.join(bak_dir, f"62店8月利润表_{ts}.xlsx"))
