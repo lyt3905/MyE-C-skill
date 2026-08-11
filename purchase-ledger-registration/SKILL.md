@@ -76,13 +76,17 @@ agent_created: true
 ```python
 import shutil, os, datetime
 fp = r"C:\Users\shana\Desktop\62店8月-采购登记表.xlsx"
-bak_dir = r"C:\Users\shana\Desktop\62店台账备份"  # 专门的备份文件夹
+bak_dir = r"C:\Users\shana\Desktop\62店台账备份\Excel备份"  # Excel 备份专门子文件夹
 os.makedirs(bak_dir, exist_ok=True)
 ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 bak = os.path.join(bak_dir, f"62店8月-采购登记表_{ts}.xlsx")
 shutil.copy2(fp, bak)
 ```
 - **备份统一放 `C:\Users\shana\Desktop\62店台账备份\` 文件夹**（用户约定，不放桌面根目录）
+- **⚠️ 备份分类存放（用户约定 2026-08-11）**：Excel 备份、截图、利润表分别放独立子文件夹，不要混在根目录：
+  - `62店台账备份\Excel备份\` ← 台账 .xlsx 备份（`62店8月-采购登记表_YYYYMMDD_HHMMSS.xlsx`）
+  - `62店台账备份\截图备份\{YYYYMMDD}-{产品}-{分类}\` ← 订单截图
+  - `62店台账备份\利润表备份\` ← 利润表备份
 - 备份命名带时间戳：`62店8月-采购登记表_20260803_1112.xlsx`
 - 此规则对 append 脚本、zipfile 手动编辑、列宽调整、重建都适用
 
