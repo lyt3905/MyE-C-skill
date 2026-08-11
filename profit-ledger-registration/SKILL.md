@@ -151,6 +151,8 @@ python scripts/verify_unchanged.py \
 5. **文件锁**：WPS 打开时 PermissionError → 先关闭。
 6. **环境**：系统 Python `C:\Users\shana\AppData\Local\Programs\Python\Python312\python.exe` + openpyxl。
 7. **跨月**：月初提醒新建当月利润表。
+8. **⚠️⚠️ 严禁用 openpyxl `insert_rows` 在含预填公式的稀疏表上插行**（2026-08-11 实测数据错位，R21 混入上行的订单号/金额）。需要中间插行时，用**手动移位**：从插入位置起，把所有后续行的 B/C/D/E/F/K 值逐行下移一格，再写入新行；同时从插入行起重写所有 I/J 公式行号。移位前必须备份。
+9. **⚠️ 用户可能已在 WPS 手动改过文件**（如移动行、删除行）：脚本操作前先读取当前文件核对行状态，避免基于旧状态写坏（2026-08-11 两次因此丢数据，均靠备份恢复）。
 
 ## 与采购登记 skill 的关系
 
