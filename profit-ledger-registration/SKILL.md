@@ -2,117 +2,135 @@
 
 ## Overview
 
-将用户提供的订单文字信息解析为字段，按 62 店台账「运营利润统计表」的结构追加写入 Excel，自动写入利润和利润率公式。适用于 `62店8月-采购登记表.xlsx`（或当月台账）中运营利润统计表的日常登记。
+将用户提供的订单文字信息解析为字段，按「运营利润统计表」结构追加到 `62店8月利润表.xlsx`。**核心原则：只写文字值，不动格式和公式**。
 
-## 台账文件与结构
+## 台账文件
 
-- **主台账**：`C:\Users\shana\Desktop\62店8月-采购登记表.xlsx`（当月台账，跨月新建）
-- **参考文件**：`C:\Users\shana\Desktop\62店7月利润表.xlsx`（7月历史数据，仅参考结构）
+- **利润表**：`C:\Users\shana\Desktop\62店8月利润表.xlsx`（独立文件，跨月新建）
 - **目标 sheet**：运营利润统计表（仅这一个 sheet）
-- ⚠️ 该 sheet 的 row 1 是合并标题「产品销售采购管理」(A1:L1)，**row 2 是列名**，数据从 row 3 开始
+- **预填结构**：row 1 合并标题，row 2 列名，A/I/J 列公式已预填到约 500 行
+- ⚠️ **交替行背景色**：奇数行(row 3,5,7...)B-E 列白底 `FFFFFFFF`，偶数行无填充；row 1 绿底 `FFE2EFD9`；不动颜色
 
 ### 运营利润统计表 12 列
 
 | 列 | 字段 | 来源 | 说明 |
 |---|---|---|---|
-| A | 序号 | 自动递增 | row 2 起，从 1 开始 |
-| B | 下单日期 | 用户提供 | 订单的下单时间 |
+| A | 序号 | 公式已有 | `=ROW()-2`，不动 |
+| B | 下单日期 | 用户提供 | 付款时间 |
 | C | 订单编号 | 用户提供 | 平台订单号 |
-| D | 名字（商品规格） | 用户提供 | 商品名称/规格 |
-| E | 进货价格 | 用户提供 | ⚠️ 通常在备注里（如 "yu516.66"，数字部分即进货价） |
-| F | 平台预计可得（CNY） | 用户提供 | ⚠️ 填「预计可得（到手）」的值；如有 duty/ICMS 需：预计可得 - duty - ICMS |
-| G | 运费 | 默认为空 | ⚠️ 不从订单详情页的「物流费用」获取，留空不填 |
-| H | 平台其他扣费 | 默认为空 | ⚠️ 留空不填（佣金/交易服务费不从订单取） |
-| I | 利润 | **公式自动** | ⚠️ 永远不手动填值，由 Excel 公式 `=ROUND(F-G-E-H,2)` 自动计算 |
-| J | 利润率 | **公式自动** | ⚠️ 永远不手动填值，由 Excel 公式 `=ROUND(I/(G+E),2)` 自动计算 |
+| D | 名字（商品规格） | 用户提供 | 商品名称 |
+| E | 进货价格 | 用户提供 | 从备注提取（如 "yu516.66" → 516.66） |
+| F | 平台预计可得（CNY） | 用户提供 | 「预计可得（到手）」；有 duty/ICMS 则减去 |
+| G | 运费 | 默认为空 | 留空不填 |
+| H | 平台其他扣费 | 默认为空 | 留空不填 |
+| I | 利润 | 公式已有 | `=ROUND(F-G-E-H,2)`，不动 |
+| J | 利润率 | 公式已有 | `=ROUND(I/(G+E),2)`，不动 |
 | K | 进货人 | 默认 刘宇彤 | |
-| L | 备注 | 用户提供 | 可选 |
+| L | 备注 | 用户提供 | 保留原文 |
 
 ## 工作流
 
 ### 1. 解析用户输入
 
-用户发来一段订单详情文字。**核心原则**：只填「能从订单页面直接读到的数值」，不推导、不计算。
+用户发来一段订单详情文字。**只提取页面直接可见的数值**：
 
-从文字中逐条提取以下字段：
-
-- 下单日期（从「付款时间」字段提取）
-- 订单编号（从「订单号」字段提取）
-- 商品名/规格（从「商品信息」提取）
-- 进货价格（⚠️ 从备注里提取，如 "yu516.66"→进货价 516.66；如备注无数字则提示用户补充）
-- 平台预计可得（⚠️ 取资金详情中「预计可得（到手）」的值；如果前面有 duty 和 ICMS 项则：预计可得 - duty - ICMS）
-- 运费（⚠️ 留空不填）
-- 平台其他扣费（⚠️ 留空不填）
+- 下单日期（「付款时间」）
+- 订单编号（「订单号」）
+- 商品名/规格（「商品信息」）
+- 进货价格（备注里提取数字，如 "yu516.66" → 516.66；缺了就问）
+- 平台预计可得（「预计可得（到手）」；有 duty/ICMS 项则减去）
+- 运费（留空）
+- 平台其他扣费（留空）
 - 进货人（默认 刘宇彤）
-- 备注（保留原文，如 "yu516.66"）
+- 备注（保留原文）
 
-如果某条数据缺少进货价格，提示用户补充后再写入。
-
-### 2. 默认字段规则（用户约定，无需询问）
-
-| 字段 | 规则 |
-|---|---|
-| 序号 | 自动递增，读取现有最后一行数据后 +1 |
-| 进货人 | 刘宇彤 |
-| 利润/利润率 | 公式自动写入，不手动填值 |
-| 运费 | 默认为空 |
-| 平台其他扣费 | 默认为空 |
-| 备注 | 用户未提供则留空 |
-
-### 3. ⚠️ 每次写入前必须备份
-
-任何修改台账文件的操作开始前，必须先备份：
+### 2. ⚠️ 每次写入前必须备份
 
 ```python
 import shutil, os, datetime
-fp = r"C:\Users\shana\Desktop\62店8月-采购登记表.xlsx"
+fp = r"C:\Users\shana\Desktop\62店8月利润表.xlsx"
 bak_dir = r"C:\Users\shana\Desktop\62店台账备份"
 os.makedirs(bak_dir, exist_ok=True)
 ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-bak = os.path.join(bak_dir, f"62店8月-采购登记表_{ts}.xlsx")
-shutil.copy2(fp, bak)
+shutil.copy2(fp, os.path.join(bak_dir, f"62店8月利润表_{ts}.xlsx"))
 ```
 
-- 备份统一放 `C:\Users\shana\Desktop\62店台账备份\`
-- 命名带时间戳：`62店8月-采购登记表_20260810_1900.xlsx`
+### 3. 追加写入（只写值，不动格式）
 
-### 4. 追加写入
+找到第一个 C 列为空的行 → 只对 B/C/D/E/F/K/L 列设值，不设 font/border/alignment：
 
-用脚本 `scripts/append_profit_row.py` 追加：
+```python
+import openpyxl, zipfile, shutil, os
+from datetime import datetime
 
-```bash
-python scripts/append_profit_row.py \
-  --file "C:\Users\shana\Desktop\62店8月-采购登记表.xlsx" \
-  --data '[1,"2026-08-10","1234567890","商品名",100,"200.00","20.00","",null,null,"刘宇彤",""]'
+FILE = r"C:\Users\shana\Desktop\62店8月利润表.xlsx"
+
+# 备份 + 提取 WPS 部件
+parts = {}
+z = zipfile.ZipFile(FILE)
+for n in z.namelist():
+    if n in ('xl/cellimages.xml','xl/_rels/cellimages.xml.rels',
+             'xl/customStorage/customStorage.xml',
+             'xl/customStorage/_rels/customStorage.xml.rels',
+             '[Content_Types].xml','xl/_rels/workbook.xml.rels',
+             'xl/sharedStrings.xml','xl/_rels/sharedStrings.xml.rels') \
+       or n.startswith('xl/media/'):
+        parts[n] = z.read(n)
+z.close()
+
+wb = openpyxl.load_workbook(FILE)
+ws = wb['运营利润统计表']
+
+# 找第一个空行（C列无值）
+row = 3
+while row <= ws.max_row:
+    if ws.cell(row, 3).value is None or str(ws.cell(row, 3).value).strip() == '':
+        break
+    row += 1
+
+# 只设值，不设格式
+ws.cell(row, 2).value = datetime(2026,8,7)       # B: 下单日期
+ws.cell(row, 3).value = '订单编号'                 # C: 订单编号
+ws.cell(row, 4).value = '商品名'                   # D: 商品
+ws.cell(row, 5).value = 进货价格                   # E: 进货价
+ws.cell(row, 6).value = 平台预计可得                # F: 预计可得
+ws.cell(row, 11).value = '刘宇彤'                  # K: 进货人
+ws.cell(row, 12).value = '备注原文'                # L: 备注
+# A/G/H/I/J 不动（公式已存在或留空）
+
+wb.save(FILE)
+
+# 恢复 WPS 部件
+items = {}
+z = zipfile.ZipFile(FILE)
+for n in z.namelist(): items[n] = z.read(n)
+z.close()
+for n,d in parts.items():
+    if n not in items: items[n] = d
+tmp = FILE + '.tmp'
+zout = zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED)
+for n,d in items.items(): zout.writestr(n, d)
+zout.close()
+shutil.copy2(tmp, FILE)
+try: os.remove(tmp)
+except: pass
 ```
 
-- 12 个值按列顺序：序号、下单日期、订单编号、商品规格、进货价格、平台预计可得、运费、平台其他扣费、利润、利润率、进货人、备注
-- 利润(I)和利润率(J) 写 `null`，脚本自动填入公式
-- 日期用字符串 `"2026-08-10"` 格式传入
-- 序号传 `null` 让脚本自动算（或传具体值）
-- **⚠️ 永远不指定 `--row`**，让脚本自动追加到最后一个数据行的下一行
-- **⚠️ 写入前先备份**
+### 4. 写入后验证
 
-### 5. 写入后验证
-
-追加完成后，读回新写入的行，确认：
-- 利润公式：`=ROUND(F{row}-G{row}-E{row}-H{row},2)`
-- 利润率公式：`=ROUND(I{row}/(G{row}+E{row}),2)`
-- 数值字段与用户提供的一致
+读回新写入的行，确认 B/C/D/E/F/K/L 值与用户提供的一致，A/I/J 公式不受影响。
 
 ## 关键技术坑
 
-1. **表头行注意**：row 1 是合并标题，row 2 是列名，数据从 row 3 开始。脚本会自动跳过 row 1-2。
-2. **文件锁**：WPS 或预览面板打开文件时 Python 写入报 PermissionError → 先请用户关闭再写入。
-3. **其他 sheet 不受影响**：本 skill 只操作「运营利润统计表」，不碰「自发货采购登记表」和「纠纷订单统计表」。
-4. **公式列不传值**：I 列(利润)和 J 列(利润率)始终传 `null`，由脚本写入公式。传入数值会被忽略。
-5. **环境**：系统 Python `C:\Users\shana\AppData\Local\Programs\Python\Python312\python.exe` + openpyxl。
-6. **JSON 编码**：数据含中文时用 Python 子进程 `json.dumps(data, ensure_ascii=False)` 传参，避免 bash/PowerShell 编码问题。
-7. **跨月处理**：月初时提醒用户是否需要新建当月台账（复制模板，清空旧数据）。
+1. **不动格式**：只 `ws.cell(row, col).value = xxx`，不设 font/border/alignment/fill，保持文件原有背景色和样式。
+2. **A/I/J 公式已预填**：不需要写入公式，文件里已有。
+3. **找空行用 C 列**：C 列是订单编号，有值 = 有数据。
+4. **WPS 部件保留**：openpyxl 保存会丢 cellimages/customStorage/sharedStrings，必须备份恢复。
+5. **文件锁**：WPS 打开时 PermissionError → 先关闭。
+6. **环境**：系统 Python `C:\Users\shana\AppData\Local\Programs\Python\Python312\python.exe` + openpyxl。
+7. **跨月**：月初提醒新建当月利润表。
 
 ## 与采购登记 skill 的关系
 
-- `purchase-ledger-registration`：采购端，记录「买什么、花多少」→ 提供进货价参考
-- 本 skill：销售端，记录「卖什么、赚多少」→ 进货价可从采购表查找，也可手动输入
-
-两张表通过「商品规格」字段关联。
+- `purchase-ledger-registration`：采购端 → 提供进货价参考
+- 本 skill：销售端 → 登记平台销售利润
