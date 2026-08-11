@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 append_profit_row.py — 向 62店台账「运营利润统计表」追加一条订单记录
 用法:
-  python append_profit_row.py --file "C:\...\62店8月-采购登记表.xlsx" \
+  python append_profit_row.py --file "C:/.../62店8月-采购登记表.xlsx" \
       --data '[1,"2026-08-10","1234567890","商品名",100,"200.00","20.00","",null,null,"刘宇彤",""]'
 
 要点:
