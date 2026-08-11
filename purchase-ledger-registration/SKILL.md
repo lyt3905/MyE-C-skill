@@ -175,6 +175,8 @@ wb.save(r"C:\Users\shana\Desktop\62店8月-采购登记表.xlsx")
 3. cellimages.xml 注册信息（WPS 私有命名空间）：
    - Content_Types: `application/vnd.wps-officedocument.cellimage+xml`
    - workbook rels: `http://www.wps.cn/officeDocument/2020/cellImage`
+   - ⚠️ **不要手动添加/修改这些声明**（2026-08-11 实测）：WPS 有自己的识别机制，我手动往 Content_Types 和 workbook.xml.rels 里加 cellimages 声明，反而把图片显示弄坏（显示 ref）。**保持文件原样**，只改数据/锚点
+   - **判断文件是否带正确 cellimage 结构**：读 workbook.xml.rels，看是否有 `Type="http://www.wps.cn/officeDocument/2020/cellImage" Target="cellimages.xml"` 的 Relationship + Content_Types 里有 `cellimages.xml` Override。**两个都有 = 图片能正常显示**；缺 = 图片数据在但显示不出来（显示 ref / 空白）
 4. 环境：系统 Python `C:\Users\shana\AppData\Local\Programs\Python\Python312\python.exe` + openpyxl + pillow
 5. 本地 editor_sdk / sheetagent 通道不可用，不要尝试
 6. **脚本入参编码**：JSON 数据带中文时不要在 PowerShell/bash 直接传参（易乱码），用 Python 子进程 `json.dumps(data, ensure_ascii=False)` 传参最稳；bash 传 Windows 路径用正斜杠。
@@ -190,6 +192,18 @@ wb.save(r"C:\Users\shana\Desktop\62店8月-采购登记表.xlsx")
    - 损坏症状：`[Content_Types].xml` 丢失、sharedStrings 丢失、openpyxl 读报 `KeyError`、文件大小骤降
    - 恢复方法：找最近一份大于 30MB 的 .et，复制为 .xlsx 即可
    - 兜底目录：同层 `62店8月.xlsx` 是参考模板（勿改），只用来对照结构不包含当前月数据
+9. **⚠️ 文件被覆盖成"空壳"急救（2026-08-11 实测）**：
+   - 症状：主文件从 22.7MB 骤降到 21KB，media 0 个，cellimages 丢失，但表格结构还在（打开能看到数据没图）
+   - 现场：桌面出现 `..._YYYYMMDD_HHMMSS_fixdup.xlsx` 之类副本（可能是某个去重/另存操作生成的）
+   - **关键：桌面多个副本可能是"正常版"和"残缺版"混着**：
+     - 正常版：23848KB，workbook.xml.rels 有 `wps.cn/officeDocument/2020/cellImage` 引用 → 图片能显示
+     - 残缺版：22753KB，缺该引用 → 图片数据在但显示 ref/空白
+   - **恢复方法**：MD5 对比 + 检查 workbook.xml.rels 是否有 cellimage 引用 → 选正常版 `shutil.copy2` 覆盖主文件
+   - 验证：恢复后 MD5 应与源一致，openpyxl 读取 56 张嵌入图，WPS 能显示图片
+10. **⚠️ 序号重排（删除行后序号错位）**：
+   - 场景：删除了重复行（如盲盒买 2 误登记 2 条删 1），但 A 列序号没重排 → 出现 8 后直接 10 的断号，最后序号比实际行数多 1
+   - 修复：zipfile 直接改 sheet2.xml，对断号之后每行 A 列序号减 1（`<c r="A10"...><v>10</v>` → `<v>9</v>`），直到恢复 1-N 连续
+   - 用户约定：序号必须连续（1,2,3...N），删除行后要主动检查并重排
 
 ## 其他表
 
