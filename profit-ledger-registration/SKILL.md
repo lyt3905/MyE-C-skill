@@ -9,7 +9,7 @@
 - **利润表**：`C:\Users\shana\Desktop\62店8月利润表.xlsx`（独立文件，跨月新建）
 - **目标 sheet**：运营利润统计表（仅这一个 sheet）
 - **预填结构**：row 1 合并标题，row 2 列名，A/I/J 列公式已预填到约 500 行
-- ⚠️ **交替行背景色**：奇数行(row 3,5,7...)B-E 列白底 `FFFFFFFF`，偶数行无填充；row 1 绿底 `FFE2EFD9`；不动颜色
+- ⚠️ **交替行背景色**：数据行有白底 `FFFFFFFF` 交替（写入前查看相邻行格式即可确认规律）；row 1 绿底 `FFE2EFD9`；**写入时一律不动颜色**
 
 ### 运营利润统计表 12 列
 
@@ -63,7 +63,7 @@ shutil.copy2(fp, os.path.join(bak_dir, f"62店8月利润表_{ts}.xlsx"))
 
 ### 3. 追加写入（只写值，不动格式）
 
-找到第一个 C 列为空的行 → 只对 B/C/D/E/F/K/L 列设值，不设 font/border/alignment：
+找到第一个 C 列为空的行 → 只对 B/C/D/E/F/L 列设值（K 进货人不填），不设 font/border/alignment：
 
 ```python
 import openpyxl, zipfile, shutil, os
@@ -140,7 +140,7 @@ python scripts/verify_unchanged.py \
 
 ### 5. 写入后验证
 
-读回新写入的行，确认 B/C/D/E/F/K 值与用户提供的一致，A/I/J 公式不受影响。
+读回新写入的行，确认 B/C/D/E/F/L 值与用户提供的一致，A/I/J 公式不受影响。
 
 ## 关键技术坑
 
