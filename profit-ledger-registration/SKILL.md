@@ -56,6 +56,11 @@ ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 shutil.copy2(fp, os.path.join(bak_dir, f"62店8月利润表_{ts}.xlsx"))
 ```
 
+### 2.5 登记顺序约定（用户约定）
+
+**用户一般按下单时间顺序提供订单，默认追加到末尾即可**。
+- 若发现新订单的下单日期早于已登记的最后一条（乱序），**先提醒用户确认**，不要自动插入排序
+
 ### 3. 追加写入（只写值，不动格式）
 
 找到第一个 C 列为空的行 → 只对 B/C/D/E/F/K/L 列设值，不设 font/border/alignment：
