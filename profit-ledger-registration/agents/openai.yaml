@@ -1,0 +1,4 @@
+interface:
+  display_name: "利润台账登记"
+  short_description: "解析订单信息并登记跨境电商运营利润台账"
+  default_prompt: "使用 $profit-ledger-registration 将这笔订单登记到利润台账。"

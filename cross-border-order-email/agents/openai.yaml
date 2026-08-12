@@ -1,0 +1,4 @@
+interface:
+  display_name: "跨境订单邮件"
+  short_description: "处理异常订单并生成可确认的双语买家邮件"
+  default_prompt: "使用 $cross-border-order-email 根据订单截图起草异常订单通知邮件。"
