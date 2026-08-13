@@ -1,5 +1,5 @@
 ---
-name: cross-border-order-email
+name: 跨境订单邮件
 description: |
   This skill handles the full workflow of cross-border e-commerce abnormal order email communication.
   Triggered when the user sends an order screenshot and asks to notify the buyer about issues

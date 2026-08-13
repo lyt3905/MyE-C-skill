@@ -1,4 +1,4 @@
 interface:
   display_name: "采购台账登记"
   short_description: "从支付或订单截图提取并登记采购记录"
-  default_prompt: "使用 $purchase-ledger-registration 将这张截图登记到采购台账。"
+  default_prompt: "使用 $采购台账登记 将这张截图登记到采购台账。"
