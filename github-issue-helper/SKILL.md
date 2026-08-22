@@ -101,8 +101,27 @@ Save the draft body to a temp file (e.g. `issue_draft.md`) and pass it via `--bo
 
 After confirmation, re-run WITHOUT `--dry-run`. The script prints the created issue number and URL. Share the URL with the user.
 
+### Step 6: Attach screenshots (when the user wants images in the issue)
+
+**Lesson learned 2026-08-22**: if the target repo is **private**, images committed to that repo will NOT render in the issue —
+GitHub's camo proxy cannot anonymously fetch private-repo files (`raw.githubusercontent.com` returns 404, issue shows the URL as plain text).
+
+To attach a screenshot that actually displays, upload it to the dedicated **public** repo `lyt3905/issue-attachments`
+(created 2026-08-22 as the error-screenshot archive), then reference the raw URL in the issue body:
+
+1. Upload via GitHub Contents API (`PUT /repos/lyt3905/issue-attachments/contents/issues/<name>.png`,
+   body `{"message": "...", "content": "<base64>", "branch": "main"}`).
+2. Get `content.download_url` (format: `https://raw.githubusercontent.com/lyt3905/issue-attachments/main/issues/<name>.png`).
+3. Verify anonymous access: `curl -I <url>` should return `200` and `content-type: image/*`.
+4. Update the issue body (`PATCH /repos/{owner}/{repo}/issues/{n}`) replacing the local path line with
+   `![描述](<raw_url>)`.
+
+The repo is public so the image renders for anyone with issue access. Alternative: ask the user to drag-and-drop
+the image into the GitHub issue editor (GitHub hosts it on `user-images.githubusercontent.com` automatically).
+
 ## Safety Notes
 
 - The GitHub token is read from `~/.git-credentials` at runtime — never hardcode tokens in issue bodies, scripts, or prompts.
 - The script never sends anything without `--dry-run` review + user confirmation.
 - For third-party repos, double-check the `owner/repo` spelling before submitting; a wrong repo sends your issue to a stranger's project.
+- `lyt3905/issue-attachments` is public — do NOT upload sensitive personal data there; only error screenshots and repro images.
