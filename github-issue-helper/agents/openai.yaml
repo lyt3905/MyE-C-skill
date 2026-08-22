@@ -1,0 +1,4 @@
+interface:
+  display_name: "提Issue"
+  short_description: "把问题描述整理成规范 GitHub issue 并提交"
+  default_prompt: "使用 $提Issue 把这个问题整理成规范 issue 草稿，确认后提交到 GitHub。"
