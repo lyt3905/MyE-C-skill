@@ -162,6 +162,8 @@ python scripts/append_purchase_row.py \
 - WPS 保存后 rels 格式为 `Id="rIdN" Type="..." Target="..."`（Id 在 Target 前）；**openpyxl 保存后则是 Target 在前 Id 在后**。解析 rels 时用正则分别抓 Id 和 Target 两个属性再组装 dict，不要假设固定顺序（2026-09-04 实测：固定顺序正则导致误判 rels 为空、以为图片全丢）
 - 修复浮动图 rels 时，重建整个 `<Relationships>` 比逐个替换更可靠
 - **⚠️ hybrid 状态（2026-09-04 实测）**：用户在 WPS 里手动嵌入浮动图后保存，文件会从"纯浮动图"变成"cellimages + drawing1.xml 共存"——部分行是 DISPIMG、部分行是浮动锚点。验证时两类都要查：DISPIMG 行查 cellimages.xml.rels 引用，浮动行查 drawing1.xml 锚点 + drawing1.xml.rels；不要因为 drawing1.xml 锚点变少就误判图片丢失（可能已被嵌入）
+- **⚠️⚠️ openpyxl 保存会覆盖 cellimages 的同名 media（2026-09-04 实测，最隐蔽的坑）**：openpyxl 重存时把自己写的图片命名为 image1..N，直接**覆盖** WPS 嵌入图的同名 media 文件（实测覆盖 5 个：image5/9/11/12/13）。restore_wps_parts 按"名字不存在才加回"合并，被覆盖的原 media 无法恢复 → 历史 DISPIMG 行显示成错图，且**数据/锚点验证全部通过、极难察觉**。修复：`append_purchase_row.py` 已内置 `rename_drawing_media()`——openpyxl 保存后、restore 之前，把 drawing rels 引用的 media 统一改名为 `floatimgK.ext` 再合并。**自写脚本时必须做同样处理**，并且保存后要校验"cellimages rels 每个 target 的 media 字节数与保存前一致"
+- **⚠️ 台账登记行口径（2026-09-04 用户明确）**：一次**合并支付**（一张账单截图覆盖多笔订单）= **登记一行**，商品名用 `+` 连接、数量用 `×N` 标注（先例 row5/13/24/31），采购数量=总件数，单价/合计金额/付款金额 = 账单截图上的付款总额。不要把合并支付的每笔订单拆成多行（那样每行的付款金额与截图对不上）。多行共享同一张订单列表截图+账单图时，P/R 列图插在同一行即可
 
 ### 5. 台账重建 / 清空旧数据（用户约定：只保留格式）
 用户要求"新建为空的，从今天开始登记，去除旧信息"时：

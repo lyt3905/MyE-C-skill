@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 append_purchase_row.py — 向 62店采购台账的「自发货采购登记表」追加一条采购记录
 用法:
   python append_purchase_row.py --file "C:\...\62店8月-采购登记表.xlsx" \
@@ -111,6 +111,49 @@ def restore_wps_parts(zip_path, parts):
     except OSError:
         pass
 
+def rename_drawing_media(zip_path):
+    """openpyxl 保存时会把图片重写为 image1..N，可能覆盖 WPS cellimages 的同名
+    media（2026-09-04 实测覆盖了 5 个：image5/9/11/12/13），导致历史 DISPIMG
+    嵌入图显示成错图。必须在 restore_wps_parts 之前，把 drawing rels 引用的
+    media 统一改名为 floatimgK.ext（不冲突），再合并回原 media。"""
+    z = zipfile.ZipFile(zip_path)
+    items = {n: z.read(n) for n in z.namelist()}
+    z.close()
+    ren_map = {}
+    for rn in [n for n in items if re.match(r"xl/drawings/_rels/drawing\d+\.xml\.rels$", n)]:
+        xml = items[rn].decode("utf-8")
+        mapping = {}
+        for tgt in re.findall(r'Target="([^"]+)"', xml):
+            base = tgt.replace("../", "").lstrip("/")
+            old_media = base if base.startswith("xl/") else "xl/" + base
+            if old_media in ren_map:
+                mapping[tgt] = "../media/" + os.path.basename(ren_map[old_media])
+                continue
+            ext = os.path.splitext(old_media)[1] or ".png"
+            new_media = "xl/media/floatimg%d%s" % (len(ren_map) + 1, ext)
+            ren_map[old_media] = new_media
+            mapping[tgt] = "../media/" + os.path.basename(new_media)
+        for tgt, new_tgt in mapping.items():
+            xml = xml.replace('Target="%s"' % tgt, 'Target="%s"' % new_tgt)
+        items[rn] = xml.encode("utf-8")
+    if not ren_map:
+        return False
+    for old_m, new_m in ren_map.items():
+        if old_m in items:
+            items[new_m] = items.pop(old_m)
+    tmp = zip_path + ".rn"
+    zout = zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED)
+    for n, d in items.items():
+        zout.writestr(n, d)
+    zout.close()
+    shutil.copy2(tmp, zip_path)
+    try:
+        os.remove(tmp)
+    except OSError:
+        pass
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--file", required=True)
@@ -188,8 +231,9 @@ def main():
     wb.save(FILE)
     print(f"已写入第 {row} 行")
 
-    # 加回 WPS 部件
+    # 加回 WPS 部件（先改名浮动图 media 防止覆盖 cellimages 同名文件）
     if wps_parts:
+        rename_drawing_media(FILE)
         restore_wps_parts(FILE, wps_parts)
         print("WPS 嵌入部件(cellimages)已保留")
 
