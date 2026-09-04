@@ -158,9 +158,10 @@ python scripts/append_purchase_row.py \
 6. 我仅做验证（cellimages.xml.rels 引用全部 OK 即通过），不动文件
 
 **技术要点**：
-- WPS 保存后的 drawing1.xml 使用 `xdr:` 前缀命名空间，用 zipfile 直接编辑时要注意匹配 `</xdr:wsDr>` 而非 `</wsDr>`
-- WPS 保存后 rels 格式为 `Id="rIdN" Type="..." Target="..."`（Id 在 Target 前）
+- WPS 保存后的 drawing1.xml 使用 `xdr:` 前缀命名空间，用 zipfile 直接编辑时要注意匹配 `</xdr:wsDr>` 而非 `</wsDr>`；但 openpyxl 写出的 drawing1.xml 用**默认命名空间（无 xdr: 前缀）**，验证锚点的正则必须同时兼容 `<col>` 和 `<xdr:col>`（2026-09-04 实测：同一文件两种格式都出现过）
+- WPS 保存后 rels 格式为 `Id="rIdN" Type="..." Target="..."`（Id 在 Target 前）；**openpyxl 保存后则是 Target 在前 Id 在后**。解析 rels 时用正则分别抓 Id 和 Target 两个属性再组装 dict，不要假设固定顺序（2026-09-04 实测：固定顺序正则导致误判 rels 为空、以为图片全丢）
 - 修复浮动图 rels 时，重建整个 `<Relationships>` 比逐个替换更可靠
+- **⚠️ hybrid 状态（2026-09-04 实测）**：用户在 WPS 里手动嵌入浮动图后保存，文件会从"纯浮动图"变成"cellimages + drawing1.xml 共存"——部分行是 DISPIMG、部分行是浮动锚点。验证时两类都要查：DISPIMG 行查 cellimages.xml.rels 引用，浮动行查 drawing1.xml 锚点 + drawing1.xml.rels；不要因为 drawing1.xml 锚点变少就误判图片丢失（可能已被嵌入）
 
 ### 5. 台账重建 / 清空旧数据（用户约定：只保留格式）
 用户要求"新建为空的，从今天开始登记，去除旧信息"时：
