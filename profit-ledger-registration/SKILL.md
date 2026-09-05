@@ -11,7 +11,7 @@ description: 将跨境电商订单文字信息解析为运营利润字段，并�
 
 ## 台账文件
 
-- **利润表**：`C:\Users\shana\Desktop\62店8月利润表.xlsx`（独立文件，跨月新建）
+- **利润表**：`C:\Users\shana\Desktop\利润表\62店\62店8月利润表.xlsx`（独立文件，跨月新建）
 - **目标 sheet**：运营利润统计表（仅这一个 sheet）
 - **预填结构**：row 1 合并标题，row 2 列名，A/I/J 列公式已预填到约 500 行
 - ⚠️ **交替行背景色**：数据行有白底 `FFFFFFFF` 交替（写入前查看相邻行格式即可确认规律）；row 1 绿底 `FFE2EFD9`；**写入时一律不动颜色**
@@ -54,7 +54,7 @@ description: 将跨境电商订单文字信息解析为运营利润字段，并�
 
 ```python
 import shutil, os, datetime
-fp = r"C:\Users\shana\Desktop\62店8月利润表.xlsx"
+fp = r"C:\Users\shana\Desktop\利润表\62店\62店8月利润表.xlsx"
 bak_dir = r"C:\Users\shana\Desktop\62店台账备份\利润表备份"
 os.makedirs(bak_dir, exist_ok=True)
 ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -74,7 +74,7 @@ shutil.copy2(fp, os.path.join(bak_dir, f"62店8月利润表_{ts}.xlsx"))
 import openpyxl, zipfile, shutil, os
 from datetime import datetime
 
-FILE = r"C:\Users\shana\Desktop\62店8月利润表.xlsx"
+FILE = r"C:\Users\shana\Desktop\利润表\62店\62店8月利润表.xlsx"
 
 # 备份 + 提取 WPS 部件
 parts = {}
@@ -134,7 +134,7 @@ except: pass
 ```bash
 python scripts/verify_unchanged.py \
   --backup "备份目录/62店8月利润表_写入前时间戳.xlsx" \
-  --file "C:\Users\shana\Desktop\62店8月利润表.xlsx" \
+  --file "C:\Users\shana\Desktop\利润表\62店\62店8月利润表.xlsx" \
   --row 19
 ```
 
