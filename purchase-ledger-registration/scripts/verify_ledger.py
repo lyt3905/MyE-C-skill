@@ -89,7 +89,9 @@ def main():
     float_media = set()
     for dn in draw_names:
         d = z.read(dn).decode('utf-8')
-        rels_f = os.path.join(os.path.dirname(dn), '_rels', os.path.basename(dn) + '.rels')
+        # zip 内路径是正斜杠，Windows 下 os.path.join 会产生反斜杠导致匹配失败
+        parts = dn.rsplit('/', 1)
+        rels_f = parts[0] + '/_rels/' + parts[1] + '.rels' if len(parts) == 2 else '_rels/' + dn + '.rels'
         drels = parse_rels(z.read(rels_f).decode('utf-8')) if rels_f in names else {}
         for t in drels.values():
             float_media.add(norm_media(t))
