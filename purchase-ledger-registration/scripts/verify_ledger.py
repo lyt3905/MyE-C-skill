@@ -176,6 +176,23 @@ def main():
     else:
         check(True, '无数据行(仅表头)')
 
+    # --- 数量×单价=合计 (H×I=J) ---
+    bad_hij = []
+    for r in range(2, ws.max_row + 1):
+        name = ws.cell(r, 6).value
+        if name in (None, ''):
+            continue
+        h = ws.cell(r, 8).value
+        i = ws.cell(r, 9).value
+        j = ws.cell(r, 10).value
+        if not all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in (h, i, j)):
+            bad_hij.append((r, h, i, j, '非数字'))
+            continue
+        if abs(h * i - j) > 0.02:  # 0.02 容差吸收单价两位小数的四舍五入尾差（如 3×66.7 vs 200.11）
+            bad_hij.append((r, h, i, j, f'H×I={round(h*i,2)}'))
+    check(not bad_hij, '数量×单价=合计 (H×I=J)'
+          + ('; 不等: ' + str(bad_hij[:5]) if bad_hij else ''))
+
     check(not dispimg_bad_col, f'DISPIMG 嵌入图单元格均在 P/Q/R 列'
           + (f'; 错位: {dispimg_bad_col}' if dispimg_bad_col else ''))
 
