@@ -195,9 +195,19 @@ def main():
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
     center = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
+    # 样式来源：优先继承上一行同列单元格的完整样式（字体/边框/对齐/数字格式），
+    # 保证新行与历史行视觉一致；上一行是默认样式时才退回硬编码样式
+    from copy import copy as _copy
+    tpl_row = row - 1 if row > 2 else None
+
     for i, v in enumerate(data, 1):
         v = parse_date(v)
         c = ws.cell(row=row, column=i, value=v)
+        if tpl_row is not None:
+            tpl = ws.cell(row=tpl_row, column=i)
+            if tpl.has_style:
+                c._style = _copy(tpl._style)
+                continue
         c.font = body_font
         c.border = border
         c.alignment = center
