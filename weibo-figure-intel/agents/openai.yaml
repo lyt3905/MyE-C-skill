@@ -1,0 +1,4 @@
+interface:
+  display_name: "手办情报"
+  short_description: "从关注微博中提取手办与可动人偶新品/开订情报"
+  default_prompt: "使用 $手办情报 抓取我关注的人最近发的微博，提取手办和可动人偶的新品、开订、发售情报，生成简报。"

@@ -1,0 +1,9 @@
+{
+  "whitelist": [],
+  "blacklist": [],
+  "_comment": [
+    "whitelist: 免关键词过滤、全部进入精抽的账号 UID",
+    "blacklist: 直接跳过、不产生任何请求的账号 UID",
+    "两者都填 UID（字符串），可从 data/following-*.json 里查"
+  ]
+}
