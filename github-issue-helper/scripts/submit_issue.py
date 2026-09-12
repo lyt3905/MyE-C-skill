@@ -68,7 +68,7 @@ def detect_repo_from_git():
         m = re.search(r"(?:github\.com[:/])([^/\s]+)/([^/\s]+?)(?:\.git)?$", url)
         if m:
             return f"{m.group(1)}/{m.group(2)}"
-        # gitee or other hosts: owner/repo after the last '/'
+        # other hosts: owner/repo is the last two path segments
         m = re.search(r"[:/]([^/\s]+)/([^/\s]+?)(?:\.git)?$", url)
         if m:
             return f"{m.group(1)}/{m.group(2)}"
