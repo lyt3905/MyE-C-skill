@@ -92,11 +92,12 @@ If any required field cannot be read from the screenshot, ask the user.
 
 ### Step 2: Determine the Scenario
 
-Ask the user or infer from context. Three scenarios exist:
+Ask the user or infer from context. Four scenarios exist:
 
 1. **scenario_1** — Pre-order delay / Out of stock → Request cancellation
 2. **scenario_2** — Partial defect / No box → Request to keep (fast ship + cash compensation)
 3. **scenario_3** — Logistics issue / Delivery failed → Urge buyer to contact local post
+4. **scenario_4_po_box** — Address not deliverable (PO Box / 备注「地址不可达」) → Ask buyer for a physical street address, otherwise cancel for a full refund
 
 ### Step 3: Generate the Email
 
@@ -235,6 +236,15 @@ These rules were established through user feedback and must be followed exactly.
 | scenario_1 (out of stock) | `Aliexpress Order Update: [Order#] About [Product]` | 缺货通知（客户模板） |
 | scenario_2 | Item Condition Notice & Special Offer | 商品瑕疵说明及补偿方案 |
 | scenario_3 | Urgent: Delivery Issue - Action Required | 紧急物流问题通知 |
+| scenario_4_po_box | `[Platform] Order [Order#]: Address Issue - PO Box Not Deliverable` | 收货地址问题：邮政信箱无法投递 |
+
+**scenario_4_po_box style (added 2026-09-12)**: same clean style as scenario_1 —
+"Dear Valued Customer," + "Hope you are doing well.", no `<b>` tags, **no discount/
+compensation line** (the address problem is on the buyer's side). Ask for a physical
+street address first, offer local-post-office pickup as an alternative, and only then
+fall back to "please cancel this order directly on AliExpress, and you will be fully
+refunded." Trigger keywords in the order note: `pos地址不可达` / `地址不可达` /
+address is a `PO Box`.
 
 ## SMTP Configuration
 

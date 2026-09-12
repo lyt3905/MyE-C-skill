@@ -5,6 +5,7 @@ Scenarios:
 - scenario_1_preorder: Pre-order Delay & Cancellation Notice / 预售商品无法发货通知
 - scenario_2: Item Condition Notice & Special Offer / 商品瑕疵说明及补偿方案
 - scenario_3: Urgent: Delivery Issue - Action Required / 紧急物流问题通知
+- scenario_4_po_box: Address Issue - PO Box Not Deliverable / 收货地址问题（邮政信箱无法投递）
 """
 
 from dataclasses import dataclass
@@ -130,6 +131,42 @@ def generate_email(scenario_key: str, order: OrderInfo) -> dict:
             f"就您在 {platform} 的订单 {order_number}{product_line} 出现的物流问题，我们非常抱歉。"
             "包裹似乎停留在您当地邮局，待领取或未能成功投递。<br><br>"
             "请尽快联系您当地邮局安排领取或重新投递。如需帮助，请联系 AliExpress 客服。<br><br>"
+            "此致，<br>"
+            "客服团队"
+        )
+
+    elif scenario_key in ("scenario_4_po_box", "scenario_4"):
+        # PO Box / 地址不可达（新增 2026-09-12）：买家下单地址为 PO Box 或物流渠道
+        # 无法投递，请买家提供实体街道地址；若无法更改则取消订单全额退款。
+        # 风格与 scenario_1 保持一致：Dear Valued Customer + Hope you are doing well，
+        # 无 <b> 标签，无折扣补偿承诺。
+        product_ref = order.product_name or "your item"
+        subject = (
+            f"{platform} Order {order_number}: "
+            "Address Issue - PO Box Not Deliverable / 收货地址问题：邮政信箱无法投递"
+        )
+        body_en = (
+            "Dear Valued Customer,<br><br>"
+            "Hope you are doing well.<br><br>"
+            f"We are writing regarding your item {product_ref} (Order No. {order_number}). "
+            "Our shipping channel cannot deliver to a PO Box address, so we are unable to "
+            "ship your parcel to the address shown on the order.<br><br>"
+            "Could you please provide a physical street address for delivery? If you prefer, "
+            "you may also confirm that you can collect the parcel from your local post office.<br><br>"
+            "If the address cannot be changed, please cancel this order directly on AliExpress, "
+            "and you will be fully refunded.<br><br>"
+            "Please feel free to contact us if you have any questions.<br><br>"
+            "Best regards,<br>"
+            "Customer Service Team"
+        )
+        body_cn = (
+            "尊敬的客户：<br><br>"
+            "希望您一切安好。<br><br>"
+            f"我们写信是关于您的商品 {product_ref}（订单号 {order_number}）。"
+            "我们的物流渠道无法投递至邮政信箱（PO Box）地址，因此无法按订单上的地址为您发货。<br><br>"
+            "能否请您提供一个实体的街道收货地址？如果您更方便，也可以确认您能到当地邮局自行领取包裹。<br><br>"
+            "如果地址无法更改，请直接在 AliExpress 上取消此订单，款项将全额退回。<br><br>"
+            "如有任何问题，欢迎随时联系我们。<br><br>"
             "此致，<br>"
             "客服团队"
         )
