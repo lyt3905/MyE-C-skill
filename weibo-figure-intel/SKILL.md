@@ -30,7 +30,7 @@ agent_created: true
 | `output/手办情报-YYYY-MM-DD.html` | **浏览器阅读**。按情报类型分节，**每条情报独占一行**（左栏正文，右栏缩略图 / 元信息 / 来源按钮）。右栏顶部放最多 3 张配图缩略图，多余用 `+N` 角标；**点缩略图弹出放大预览**，同一条情报的全部配图可左右翻页（← → / 触屏滑动 / Esc 关闭）。支持关键词搜索与类型/相关度筛选，分组标题随筛选自动隐藏空组，标题与按钮均可直达微博原帖 |
 | `output/手办情报-YYYY-MM-DD.md` | 存档、粘贴进对话、二次加工（来源列标注配图张数） |
 
-> ⚠️ **配图必须下载到本地**，不能外链——微博图床会 403，原因见「已知限制」第 9 条。
+> ⚠️ **配图必须下载到本地**，不能外链——微博图床会 403，原因见「已知限制」第 8 条。
 > HTML 里的缩略图以 base64 内嵌（保证单文件也有图可看），放大预览图走
 > `output/media/view/` 相对路径。**交付时要连 `media/` 目录一起给**，否则预览会提示图片没加载。
 
@@ -73,9 +73,11 @@ agent_created: true
 
 使用管理版 Python 运行脚本：
 
-```
+```bash
 PY="C:/Users/shana/.workbuddy/binaries/python/versions/3.13.12/python.exe"
 SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
+# 精抽产物：把日期换成当天，后续所有命令统一用它
+INTEL="$SKILL/data/intel-$(date +%F).json"
 ```
 
 | 文件 | 作用 |
@@ -173,10 +175,10 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 
 ```bash
 # 只回填 images[] 字段（离线，秒级）
-"$PY" "$SKILL/scripts/attach_media.py" --input "$SKILL/data/intel-2026-09-12.json" --dry-run
+"$PY" "$SKILL/scripts/attach_media.py" --input "$INTEL" --dry-run
 
 # 回填并抓图到 output/media/{thumb,view}/
-"$PY" "$SKILL/scripts/attach_media.py" --input "$SKILL/data/intel-2026-09-12.json" --download
+"$PY" "$SKILL/scripts/attach_media.py" --input "$INTEL" --download
 ```
 
 **默认全离线**：scan 阶段已把微博原文（含 `pics` / `retweeted.pics`）落进
@@ -194,14 +196,16 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 | `output/media/thumb/` | `/orj360/`（约 15KB） | 每条第 1–3 张 | 行内缩略图，被 base64 内嵌进 HTML |
 | `output/media/view/` | `/orj960/`（约 70KB） | 全部 | 点缩略图放大预览 |
 
+### 第 5 步：生成简报
+
 先校验再生成：
 
 ```bash
-"$PY" "$SKILL/scripts/build_digest.py" --input "$SKILL/data/intel-2026-09-12.json" --validate-only
+"$PY" "$SKILL/scripts/build_digest.py" --input "$INTEL" --validate-only
 # 默认同时产出 .md 与 .html
-"$PY" "$SKILL/scripts/build_digest.py" --input "$SKILL/data/intel-2026-09-12.json"
+"$PY" "$SKILL/scripts/build_digest.py" --input "$INTEL"
 # 只要其中一种
-"$PY" "$SKILL/scripts/build_digest.py" --input xxx.json --format html
+"$PY" "$SKILL/scripts/build_digest.py" --input "$INTEL" --format html
 ```
 
 生成后会打印本地图片到位情况（`配图：N 条带图，本地 media/view 已有 M 张`），
@@ -211,7 +215,7 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 第一项**展示给用户——它在内置浏览器面板里可直接预览，点卡片底部按钮即跳转原博。
 若用户明确只要某一种格式，用 `--format md|html|both` 控制。
 
-### 第 5 步：回报与调优
+### 第 6 步：回报与调优
 
 汇报时包含：抓取账号数 / 新增微博数 / 通过粗筛数 / 情报条数 / 高相关条数 / 带配图条数 /
 简报路径（HTML 与 MD 各一份）。展示结果时把 HTML 放在 `present_files` 的第一项。
