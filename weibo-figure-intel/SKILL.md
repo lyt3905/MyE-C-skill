@@ -215,6 +215,9 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 第一项**展示给用户——它在内置浏览器面板里可直接预览，点卡片底部按钮即跳转原博。
 若用户明确只要某一种格式，用 `--format md|html|both` 控制。
 
+> 💡 首次生成或改动过渲染层（`build_digest.py`）后，**先按下面「本地验证」一节截图自检**，
+> 确认缩略图、放大预览、筛选都正常再交付。
+
 ### 第 6 步：回报与调优
 
 汇报时包含：抓取账号数 / 新增微博数 / 通过粗筛数 / 情报条数 / 高相关条数 / 带配图条数 /
@@ -248,6 +251,60 @@ New-Item -ItemType Junction -Path "<目标目录>\media" -Target "$SKILL\output\
 - `terms.negative`：抽奖、招聘、带货等营销词，命中扣分
 
 新增厂商或产品线时，优先加到 `brand` / `line`（权重高、判定准），不要加到 `core`。
+
+## 本地验证（交付前自检）
+
+简报是给人看的，**生成完必须亲眼看过再交付**。HTML 里字段名写错、图片没出来、筛选失效
+这类问题脚本一律不报错（未知字段是静默忽略的），只有看图才发现得了。
+
+### 1. 起预览服务
+
+8765 这类常见端口可能被 WorkBuddy 自身服务占用（会返回 `404 application/json`），
+**换一个高位端口**：
+
+```bash
+cd "$SKILL/output" && "$PY" -m http.server 8912 --bind 127.0.0.1
+```
+
+`file://` 直接双击打开也可以（本地图能正常加载，已实测），但走 HTTP 更接近真实浏览环境。
+
+### 2. Edge 无头截图看排版
+
+`agent-browser` 在本机会被 SIGTERM 打断，**改用 Edge 命令行截图最稳**：
+
+```bash
+"/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
+  --headless=new --disable-gpu --no-first-run --hide-scrollbars \
+  --window-size=1400,1500 --virtual-time-budget=20000 \
+  --user-data-dir="<临时目录>" --screenshot="<输出.png>" \
+  "http://127.0.0.1:8912/xxx.html"
+```
+
+- `--virtual-time-budget=20000` 要给足，太小会截到图片还没加载完的空白
+- 换 `--window-size=560,1100` 复检窄屏（缩略图折行、右栏转横排）
+- 截完用 Read 工具看图，肉眼确认缩略图、标题链接、筛选条是否正常
+
+### 3. 验证交互组件（缩略图放大预览）
+
+静态截图看不到点击后的状态。**往 HTML 注入一段自动点击脚本**再截即可：
+
+```bash
+"$PY" -c "
+s = open('xxx.html', encoding='utf-8').read()
+s = s.replace('</body>',
+  '<script>setTimeout(function(){document.querySelector(\".thumb\").click();},600);</script>\n</body>', 1)
+open('_lb.html', 'w', encoding='utf-8').write(s)"
+```
+
+对 `_lb.html` 截图，就能看到弹层、`1 / 18` 计数、左右导航是否正常。验证完删掉 `_lb.html`。
+
+### 4. 收尾
+
+- **预览服务用 `TaskStop` 停，不要用外部 `Stop-Process` kill。** 外部 kill 会让面板留下
+  「僵尸条目」，一直显示"已运行 XXmXXs"，而 `TaskStop` 事后又清不掉（报 `not found`），
+  只能重启应用。⚠️ 面板上那个计时**不代表进程还在**——查 `tasklist` 和端口才是准的。
+- 临时截图目录（如 `_shots/`）**用完即删**——无头浏览器的 `--user-data-dir` 很占地方，
+  实测跑一轮截图能到 99MB。
 
 ## 已知限制
 
