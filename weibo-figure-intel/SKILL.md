@@ -6,7 +6,8 @@ description: |
   announcements, pre-orders, release dates, re-releases, delays, exhibitions and photo reviews.
   It fetches posts with the user's Weibo login cookie, pre-filters them against a curated
   keyword lexicon, has the agent structure the surviving posts into intel records, and renders
-  a Markdown digest grouped by intel type.
+  a digest grouped by intel type — both Markdown and a self-contained HTML file with
+  clickable links back to the original Weibo posts.
   Triggered when the user asks for 手办情报 / 可动人偶情报 / figure news, says things like
   "看看今天有什么手办情报", "微博上有没有新开订的手办", "抓一下我关注的手办号",
   "collect figure news from Weibo", or wants to tune the intel keyword lexicon.
@@ -18,8 +19,15 @@ agent_created: true
 ## Purpose
 
 从用户关注的微博账号中采集微博，筛出与动漫手办 / 可动人偶相关的情报，抽取成结构化
-字段，产出按情报类型分组的 Markdown 简报。目标是将"刷微博找新品/开订信息"这一动作
-自动化，服务于店铺选品。
+字段，产出按情报类型分组的简报。目标是将"刷微博找新品/开订信息"这一动作自动化，
+服务于店铺选品。
+
+简报默认产出两种格式：
+
+| 格式 | 用途 |
+|---|---|
+| `output/手办情报-YYYY-MM-DD.html` | **浏览器阅读**。单文件、无外部依赖，卡片式布局，支持关键词搜索与类型/相关度筛选，每条带「打开原博」按钮直达微博原帖 |
+| `output/手办情报-YYYY-MM-DD.md` | 存档、粘贴进对话、二次加工 |
 
 ## Trigger
 
@@ -69,7 +77,7 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 |---|---|
 | `scripts/weibo_fetch.py` | 校验登录态、拉取关注列表、按账号抓取微博增量、SQLite 去重 |
 | `scripts/prefilter.py` | 用 `scripts/lexicon.json` 打分粗筛，输出候选情报 |
-| `scripts/build_digest.py` | 校验结构化情报 JSON 并渲染 Markdown 简报 |
+| `scripts/build_digest.py` | 校验结构化情报 JSON，渲染 Markdown + HTML 简报（HTML 自带搜索/筛选与原博链接） |
 | `scripts/lexicon.json` | 手办情报词库与权重，**主要调优入口** |
 | `scripts/watchlist.json` | 白名单 / 黑名单账号 UID |
 | `references/intel-schema.md` | 精抽输出的字段定义与判定口径 |
@@ -159,14 +167,20 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 
 ```bash
 "$PY" "$SKILL/scripts/build_digest.py" --input "$SKILL/data/intel-2026-09-12.json" --validate-only
+# 默认同时产出 .md 与 .html
 "$PY" "$SKILL/scripts/build_digest.py" --input "$SKILL/data/intel-2026-09-12.json"
+# 只要其中一种
+"$PY" "$SKILL/scripts/build_digest.py" --input xxx.json --format html
 ```
 
-产出 `output/手办情报-YYYY-MM-DD.md`，用 `present_files` 展示给用户。
+产出 `output/手办情报-YYYY-MM-DD.html` 与 `.md`。**用 `present_files` 把 HTML 排在
+第一项**展示给用户——它在内置浏览器面板里可直接预览，点卡片底部按钮即跳转原博。
+若用户明确只要某一种格式，用 `--format md|html|both` 控制。
 
 ### 第 5 步：回报与调优
 
-汇报时包含：抓取账号数 / 新增微博数 / 通过粗筛数 / 情报条数 / 高相关条数 / 简报路径。
+汇报时包含：抓取账号数 / 新增微博数 / 通过粗筛数 / 情报条数 / 高相关条数 / 简报路径
+（HTML 与 MD 各一份）。展示结果时把 HTML 放在 `present_files` 的第一项。
 
 根据用户反馈调优：
 
