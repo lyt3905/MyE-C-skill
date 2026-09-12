@@ -98,6 +98,7 @@ Ask the user or infer from context. Four scenarios exist:
 2. **scenario_2** — Partial defect / No box → Request to keep (fast ship + cash compensation)
 3. **scenario_3** — Logistics issue / Delivery failed → Urge buyer to contact local post
 4. **scenario_4_po_box** — Address not deliverable (PO Box / 备注「地址不可达」) → Ask buyer for a physical street address, otherwise cancel for a full refund
+5. **scenario_5_repack_delay** — Damage found while packing, replacement being prepared → Notify shipping delay + ask buyer to extend the delivery time (users often hand over a rough口语 draft; polish it into the standard style)
 
 ### Step 3: Generate the Email
 
@@ -237,6 +238,7 @@ These rules were established through user feedback and must be followed exactly.
 | scenario_2 | Item Condition Notice & Special Offer | 商品瑕疵说明及补偿方案 |
 | scenario_3 | Urgent: Delivery Issue - Action Required | 紧急物流问题通知 |
 | scenario_4_po_box | `[Platform] Order [Order#]: Address Issue - PO Box Not Deliverable` | 收货地址问题：邮政信箱无法投递 |
+| scenario_5_repack_delay | `[Platform] Order [Order#]: Shipping Delay Notice - Please Extend Delivery Time` | 发货延期通知：请延长收货时间 |
 
 **scenario_4_po_box style (added 2026-09-12)**: same clean style as scenario_1 —
 "Dear Valued Customer," + "Hope you are doing well.", no `<b>` tags, **no discount/
@@ -245,6 +247,13 @@ street address first, offer local-post-office pickup as an alternative, and only
 fall back to "please cancel this order directly on AliExpress, and you will be fully
 refunded." Trigger keywords in the order note: `pos地址不可达` / `地址不可达` /
 address is a `PO Box`.
+
+**scenario_5_repack_delay style (added 2026-09-12)**: same clean style as scenario_1/4 —
+"Dear Valued Customer," + "Hope you are doing well.", no `<b>` tags, **no discount/compensation
+line**. Structure: ① 原本已备好 ② 打包时发现损坏 ③ 出于负责将重新备货 ④ 发货会延迟 + 致歉
+⑤ 请买家在订单页延长收货时间，避免系统自动关单。Clean up grammar when the user hands over a
+freehand draft (e.g. "tell you that you some damage" → "some damage was found"), and never copy
+the typo verbatim.
 
 ## SMTP Configuration
 

@@ -6,6 +6,7 @@ Scenarios:
 - scenario_2: Item Condition Notice & Special Offer / 商品瑕疵说明及补偿方案
 - scenario_3: Urgent: Delivery Issue - Action Required / 紧急物流问题通知
 - scenario_4_po_box: Address Issue - PO Box Not Deliverable / 收货地址问题（邮政信箱无法投递）
+- scenario_5_repack_delay: Shipping Delay Notice (repacking) / 发货延期通知（重新备货）
 """
 
 from dataclasses import dataclass
@@ -166,6 +167,41 @@ def generate_email(scenario_key: str, order: OrderInfo) -> dict:
             "我们的物流渠道无法投递至邮政信箱（PO Box）地址，因此无法按订单上的地址为您发货。<br><br>"
             "能否请您提供一个实体的街道收货地址？如果您更方便，也可以确认您能到当地邮局自行领取包裹。<br><br>"
             "如果地址无法更改，请直接在 AliExpress 上取消此订单，款项将全额退回。<br><br>"
+            "如有任何问题，欢迎随时联系我们。<br><br>"
+            "此致，<br>"
+            "客服团队"
+        )
+
+    elif scenario_key in ("scenario_5_repack_delay", "scenario_5"):
+        # 打包发现损坏 → 重新备货 → 发货延期 + 请买家延长收货时间
+        # （新增 2026-09-12，源于主人手写草稿的口语化版本，此处润色为规范邮件）
+        # 风格：Dear Valued Customer + Hope you are doing well，无 <b>、无折扣补偿承诺。
+        product_ref = order.product_name or "your item"
+        subject = (
+            f"{platform} Order {order_number}: "
+            "Shipping Delay Notice - Please Extend Delivery Time / 发货延期通知：请延长收货时间"
+        )
+        body_en = (
+            "Dear Valued Customer,<br><br>"
+            "Hope you are doing well.<br><br>"
+            f"We are writing regarding your item {product_ref} (Order No. {order_number}). "
+            "Your product was originally ready, but some damage was found during packing. "
+            "Out of responsibility to our customers, we will prepare a new item for you.<br><br>"
+            "Therefore the shipping time may be slightly delayed. We sincerely apologize for the "
+            "inconvenience.<br><br>"
+            "Could you please extend the delivery time on your order, so that it will not be closed "
+            "by the system? We would really appreciate your help.<br><br>"
+            "Please feel free to contact us if you have any questions.<br><br>"
+            "Best regards,<br>"
+            "Customer Service Team"
+        )
+        body_cn = (
+            "尊敬的客户：<br><br>"
+            "希望您一切安好。<br><br>"
+            f"我们写信是关于您的商品 {product_ref}（订单号 {order_number}）。"
+            "您的商品原本已经备好，但在打包时发现有损坏。出于对客户负责，我们将为您重新准备一件新商品。<br><br>"
+            "因此发货时间可能会有所延迟，对此我们深表歉意。<br><br>"
+            "能否请您为订单延长收货时间，以免订单被系统自动关闭？非常感谢您的帮助。<br><br>"
             "如有任何问题，欢迎随时联系我们。<br><br>"
             "此致，<br>"
             "客服团队"
