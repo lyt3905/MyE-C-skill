@@ -230,6 +230,14 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
 
 /* 卡片 */
 main{padding:20px 0 60px}
+.group{margin-bottom:26px}
+.group h2{display:flex;align-items:center;gap:9px;margin:0 0 13px;
+  padding-bottom:9px;border-bottom:1px solid var(--line);font-size:15px;
+  font-weight:650;letter-spacing:.2px}
+.group h2 .gn{color:var(--ink3);font-size:12.5px;font-weight:400}
+.group h2 .gbar{margin-left:auto;height:3px;width:38px;border-radius:2px;
+  background:#e9edf3}
+.group.off{display:none}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
   gap:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
@@ -287,6 +295,7 @@ HTML_JS = """
 (function(){
   var q = document.getElementById('q');
   var cards = [].slice.call(document.querySelectorAll('.card'));
+  var groups = [].slice.call(document.querySelectorAll('.group'));
   var typeChips = [].slice.call(document.querySelectorAll('[data-type-chip]'));
   var relChips  = [].slice.call(document.querySelectorAll('[data-rel-chip]'));
   var out = document.getElementById('count');
@@ -306,6 +315,14 @@ HTML_JS = """
       var ok = match(c);
       c.style.display = ok ? '' : 'none';
       if (ok) n++;
+    });
+    // 分组标题随筛选联动：组内没有可见卡片就整组隐藏
+    groups.forEach(function(g){
+      var vis = 0;
+      [].slice.call(g.querySelectorAll('.card')).forEach(function(c){
+        if (c.style.display !== 'none') vis++;
+      });
+      g.classList.toggle('off', vis === 0);
     });
     out.textContent = '显示 ' + n + ' / ' + cards.length + ' 条';
     empty.style.display = n ? 'none' : '';
@@ -356,7 +373,7 @@ HTML_TPL = """<!DOCTYPE html>
   </div>
 </header>
 <main class="wrap">
-  <div class="grid" id="grid">__CARDS__</div>
+  <div id="groups">__SECTIONS__</div>
   <div class="empty" id="empty" style="display:none">没有匹配的情报，换个关键词或筛选条件试试。</div>
   <div class="legend">__LEGEND__　·　点击卡片底部的按钮可跳转原始微博（需在浏览器登录微博）。</div>
 </main>
@@ -384,10 +401,20 @@ def render_html(data, items, date):
     if high_n:
         rel_chips.append(f'<button class="chip" data-rel-chip="高">仅高相关 {high_n}</button>')
 
-    cards = []
+    sections = []
     for t in ordered_types:
-        for it in sorted(groups[t], key=lambda x: RELEVANCE_ORDER.get(x["_rel"], 3)):
-            cards.append(render_card(it))
+        inner = "\n".join(
+            render_card(it)
+            for it in sorted(groups[t], key=lambda x: RELEVANCE_ORDER.get(x["_rel"], 3))
+        )
+        badge = TYPE_CLASS.get(t, "t-other")
+        sections.append(
+            f'<section class="group" data-group="{htmllib.escape(t, quote=True)}">'
+            f'<h2><span class="badge {badge}">{htmllib.escape(t)}</span>'
+            f'<span class="gn">{len(groups[t])} 条</span>'
+            f'<span class="gbar"></span></h2>'
+            f'<div class="grid">{inner}</div></section>'
+        )
 
     stats = [f'共 <b>{len(items)}</b> 条情报']
     if high_n:
@@ -408,7 +435,7 @@ def render_html(data, items, date):
             .replace("__STATS__", "".join(f"<span>{s}</span>" for s in stats))
             .replace("__TYPECHIPS__", "".join(chips))
             .replace("__RELCHIPS__", "".join(rel_chips))
-            .replace("__CARDS__", "\n".join(cards))
+            .replace("__SECTIONS__", "\n".join(sections))
             .replace("__LEGEND__", "*由 weibo-figure-intel 生成，数据取自微博关注列表*"))
 
 
