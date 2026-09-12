@@ -269,6 +269,12 @@ main{padding:20px 0 60px}
 .card h3{margin:0;font-size:15.5px;line-height:1.45;font-weight:650}
 .card h3 .brand{color:var(--ink)}
 .card h3 .line{color:var(--ink2);font-weight:500;font-size:13.5px}
+/* 标题本身即链接：点标题也能跳原博 */
+.card h3 a{color:inherit;text-decoration:none;cursor:pointer}
+.card h3 a:hover{color:var(--accent);text-decoration:underline;
+  text-underline-offset:3px}
+.card h3 a:focus-visible{outline:2px solid var(--accent-soft);
+  border-radius:3px}
 .sum{margin:0;color:var(--ink2);font-size:13.5px}
 .facts{display:flex;flex-wrap:wrap;gap:6px;margin:1px 0 0}
 .facts i{font-style:normal;background:var(--bg);border:1px solid var(--line);
@@ -503,6 +509,10 @@ def render_card(it):
 
     # 第二行：左栏正文，右栏固定宽度放元信息与来源按钮
     parts.append('<div class="body"><div class="main">')
+    if url:
+        href = htmllib.escape(url, quote=True)
+        title = (f'<a href="{href}" target="_blank" rel="noopener noreferrer"'
+                 f' title="打开原博查看原文与原图">{title}</a>')
     parts.append(f'<h3>{title}</h3>')
     if e("summary"):
         parts.append(f'<p class="sum">{e("summary")}</p>')
