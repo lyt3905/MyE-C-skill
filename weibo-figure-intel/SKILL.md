@@ -257,16 +257,26 @@ New-Item -ItemType Junction -Path "<目标目录>\media" -Target "$SKILL\output\
 简报是给人看的，**生成完必须亲眼看过再交付**。HTML 里字段名写错、图片没出来、筛选失效
 这类问题脚本一律不报错（未知字段是静默忽略的），只有看图才发现得了。
 
-### 1. 起预览服务
+### 1. 不需要起服务（默认走 `file://`）
 
-8765 这类常见端口可能被 WorkBuddy 自身服务占用（会返回 `404 application/json`），
-**换一个高位端口**：
+⚠️ **本 skill 的常规运行不需要任何服务。** 交付环节用 `present_files` 展示即可——
+WorkBuddy 会自己起内置预览面板，关掉即自动释放，不需要手动做任何事。
+
+自检截图也**默认用 `file://` 直接打开**，本地图能正常加载（含放大预览，已实测）：
+
+```bash
+cp "手办情报-YYYY-MM-DD.html" _preview.html   # 先复制成 ASCII 名，中文名在 file:// URL 里要编码，容易出岔
+```
+
+只有当需要复现真实 HTTP 环境（调试跨域、Service Worker 之类）时，才临时起服务，
+且**必须换一个高位端口**——8765 这类常见端口可能被 WorkBuddy 自身占用
+（会返回 `404 application/json`），起了也白起：
 
 ```bash
 cd "$SKILL/output" && "$PY" -m http.server 8912 --bind 127.0.0.1
 ```
 
-`file://` 直接双击打开也可以（本地图能正常加载，已实测），但走 HTTP 更接近真实浏览环境。
+起过服务的话，用完务必按第 4 节的方式停掉。
 
 ### 2. Edge 无头截图看排版
 
@@ -277,8 +287,10 @@ cd "$SKILL/output" && "$PY" -m http.server 8912 --bind 127.0.0.1
   --headless=new --disable-gpu --no-first-run --hide-scrollbars \
   --window-size=1400,1500 --virtual-time-budget=20000 \
   --user-data-dir="<临时目录>" --screenshot="<输出.png>" \
-  "http://127.0.0.1:8912/xxx.html"
+  "file:///C:/<HTML 所在目录>/_preview.html"
 ```
+
+（若已起了 HTTP 服务，把最后一行换成 `"http://127.0.0.1:8912/_preview.html"` 亦可。）
 
 - `--virtual-time-budget=20000` 要给足，太小会截到图片还没加载完的空白
 - 换 `--window-size=560,1100` 复检窄屏（缩略图折行、右栏转横排）
@@ -300,11 +312,12 @@ open('_lb.html', 'w', encoding='utf-8').write(s)"
 
 ### 4. 收尾
 
-- **预览服务用 `TaskStop` 停，不要用外部 `Stop-Process` kill。** 外部 kill 会让面板留下
-  「僵尸条目」，一直显示"已运行 XXmXXs"，而 `TaskStop` 事后又清不掉（报 `not found`），
+- **若起过 HTTP 服务**：用 `TaskStop` 停，不要用外部 `Stop-Process` kill。外部 kill 会让
+  面板留下「僵尸条目」，一直显示"已运行 XXmXXs"，而 `TaskStop` 事后又清不掉（报 `not found`），
   只能重启应用。⚠️ 面板上那个计时**不代表进程还在**——查 `tasklist` 和端口才是准的。
-- 临时截图目录（如 `_shots/`）**用完即删**——无头浏览器的 `--user-data-dir` 很占地方，
-  实测跑一轮截图能到 99MB。
+  **不起服务就没有这一节的烦恼，这也是默认走 `file://` 的原因之一。**
+- 临时文件**用完即删**：截图目录 `_shots/`，以及复制出来的 `_preview.html` / `_lb.html`。
+  无头浏览器的 `--user-data-dir` 很占地方，实测跑一轮截图能到 99MB。
 
 ## 已知限制
 
