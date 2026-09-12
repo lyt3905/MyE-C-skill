@@ -1,5 +1,6 @@
 {
-  "cookie": "SUB=在这里粘贴你的SUB值; SUBP=如果有也一起贴上",
-  "_how_to_get": "浏览器登录 weibo.com → F12 → Application/存储 → Cookies → https://weibo.com → 复制 SUB 的值",
+  "cookie": "SUB=在这里粘贴 SUB 的值",
+  "_how_to_get": "Edge/Chrome 登录 weibo.com → F12 → 应用程序/Application → 存储 → Cookie → https://weibo.com → 复制 Domain 为 .weibo.com 的那一行 SUB",
+  "_caution": "Cookie 表里可能有多行 SUB（.sina.com.cn / .weibo.com / .weibo.cn），值不一定相同；只有 .weibo.com 那一行能通过 weibo.com 桌面端接口的登录校验",
   "_note": "本文件含登录凭据，已被 .gitignore 排除，不会提交到仓库"
 }

@@ -35,11 +35,24 @@ agent_created: true
 1. **微博登录 Cookie**（必需）。存放于 `scripts/wb_cookie.json`，格式：
 
    ```json
-   { "cookie": "SUB=xxxxx; SUBP=xxxxx" }
+   { "cookie": "SUB=xxxxx" }
    ```
 
-   获取方式：浏览器登录 weibo.com → F12 → Application/存储 → Cookies → `https://weibo.com`
-   → 复制 `SUB` 的值。该文件已在 `.gitignore` 中排除，不会进入仓库。
+   获取方式：**Edge / Chrome** 登录 `weibo.com` → `F12` → 「应用程序 / Application」→
+   存储 → Cookie → `https://weibo.com` → 复制 **Domain 为 `.weibo.com` 的那一行 `SUB`**。
+
+   ⚠️ 两个坑：
+
+   - `SUB` 是 **HttpOnly**，在 Console 里敲 `document.cookie` 取不到，必须在
+     「应用程序 / Application」面板里看。
+   - Cookie 表里可能有多行 `SUB`（Domain 为 `.sina.com.cn` / `.weibo.com` / `.weibo.cn`），
+     **它们的值不一定相同**。只有 `.weibo.com` 那一行的值能通过 `weibo.com` 桌面端接口的
+     登录校验——实测中 `.sina.com.cn` 的同名 `SUB` 会返回 `ok:-100`（未登录）。
+
+   更省事的替代路径：`F12` → 「网络」→ `F5` 刷新 → 右键任一请求 → 「以 cURL 格式复制」，
+   整段粘给 agent，由 agent 只提取 Cookie 部分。
+
+   该文件已在 `.gitignore` 中排除，不会进入仓库。
 
 2. **无需额外 Python 依赖**，脚本仅使用标准库。
 
@@ -69,8 +82,9 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 "$PY" "$SKILL/scripts/weibo_fetch.py" login-check
 ```
 
-返回 `登录态有效` 则继续。若报 `Cookie 未通过登录校验` 或接口返回 432，说明 Cookie 已过期，
-提示用户重新获取 `SUB` 并写回 `scripts/wb_cookie.json`，不要重试超过一次。
+返回 `登录态有效  账号=<昵称>  关注=<N> 人` 则继续。若报未通过登录校验，说明 Cookie 已过期
+或取错了 Domain（见前置条件），提示用户重新获取 `SUB` 并写回 `scripts/wb_cookie.json`，
+不要重试超过一次。
 
 ### 第 2 步：采集（首次需先拉关注列表）
 
@@ -81,32 +95,51 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 ```
 
 产出 `data/following-YYYY-MM-DD.json`，含关注总人数与每个账号的昵称、简介、粉丝数。
-**把总人数回报给用户**，并按其判断决定走白名单模式还是全量模式。
+**把总人数回报给用户**，据此决定走白名单模式还是全量模式：
+
+| 关注人数 | 单轮耗时（2–4 秒间隔） | 建议 |
+|---|---|---|
+| 200 以内 | 约 7–13 分钟 | 全量秒扫，无需白名单 |
+| 500 左右 | 约 17–33 分钟 | 配合黑名单瘦身 |
+| 1000+ | 半小时以上，风控风险高 | 走 `--list whitelist` |
 
 日常增量采集：
 
 ```bash
-# 全量关注流（关键词筛）
+# 全部关注账号（关键词筛）
 "$PY" "$SKILL/scripts/weibo_fetch.py" scan --pages 1
 
 # 仅白名单账号（免关键词筛）
 "$PY" "$SKILL/scripts/weibo_fetch.py" scan --list whitelist
 
 # 首轮试跑，限制账号数避免触发风控
-"$PY" "$SKILL/scripts/weibo_fetch.py" scan --max-accounts 30
+"$PY" "$SKILL/scripts/weibo_fetch.py" scan --max-accounts 5
 ```
 
-脚本自动带 `since_id` 只取新增，产出 `data/candidates-<时间戳>.json`。
-关注人数多时**分批跑**（每次 `--max-accounts 100~150`），跑完再看下一批，不要一次跑完上千人。
+增量由**客户端**按 `post_id` 单调递增判断（该接口不支持服务端 `since_id`，传了会被忽略）：
+脚本对每个账号取第 1 页，丢弃不比 `last_post_id` 新的微博；若整页都是新的则继续翻页，
+直到出现旧微博为止。产出 `data/candidates-<时间戳>.json`。
+
+关注人数多时**分批跑**（每次 `--max-accounts 100~150`），跑完再看下一批。
+每轮结束用 `stats` 查看本地进度：
+
+```bash
+"$PY" "$SKILL/scripts/weibo_fetch.py" stats
+```
 
 ### 第 3 步：粗筛
 
 ```bash
-"$PY" "$SKILL/scripts/prefilter.py" --preview 10 --show-dropped
+"$PY" "$SKILL/scripts/prefilter.py" --max-age-days 14 --preview 10
 ```
 
-产出 `data/filtered-<时间戳>.json`。`--show-dropped` 会列出被丢弃的微博及原因，
-用于判断词库是否需要补词。
+产出 `data/filtered-<时间戳>.json`。常用开关：
+
+- `--max-age-days 14`：丢弃早于 N 天的微博。**首次全量抓取必加**——每个账号的第 1 页
+  可能横跨一年以上，不加会把陈年旧博混进简报；日常增量跑时可省略
+- `--show-dropped`：列出被丢弃的微博及原因，用于判断词库是否需要补词
+- `--no-dedupe`：关闭同源转发去重（默认开启）。同一条原博被多个账号转发时只保留
+  评论最长的一条，其余账号名记入 `also_reposted_by`，避免同一则公告重复入简报
 
 ### 第 4 步：精抽（由 agent 完成，不调外部 API）
 
@@ -118,6 +151,9 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 - 一条微博含多个产品就拆成多条
 - 只有"敬请期待"这类无实质信息的不要输出
 - `relevance` 按 62 店选品视角判定，高相关度的补 `relevance_reason`
+- 转发（`is_repost=true`）且原博才是情报主体的：`blogger` 写**原博作者**
+  （`retweeted.author`），`url` 用原博链接，`summary` 里可注明经谁转发
+- 若带 `also_reposted_by`，可在 `summary` 末尾补一句"另有 X 家账号转发"
 
 先校验再生成：
 
@@ -156,14 +192,35 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 
 ## 已知限制
 
-1. **必须带登录 Cookie。** 访客 Cookie 方案已被微博封堵，`m.weibo.cn` 的
-   `containerid=107603<uid>` 接口在无有效 `SUB` 时返回 432。
-   微博开放平台的 `friends_timeline` 需要高级权限，个人开发者无法申请。
-2. **`SUB` 有效期通常数月到一年**，失效表现为接口返回 432 / 403。脚本会明确报错而不静默失败。
+1. **必须带登录 Cookie，且必须是 `.weibo.com` 域的那一行 `SUB`。** 实测（2026-09）：
+
+   | 通道 | 无 Cookie | 带访客 Cookie | 带 `.sina.com.cn` 的 SUB | 带 `.weibo.com` 的 SUB |
+   |---|---|---|---|---|
+   | `m.weibo.cn` 时间线接口 | 432 | 432 | 未登录 | **未登录** |
+   | `weibo.com` 桌面端 Ajax | 403 | — | `ok:-100` | **正常** ✅ |
+
+   结论：**移动端接口对 `.weibo.com` 签发的 SUB 一律返回未登录**，因此脚本全部走
+   `weibo.com` 桌面端 Ajax 接口，不要改回 `m.weibo.cn`。微博开放平台的
+   `friends_timeline` 需要高级权限，个人开发者无法申请。
+
+2. **`SUB` 有效期通常数月到一年**，失效表现为接口返回 `ok:-100` / `ok:0` / 401 / 403。
+   脚本会明确报错而不静默失败。
+
 3. **风控是主要风险。** 请求已内置 2–4 秒随机间隔与 10–20 秒退避重试。仍被限流时应缩小
    抓取范围、稍后重跑（增量机制会让脚本自动接着抓），不要连续硬刷。
-4. **微博没有"关注流增量"接口**，只能逐个账号带 `since_id` 抓，因此单轮耗时 ≈ 关注人数 × 3 秒。
-5. 仅供个人自用，不要把采集结果对外分发。
+
+4. **微博没有"关注流增量"接口**，只能逐个账号抓，单轮耗时 ≈ 关注人数 × 3 秒。
+   且该接口的正序 `since_id` 参数无效，增量只能客户端比较 `post_id`。
+
+5. **首次抓取会带回历史微博。** 每个账号第 1 页最多 22 条，可能横跨一年以上，
+   必须用 `prefilter.py --max-age-days` 收敛时间窗口。
+
+6. **接口不返回登录者自己的 uid。** `friendships/friends` 不带 uid 时即代表本人，
+   这是身份识别的唯一依据；脚本因此不需要用户提供自己的 uid。
+
+7. **长文微博**（`isLongText`）只拿到摘要文本，完整版需要额外请求，当前不取。
+
+8. 仅供个人自用，不要把采集结果对外分发。
 
 ## 安全与凭据
 

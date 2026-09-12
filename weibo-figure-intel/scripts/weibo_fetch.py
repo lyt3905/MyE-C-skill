@@ -2,8 +2,16 @@
 # -*- coding: utf-8 -*-
 """微博手办情报采集器
 
-职责：带登录 Cookie 调 m.weibo.cn 接口，拉取关注列表 / 指定账号的增量微博，
-落库 SQLite 去重，并导出候选微博 JSON 供后续粗筛与情报抽取。
+职责：带登录 Cookie 调 weibo.com 桌面端 Ajax 接口，拉取关注列表 / 指定账号
+的增量微博，落库 SQLite 去重，并导出候选微博 JSON 供后续粗筛与情报抽取。
+
+接口选择（2026-09 实测）：
+  * m.weibo.cn 移动端接口对 `.weibo.com` 域名签发的 SUB 一律返回未登录，
+    故本脚本全部走 weibo.com 桌面端 Ajax 接口。
+  * `friendships/friends` 不带 uid 时返回**登录者本人**的关注列表，
+    因此无需预先知道自己的 uid。
+  * `statuses/mymblog` 不支持服务端 since_id（传了也会被忽略），
+    增量改由客户端按 post_id 单调递增比较实现。
 
 仅使用 Python 标准库，无需安装依赖。
 """
@@ -32,14 +40,14 @@ COOKIE_FILE = os.path.join(SCRIPTS_DIR, "wb_cookie.json")
 WATCHLIST_FILE = os.path.join(SCRIPTS_DIR, "watchlist.json")
 STATE_DB = os.path.join(DATA_DIR, "wb_state.sqlite")
 
-UA_MOBILE = (
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) "
-    "AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
-)
 UA_DESKTOP = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
+
+BASE = "https://weibo.com"
+API_FRIENDS = BASE + "/ajax/friendships/friends"
+API_MYBLOG = BASE + "/ajax/statuses/mymblog"
 
 CST = timezone(timedelta(hours=8))
 
@@ -65,7 +73,7 @@ def load_cookie():
     if not os.path.exists(COOKIE_FILE):
         raise CookieInvalid(
             f"未找到 {COOKIE_FILE}。请先创建该文件并写入微博登录 Cookie，"
-            '格式为 {"cookie": "SUB=xxx; SUBP=xxx"}。'
+            '格式为 {"cookie": "SUB=xxx"}。'
         )
     with open(COOKIE_FILE, "r", encoding="utf-8") as f:
         cfg = json.load(f)
@@ -75,7 +83,7 @@ def load_cookie():
         return raw
 
     # 兼容按字段分开填写的情况
-    parts = [f"{k}={v}" for k, v in cfg.items() if k != "cookie" and v]
+    parts = [f"{k}={v}" for k, v in cfg.items() if not k.startswith("_") and v]
     if not parts:
         raise CookieInvalid("wb_cookie.json 中没有读到 Cookie 内容。")
     return "; ".join(parts)
@@ -97,9 +105,9 @@ def _http_get(url, cookie, referer, ua, timeout=25):
         return resp.read().decode("utf-8", "ignore")
 
 
-def polite_get(url, cookie, referer, ua=UA_MOBILE, retries=3,
+def polite_get(url, cookie, referer, ua=UA_DESKTOP, retries=3,
                gap=(2.0, 4.0), backoff=(10.0, 20.0)):
-    """带随机间隔与退避的 GET。432/403 视为风控并退避重试。"""
+    """带随机间隔与退避的 GET。432/403/401/418 视为风控并退避重试。"""
     last_err = None
     for attempt in range(retries):
         try:
@@ -120,7 +128,7 @@ def polite_get(url, cookie, referer, ua=UA_MOBILE, retries=3,
     raise RateLimited(f"多次请求失败（最后一次：{last_err}），疑似触发频率风控。")
 
 
-def get_json(url, cookie, referer, ua=UA_MOBILE, **kw):
+def get_json(url, cookie, referer, ua=UA_DESKTOP, **kw):
     body = polite_get(url, cookie, referer, ua=ua, **kw)
     if not body.strip():
         raise RateLimited("接口返回空响应，疑似被风控。")
@@ -135,32 +143,35 @@ def get_json(url, cookie, referer, ua=UA_MOBILE, **kw):
 # --------------------------------------------------------------------------
 
 def check_login(cookie):
-    """用 m.weibo.cn/api/config 校验登录态，返回 (uid, screen_name)。"""
-    data = get_json(
-        "https://m.weibo.cn/api/config",
-        cookie,
-        referer="https://m.weibo.cn/",
-    )
-    d = data.get("data") or {}
-    if not d.get("login"):
-        raise CookieInvalid("Cookie 未通过登录校验，请重新获取 SUB。")
-    return str(d.get("uid") or ""), d.get("screen_name") or ""
+    """校验登录态：请求本人关注列表，返回 (self_uid, screen_name, following_total)。
 
-
-def pull_following(cookie, self_uid, max_pages=50):
-    """拉取关注列表。优先桌面端 friendships/friends 接口，失败则回退移动端容器。"""
-    users, page = [], 1
-    total = None
-    while page <= max_pages:
-        url = (
-            "https://weibo.com/ajax/friendships/friends?"
-            + urllib.parse.urlencode({"page": page, "uid": self_uid})
+    桌面端没有直接返回自身 uid 的接口，但 `friendships/friends` 不带 uid 时
+    返回的就是登录者本人的关注列表，足以完成校验与身份识别。
+    """
+    data = get_json(f"{API_FRIENDS}?page=1", cookie, referer=f"{BASE}/",
+                    retries=2)
+    if data.get("ok") != 1:
+        raise CookieInvalid(
+            f"接口返回 ok={data.get('ok')}，未通过登录校验，请重新获取 SUB。"
         )
-        data = get_json(url, cookie, referer=f"https://weibo.com/u/{self_uid}",
-                        ua=UA_DESKTOP, retries=2)
+    name = data.get("screenName") or ""
+    total = data.get("total_number")
+    return "", name, total
+
+
+def pull_following(cookie, max_pages=50):
+    """拉取本人关注列表。不带 uid 参数即代表本人，分页 20 人/页。"""
+    users, page, total = [], 1, None
+    while page <= max_pages:
+        url = f"{API_FRIENDS}?" + urllib.parse.urlencode({"page": page})
+        data = get_json(url, cookie, referer=f"{BASE}/", retries=2)
+        if data.get("ok") != 1:
+            raise CookieInvalid(f"关注列表接口返回 ok={data.get('ok')}，请重新获取 SUB。")
         batch = data.get("users") or []
         if total is None:
             total = data.get("total_number")
+            if data.get("screenName"):
+                print(f"  当前账号：{data['screenName']}")
         if not batch:
             break
         for u in batch:
@@ -178,35 +189,43 @@ def pull_following(cookie, self_uid, max_pages=50):
     return users, total
 
 
-def fetch_user_posts(cookie, uid, since_id=None, pages=1):
-    """拉取某账号的微博，带 since_id 时只取新增。"""
-    posts, next_since = [], since_id
-    for _ in range(pages):
-        params = {"type": "uid", "value": uid, "containerid": f"107603{uid}"}
-        if next_since:
-            params["since_id"] = next_since
-        url = "https://m.weibo.cn/api/container/getIndex?" + urllib.parse.urlencode(params)
-        data = get_json(url, cookie, referer=f"https://m.weibo.cn/u/{uid}", retries=2)
+def fetch_user_posts(cookie, uid, last_id=None, pages=1, gap=(2.0, 4.0)):
+    """拉取某账号的微博。
 
-        cards = (data.get("data") or {}).get("cards") or []
-        got = 0
-        for card in cards:
-            if card.get("card_type") != 9:
+    last_id 为上次见过的最大 post_id：只保留比它更新的微博，并在追到旧微博的
+    那一页停止翻页（微博 id 随时间是单调递增的）。
+    """
+    posts = []
+    boundary = int(last_id) if last_id else None
+    for page in range(1, pages + 1):
+        url = f"{API_MYBLOG}?" + urllib.parse.urlencode(
+            {"uid": uid, "page": page, "feature": 0}
+        )
+        data = get_json(url, cookie, referer=f"{BASE}/u/{uid}", retries=2, gap=gap)
+        if data.get("ok") != 1:
+            raise FetchError(f"接口返回 ok={data.get('ok')}")
+        batch = (data.get("data") or {}).get("list") or []
+        if not batch:
+            break
+
+        fresh_count = 0
+        for mblog in batch:
+            pid = str(mblog.get("idstr") or mblog.get("id") or "")
+            if not pid:
                 continue
-            mblog = card.get("mblog")
-            if not mblog:
+            if boundary is not None and int(pid) <= boundary:
                 continue
             parsed = parse_mblog(mblog, uid)
             if parsed:
                 posts.append(parsed)
-                got += 1
-        if not got:
+                fresh_count += 1
+
+        # 增量模式下，本页已出现旧微博 => 边界已到，不必再翻页
+        if boundary is not None and fresh_count < len(batch):
             break
-        newest = max(p["post_id"] for p in posts)
-        if newest == next_since:
-            break
-        next_since = newest
-    return posts, next_since
+
+    newest = max((p["post_id"] for p in posts), key=int) if posts else last_id
+    return posts, newest
 
 
 # --------------------------------------------------------------------------
@@ -214,6 +233,12 @@ def fetch_user_posts(cookie, uid, since_id=None, pages=1):
 # --------------------------------------------------------------------------
 
 TAG_RE = re.compile(r"<[^>]+>")
+_MONTHS = {m: i + 1 for i, m in enumerate(
+    ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])}
+_DESKTOP_TIME = re.compile(
+    r"^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})\s+([+-]\d{4})\s+(\d{4})$"
+)
 
 
 def strip_html(text):
@@ -225,68 +250,73 @@ def strip_html(text):
 
 
 def parse_created(mblog):
-    ts = mblog.get("created_timestamp")
-    if ts:
-        try:
-            return datetime.fromtimestamp(int(ts), CST).strftime("%Y-%m-%d %H:%M")
-        except (ValueError, OSError, OverflowError):
-            pass
+    """桌面端 created_at 形如 `Thu Aug 13 12:26:52 +0800 2026`。"""
     raw = (mblog.get("created_at") or "").strip()
-    now = datetime.now(CST)
-    if raw in ("刚刚", "just now"):
-        return now.strftime("%Y-%m-%d %H:%M")
-    m = re.match(r"(\d+)\s*分钟前", raw)
+    m = _DESKTOP_TIME.match(raw)
     if m:
-        return (now - timedelta(minutes=int(m.group(1)))).strftime("%Y-%m-%d %H:%M")
-    m = re.match(r"(\d+)\s*秒前", raw)
-    if m:
-        return (now - timedelta(seconds=int(m.group(1)))).strftime("%Y-%m-%d %H:%M")
-    m = re.match(r"今天\s*(\d{1,2}):(\d{2})", raw)
-    if m:
-        return now.replace(hour=int(m.group(1)), minute=int(m.group(2))).strftime("%Y-%m-%d %H:%M")
-    m = re.match(r"(\d{1,2})-(\d{1,2})", raw)
-    if m:
-        return f"{now.year}-{int(m.group(1)):02d}-{int(m.group(2)):02d} 00:00"
+        mon, day, hh, mm, ss, tz, year = m.groups()
+        try:
+            dt = datetime(int(year), _MONTHS[mon.capitalize()], int(day),
+                          int(hh), int(mm), int(ss), tzinfo=CST)
+            return dt.strftime("%Y-%m-%d %H:%M")
+        except (KeyError, ValueError):
+            pass
     return raw
 
 
+def _pics_of(mblog):
+    """从 pic_infos 取大图；退化时用 pic_ids 拼 URL。"""
+    urls = []
+    infos = mblog.get("pic_infos") or {}
+    for pid in (mblog.get("pic_ids") or []):
+        info = infos.get(pid) or {}
+        url = ((info.get("large") or {}).get("url")
+               or (info.get("largest") or {}).get("url")
+               or (info.get("bmiddle") or {}).get("url"))
+        if url:
+            urls.append(url)
+        elif pid:
+            urls.append(f"https://wx1.sinaimg.cn/large/{pid}.jpg")
+    return urls
+
+
 def parse_mblog(mblog, uid):
-    post_id = str(mblog.get("id") or "")
+    post_id = str(mblog.get("idstr") or mblog.get("id") or "")
     if not post_id:
         return None
-    text = strip_html(mblog.get("text"))
+
+    # text_raw 是去标签的纯文本，直接用；缺失时回退到 HTML 清洗
+    text = (mblog.get("text_raw") or "").strip() or strip_html(mblog.get("text"))
 
     retweeted = None
     rt = mblog.get("retweeted_status")
     if rt:
+        rt_user = rt.get("user") or {}
         retweeted = {
-            "post_id": str(rt.get("id") or ""),
-            "author": (rt.get("user") or {}).get("screen_name") or "",
-            "text": strip_html(rt.get("text")),
+            "post_id": str(rt.get("idstr") or rt.get("id") or ""),
+            "author": rt_user.get("screen_name") or "",
+            "text": (rt.get("text_raw") or "").strip() or strip_html(rt.get("text")),
+            "pics": _pics_of(rt),
         }
-        rt_pics = [p.get("large", {}).get("url") or p.get("url") for p in (rt.get("pics") or [])]
-        retweeted["pics"] = [u for u in rt_pics if u]
-
-    pics = []
-    for p in (mblog.get("pics") or []):
-        u = p.get("large", {}).get("url") or p.get("url")
-        if u:
-            pics.append(u)
 
     user = mblog.get("user") or {}
+    author_id = str(user.get("idstr") or user.get("id") or uid)
+    mblogid = mblog.get("mblogid") or ""
+
     return {
         "post_id": post_id,
         "uid": str(uid),
         "blogger": user.get("screen_name") or "",
         "created_at": parse_created(mblog),
         "text": text,
-        "pics": pics,
+        "pics": _pics_of(mblog),
         "is_repost": bool(rt),
+        "is_long_text": bool(mblog.get("isLongText")),
         "retweeted": retweeted,
         "reposts_count": mblog.get("reposts_count") or 0,
         "comments_count": mblog.get("comments_count") or 0,
         "attitudes_count": mblog.get("attitudes_count") or 0,
-        "url": f"https://m.weibo.cn/detail/{post_id}",
+        "url": f"{BASE}/{author_id}/{mblogid}" if mblogid else f"{BASE}/detail/{post_id}",
     }
 
 
@@ -380,23 +410,22 @@ def load_watchlist():
 
 def cmd_login_check(args):
     cookie = load_cookie()
-    uid, name = check_login(cookie)
-    print(f"登录态有效 ✅  uid={uid}  昵称={name}")
+    _, name, total = check_login(cookie)
+    print(f"登录态有效 ✅  账号={name}  关注={total} 人")
     return 0
 
 
 def cmd_pull_following(args):
     cookie = load_cookie()
-    self_uid, name = check_login(cookie)
-    print(f"当前账号：{name}（uid={self_uid}），开始拉取关注列表…")
-    users, total = pull_following(cookie, self_uid, max_pages=args.max_pages)
+    print("开始拉取关注列表…")
+    users, total = pull_following(cookie, max_pages=args.max_pages)
     conn = db()
     save_following(conn, users)
 
     out = os.path.join(DATA_DIR, f"following-{datetime.now(CST).strftime('%Y-%m-%d')}.json")
     with open(out, "w", encoding="utf-8") as f:
-        json.dump({"self_uid": self_uid, "self_name": name, "total": total,
-                   "count": len(users), "users": users}, f, ensure_ascii=False, indent=2)
+        json.dump({"total": total, "count": len(users), "users": users},
+                  f, ensure_ascii=False, indent=2)
     print(f"\n共关注 {len(users)} 人（接口报告 total={total}）")
     print(f"名单已保存：{out}")
     return 0
@@ -409,40 +438,39 @@ def cmd_scan(args):
     whitelist = {str(x) for x in wl.get("whitelist", [])}
     blacklist = {str(x) for x in wl.get("blacklist", [])}
 
+    rows = conn.execute(
+        "SELECT f.uid, f.screen_name, a.last_post_id FROM following f"
+        " LEFT JOIN accounts a ON a.uid = f.uid"
+    ).fetchall()
+    if not rows:
+        print("关注列表为空，请先执行 pull-following。")
+        return 1
+
     if args.list == "whitelist":
         if not whitelist:
             print("watchlist.json 的 whitelist 是空的，没有可抓取的账号。")
             return 1
-        rows = conn.execute(
-            "SELECT f.uid, f.screen_name, a.last_post_id FROM following f"
-            " LEFT JOIN accounts a ON a.uid = f.uid"
-        ).fetchall()
         rows = [r for r in rows if str(r[0]) in whitelist]
         if not rows:
             print("白名单里的 UID 在关注列表中匹配不到，请确认 UID 填写正确。")
             return 1
-    else:
-        rows = conn.execute(
-            "SELECT f.uid, f.screen_name, a.last_post_id FROM following f"
-            " LEFT JOIN accounts a ON a.uid = f.uid"
-        ).fetchall()
-        if not rows:
-            print("关注列表为空，请先执行 pull-following。")
-            return 1
 
     targets = [r for r in rows if str(r[0]) not in blacklist]
+    blocked = len(rows) - len(targets)
     if args.max_accounts:
         targets = targets[: args.max_accounts]
-    skipped = len(rows) - len(targets)
-    print(f"待抓取 {len(targets)} 个账号（黑名单跳过 {skipped} 个），"
-          f"每个账号 {args.pages} 页，{'全量' if args.full else '增量'}模式")
+    note = f"，黑名单跳过 {blocked} 个" if blocked else ""
+    if args.max_accounts and len(rows) - blocked > len(targets):
+        note += f"，本次仅试跑前 {len(targets)} 个"
+    print(f"待抓取 {len(targets)} 个账号{note}，"
+          f"每个账号最多 {args.pages} 页，{'全量' if args.full else '增量'}模式")
 
     collected, ok, limited, failed, broken = [], 0, 0, 0, False
     for i, (uid, name, last_id) in enumerate(targets, 1):
         uid = str(uid)
-        since = None if args.full else last_id
+        boundary = None if args.full else last_id
         try:
-            posts, newest = fetch_user_posts(cookie, uid, since, pages=args.pages)
+            posts, newest = fetch_user_posts(cookie, uid, boundary, pages=args.pages)
             new = save_posts(conn, posts)
             route = "whitelist" if uid in whitelist else "keyword"
             for p in new:
@@ -507,9 +535,9 @@ def main():
 
     p = sub.add_parser("scan", help="抓取微博增量并导出候选")
     p.add_argument("--list", choices=["all", "whitelist"], default="all")
-    p.add_argument("--pages", type=int, default=1, help="每个账号抓取页数")
+    p.add_argument("--pages", type=int, default=1, help="每个账号最多抓取页数")
     p.add_argument("--max-accounts", type=int, default=0, help="限制账号数，用于试跑")
-    p.add_argument("--full", action="store_true", help="忽略 since_id 全量抓取")
+    p.add_argument("--full", action="store_true", help="忽略增量边界，全量抓取")
     p.set_defaults(func=cmd_scan)
 
     sub.add_parser("stats", help="查看本地状态").set_defaults(func=cmd_stats)
