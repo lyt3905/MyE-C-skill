@@ -36,9 +36,27 @@
 | `relevance_reason` | 否 | string | `高` 时建议填写，说明为何与选品相关 |
 | `also_reposted_by` | 否 | array | 仅在转发被合并时出现，列出也转发了同一原博的账号；可写进 `summary` 末尾 |
 | `tags` | 否 | array | 自由标签 |
+| `images` | 否 | array | 配图原图 URL 列表。**不用手写**，由 `attach_media.py` 自动回填 |
+| `image_source` | 否 | string | `self`（本条配图）或 `retweeted`（取自转发原博的图），由脚本写入 |
 
 > ⚠️ 字段名必须用上面这套。曾出现把 `ip` 误打成 `iv` 的情况——简报会把未知字段静默忽略，
 > 不会报错，但该字段就丢了。写完建议先跑一次 `--validate-only`。
+
+## 配图字段（`images` / `image_source`）
+
+**不要手工填这两个字段**，跑一次 `attach_media.py` 自动生成：
+
+```bash
+"$PY" scripts/attach_media.py --input data/intel-YYYY-MM-DD.json --download
+```
+
+脚本从本地采集库（`data/candidates-*.json` + `data/wb_state.sqlite`）离线匹配微博原文取图，
+顺序是「本条 `pics` → 转发原博 `pics`」，并写入 `image_source` 标明来源。
+
+匹配同时做**一致性校验**：url 命中的那条微博，博主与时间必须和情报条对得上。
+对不上说明 `url` 抄错了（历史上出现过 12 条指向别人微博），脚本会改用 `blogger+posted_at`
+定位，并在输出里列「来源存疑」清单。看到提示务必核对并回写正确 `url`，否则会把别人的图
+贴到本条情报上。
 
 ## intel_type 枚举
 

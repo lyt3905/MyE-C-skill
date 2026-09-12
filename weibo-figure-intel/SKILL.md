@@ -5,9 +5,10 @@ description: |
   about anime figures (手办) and action figures / articulated dolls (可动人偶) — new product
   announcements, pre-orders, release dates, re-releases, delays, exhibitions and photo reviews.
   It fetches posts with the user's Weibo login cookie, pre-filters them against a curated
-  keyword lexicon, has the agent structure the surviving posts into intel records, and renders
-  a digest grouped by intel type — both Markdown and a self-contained HTML file with
-  clickable links back to the original Weibo posts.
+  keyword lexicon, has the agent structure the surviving posts into intel records, attaches
+  each record's product photos, and renders a digest grouped by intel type — both Markdown
+  and an HTML file with inline image thumbnails, a click-to-zoom lightbox gallery, search /
+  filter controls, and clickable links back to the original Weibo posts.
   Triggered when the user asks for 手办情报 / 可动人偶情报 / figure news, says things like
   "看看今天有什么手办情报", "微博上有没有新开订的手办", "抓一下我关注的手办号",
   "collect figure news from Weibo", or wants to tune the intel keyword lexicon.
@@ -26,8 +27,12 @@ agent_created: true
 
 | 格式 | 用途 |
 |---|---|
-| `output/手办情报-YYYY-MM-DD.html` | **浏览器阅读**。单文件、无外部依赖，按情报类型分节，**每条情报独占一行**（左栏正文、右栏元信息与来源按钮）。支持关键词搜索与类型/相关度筛选，分组标题随筛选自动隐藏空组，每条带「打开原博」按钮直达微博原帖 |
-| `output/手办情报-YYYY-MM-DD.md` | 存档、粘贴进对话、二次加工 |
+| `output/手办情报-YYYY-MM-DD.html` | **浏览器阅读**。按情报类型分节，**每条情报独占一行**（左栏正文，右栏缩略图 / 元信息 / 来源按钮）。右栏顶部放最多 3 张配图缩略图，多余用 `+N` 角标；**点缩略图弹出放大预览**，同一条情报的全部配图可左右翻页（← → / 触屏滑动 / Esc 关闭）。支持关键词搜索与类型/相关度筛选，分组标题随筛选自动隐藏空组，标题与按钮均可直达微博原帖 |
+| `output/手办情报-YYYY-MM-DD.md` | 存档、粘贴进对话、二次加工（来源列标注配图张数） |
+
+> ⚠️ **配图必须下载到本地**，不能外链——微博图床会 403，原因见「已知限制」第 9 条。
+> HTML 里的缩略图以 base64 内嵌（保证单文件也有图可看），放大预览图走
+> `output/media/view/` 相对路径。**交付时要连 `media/` 目录一起给**，否则预览会提示图片没加载。
 
 ## Trigger
 
@@ -77,7 +82,8 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 |---|---|
 | `scripts/weibo_fetch.py` | 校验登录态、拉取关注列表、按账号抓取微博增量、SQLite 去重 |
 | `scripts/prefilter.py` | 用 `scripts/lexicon.json` 打分粗筛，输出候选情报 |
-| `scripts/build_digest.py` | 校验结构化情报 JSON，渲染 Markdown + HTML 简报（HTML 自带搜索/筛选与原博链接） |
+| `scripts/attach_media.py` | 给情报条回填配图 `images[]`（本地库离线匹配 + 一致性校验），`--download` 抓图到 `output/media/` |
+| `scripts/build_digest.py` | 校验结构化情报 JSON，渲染 Markdown + HTML 简报（HTML 自带缩略图、放大预览、搜索/筛选与原博链接） |
 | `scripts/lexicon.json` | 手办情报词库与权重，**主要调优入口** |
 | `scripts/watchlist.json` | 白名单 / 黑名单账号 UID |
 | `references/intel-schema.md` | 精抽输出的字段定义与判定口径 |
@@ -163,6 +169,31 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
   （`retweeted.author`），`url` 用原博链接，`summary` 里可注明经谁转发
 - 若带 `also_reposted_by`，可在 `summary` 末尾补一句"另有 X 家账号转发"
 
+### 第 4.5 步：回填配图（可选但推荐）
+
+```bash
+# 只回填 images[] 字段（离线，秒级）
+"$PY" "$SKILL/scripts/attach_media.py" --input "$SKILL/data/intel-2026-09-12.json" --dry-run
+
+# 回填并抓图到 output/media/{thumb,view}/
+"$PY" "$SKILL/scripts/attach_media.py" --input "$SKILL/data/intel-2026-09-12.json" --download
+```
+
+**默认全离线**：scan 阶段已把微博原文（含 `pics` / `retweeted.pics`）落进
+`data/candidates-*.json` 与 `data/wb_state.sqlite`，因此回填不打任何网络请求。
+只有 `--remote` 打开后，本地找不到的条目才会回连微博 show 接口兜底。
+
+匹配走三级（url → mblogid → blogger+时间），url 命中后还会**核对博主与时间是否一致**——
+历史上出现过精抽时手抄 URL 串行、12 条指向别人微博的情况，一旦对不上就改用
+`blogger+posted_at` 重新定位并在结尾报告「来源存疑」清单。看到该提示要回写正确 URL 再重跑。
+
+`--download` 会抓两类图（已存在的自动跳过，10 并发约 40 张/秒）：
+
+| 目录 | 尺寸档 | 张数 | 用途 |
+|---|---|---|---|
+| `output/media/thumb/` | `/orj360/`（约 15KB） | 每条第 1–3 张 | 行内缩略图，被 base64 内嵌进 HTML |
+| `output/media/view/` | `/orj960/`（约 70KB） | 全部 | 点缩略图放大预览 |
+
 先校验再生成：
 
 ```bash
@@ -173,14 +204,24 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 "$PY" "$SKILL/scripts/build_digest.py" --input xxx.json --format html
 ```
 
+生成后会打印本地图片到位情况（`配图：N 条带图，本地 media/view 已有 M 张`），
+若 M 明显小于应有张数，补跑一次 `attach_media.py --download`。
+
 产出 `output/手办情报-YYYY-MM-DD.html` 与 `.md`。**用 `present_files` 把 HTML 排在
 第一项**展示给用户——它在内置浏览器面板里可直接预览，点卡片底部按钮即跳转原博。
 若用户明确只要某一种格式，用 `--format md|html|both` 控制。
 
 ### 第 5 步：回报与调优
 
-汇报时包含：抓取账号数 / 新增微博数 / 通过粗筛数 / 情报条数 / 高相关条数 / 简报路径
-（HTML 与 MD 各一份）。展示结果时把 HTML 放在 `present_files` 的第一项。
+汇报时包含：抓取账号数 / 新增微博数 / 通过粗筛数 / 情报条数 / 高相关条数 / 带配图条数 /
+简报路径（HTML 与 MD 各一份）。展示结果时把 HTML 放在 `present_files` 的第一项。
+
+若 HTML 与 `media/` 不在同一目录，预览会找不到图。同步到别处时用目录联接而不是复制
+（省掉 ~68MB 重复占用）：
+
+```powershell
+New-Item -ItemType Junction -Path "<目标目录>\media" -Target "$SKILL\output\media"
+```
 
 根据用户反馈调优：
 
@@ -234,7 +275,27 @@ SKILL="C:/Users/shana/Documents/GitHub/MyE-C-skill/weibo-figure-intel"
 
 7. **长文微博**（`isLongText`）只拿到摘要文本，完整版需要额外请求，当前不取。
 
-8. 仅供个人自用，不要把采集结果对外分发。
+8. **微博图床防盗链会挡住本地 HTML 外链**（2026-09 实测）。`wx*.sinaimg.cn` 的判定逻辑是：
+   只要请求带浏览器特征头（真实 Chrome/Edge UA + `Sec-Fetch-*`），Referer 不是 `weibo.com`
+   域就直接 **403**；而空 UA 或带 `Referer: https://weibo.com/` 才放行。
+
+   | 请求特征 | 结果 |
+   |---|---|
+   | 真实 Chrome UA + `Sec-Fetch-*` + 无 Referer | **403** |
+   | 真实 Chrome UA + `Sec-Fetch-*` + `Referer: http://127.0.0.1:8912/` | **403** |
+   | 真实 Chrome UA + `Sec-Fetch-*` + `Referer: file:///...` | **403** |
+   | 空 UA（curl 默认） | 200 |
+   | 带 `Referer: https://weibo.com/` | 200 |
+   | 无头浏览器直接打开图片 URL | **403** |
+
+   所以 `referrerpolicy="no-referrer"` 也救不了——浏览器一定会带 `Sec-Fetch-*`。
+   **结论：必须下载到本地再引用**，这就是 `attach_media.py --download` 存在的原因。
+   下载时脚本固定带 `Referer: https://weibo.com/`。
+
+9. **尺寸档**：`/orj360/`≈15KB、`/orj960/`≈70KB、`thumbnail`≈3.4KB，均返回 `image/jpeg`；
+   部分图 `/large/` 与 `/orj960/` 等价（原图本身不够大）。转档只需替换 URL 中的路径段。
+
+10. 仅供个人自用，不要把采集结果对外分发。
 
 ## 安全与凭据
 

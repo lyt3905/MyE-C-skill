@@ -12,9 +12,11 @@
 """
 
 import argparse
+import base64
 import html as htmllib
 import json
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -92,6 +94,9 @@ def render_group(name, items):
         src = f"[{blogger}]({source})" if source else blogger
         if it.get("posted_at"):
             src += f"<br/>{cell(it['posted_at'])}"
+        n_img = len(it.get("images") or [])
+        if n_img:
+            src += f"<br/>配图 {n_img} 张"
         lines.append("| " + " | ".join([
             cell(it.get("brand")),
             cell(subject),
@@ -159,8 +164,11 @@ def build(data):
             if reason:
                 out.append(f"  - 相关理由：{reason}")
             if it.get("url"):
-                out.append(f"  - 来源：[{it.get('blogger') or '原博'}]({it['url']})"
-                           + (f"（{it['posted_at']}）" if it.get("posted_at") else ""))
+                tail = f"（{it['posted_at']}）" if it.get("posted_at") else ""
+                n_img = len(it.get("images") or [])
+                if n_img:
+                    tail += f"　配图 {n_img} 张"
+                out.append(f"  - 来源：[{it.get('blogger') or '原博'}]({it['url']}){tail}")
         out.append("")
 
     out.append("## 全部情报")
@@ -288,6 +296,63 @@ main{padding:20px 0 60px}
 .src:hover{background:#dce8fd;text-decoration:none}
 .tags{display:flex;gap:5px;flex-wrap:wrap}
 .tags em{font-style:normal;font-size:11.5px;color:var(--ink3)}
+
+/* 缩略图（右栏顶部，方案 A）：点击放大预览 */
+.thumbs{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start}
+.thumb{position:relative;width:74px;height:74px;padding:0;flex:0 0 auto;
+  border:1px solid var(--line);border-radius:9px;overflow:hidden;
+  background:var(--bg);cursor:zoom-in;display:block;font:inherit;
+  transition:border-color .15s,box-shadow .15s}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform .28s ease}
+.thumb:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(20,30,50,.12)}
+.thumb:hover img{transform:scale(1.07)}
+.thumb:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.thumb .more{position:absolute;right:3px;bottom:3px;background:rgba(12,15,20,.74);
+  color:#fff;font-size:11px;font-weight:600;line-height:1.45;
+  padding:0 6px;border-radius:999px;pointer-events:none}
+.thumb.tre{box-shadow:inset 0 0 0 2px #f0d9a0}
+.thumb.tre::after{content:"转";position:absolute;left:3px;top:3px;
+  background:rgba(180,140,30,.88);color:#fff;font-size:10px;
+  padding:0 5px;border-radius:5px;line-height:1.5}
+
+/* 放大预览（lightbox） */
+.lb{position:fixed;inset:0;z-index:100;display:none;
+  background:rgba(10,13,18,.93);-webkit-backdrop-filter:blur(4px);
+  backdrop-filter:blur(4px);flex-direction:column;align-items:center;
+  justify-content:center;padding:56px 76px 64px}
+.lb.on{display:flex}
+.lb img{max-width:100%;max-height:calc(100vh - 172px);object-fit:contain;
+  border-radius:6px;background:#101318;box-shadow:0 12px 44px rgba(0,0,0,.5)}
+.lb .cap{color:#e9edf4;font-size:13.5px;margin-top:14px;text-align:center;
+  max-width:min(90vw,900px);line-height:1.6}
+.lb .cap a{color:#9dc0ff}
+.lb .cap .k{color:#98a2b3;font-size:12.5px}
+.lb-btn{border:0;cursor:pointer;font-family:inherit;color:#fff;
+  background:rgba(255,255,255,.12);border-radius:10px;transition:.15s}
+.lb-btn:hover{background:rgba(255,255,255,.26)}
+.lb-btn:disabled{opacity:.22;cursor:default}
+.lb-close{position:absolute;top:18px;right:22px;width:40px;height:40px;
+  font-size:22px;line-height:1;border-radius:50%}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:70px;
+  font-size:24px;line-height:1}
+.lb-prev{left:18px}.lb-next{right:18px}
+.lb-hint{color:#ffd9a8;font-size:13.5px;text-align:center;line-height:1.75;
+  max-width:560px;padding:26px 18px;background:rgba(255,255,255,.06);
+  border-radius:10px}
+.lb-hint code{background:rgba(255,255,255,.14);padding:1px 6px;border-radius:4px;
+  font-size:12.5px}
+.lb-idx{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);
+  color:#aab3c2;font-size:12.5px;letter-spacing:.4px}
+.lb-ori{position:absolute;bottom:18px;right:22px;color:#9dc0ff;font-size:12.5px}
+body.lb-lock{overflow:hidden}
+
+@media(max-width:860px){
+  .lb{padding:52px 12px 60px}
+  .lb-nav{width:38px;height:56px;font-size:20px}
+  .lb-prev{left:6px}.lb-next{right:6px}
+  .lb .cap{font-size:12.5px}
+}
 .empty{text-align:center;color:var(--ink3);padding:60px 0;font-size:14px}
 .legend{margin:18px 0 10px;color:var(--ink3);font-size:12.5px}
 @media(max-width:860px){
@@ -296,6 +361,7 @@ main{padding:20px 0 60px}
     padding-top:11px;margin-top:11px;flex-direction:row;flex-wrap:wrap;
     align-items:center;gap:9px;width:100%}
   .side .facts{flex:1 1 100%}
+  .side .thumbs{flex:1 1 100%}
 }
 @media(max-width:640px){
   h1{font-size:19px}
@@ -308,7 +374,7 @@ main{padding:20px 0 60px}
 }
 """
 
-HTML_JS = """
+HTML_JS = r"""
 (function(){
   var q = document.getElementById('q');
   var cards = [].slice.call(document.querySelectorAll('.card'));
@@ -360,10 +426,137 @@ HTML_JS = """
   });
   q.addEventListener('input', apply);
   document.addEventListener('keydown', function(e){
+    // 放大预览打开时把键盘让给它，避免 Esc / 数字键冲突
+    if (document.body.classList.contains('lb-lock')) return;
     if (e.key === '/' && document.activeElement !== q){ e.preventDefault(); q.focus(); }
     if (e.key === 'Escape' && document.activeElement === q){ q.value=''; apply(); q.blur(); }
   });
   apply();
+})();
+
+/* 配图放大预览：点缩略图弹出，同一条情报的全部配图可左右翻 */
+(function(){
+  var lb = document.getElementById('lb');
+  if (!lb) return;
+  var img  = document.getElementById('lb-img');
+  var cap  = document.getElementById('lb-cap');
+  var idx  = document.getElementById('lb-idx');
+  var ori  = document.getElementById('lb-ori');
+  var hint = document.getElementById('lb-hint');
+  var prev = lb.querySelector('.lb-prev');
+  var next = lb.querySelector('.lb-next');
+
+  var gallery = [];   // 预览图地址（本地相对路径优先，构建时已算好）
+  var caption = '';   // 「博主 · 标题」
+  var origin  = '';   // 原博链接
+  var pos = 0, opener = null;
+
+  function paint(){
+    if (!gallery.length) return;
+    var u = gallery[pos];
+    img.hidden = false;
+    if (hint) hint.style.display = 'none';
+    img.src = u;
+    img.alt = caption;
+
+    cap.textContent = '';
+    cap.appendChild(document.createTextNode(
+      caption + '　（' + (pos + 1) + '/' + gallery.length + '）'));
+    if (gallery.length > 1){
+      var k = document.createElement('span');
+      k.className = 'k';
+      k.textContent = '　← → 切换';
+      cap.appendChild(k);
+    }
+    if (origin){
+      var a = document.createElement('a');
+      a.href = origin;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = '　查看原博 ↗';
+      cap.appendChild(a);
+    }
+
+    idx.textContent = (pos + 1) + ' / ' + gallery.length;
+    var multi = gallery.length > 1;
+    prev.disabled = !multi;
+    next.disabled = !multi;
+    ori.href = u;                     // 「查看原图」直达未压缩原图
+  }
+  function open(list, i, capText, href, el){
+    if (!list.length) return;
+    gallery = list;
+    caption = capText || '';
+    origin  = href || '';
+    pos = Math.min(Math.max(0, i), list.length - 1);
+    opener = el || null;
+    lb.classList.add('on');
+    document.body.classList.add('lb-lock');
+    paint();
+    (list.length > 1 ? next : lb.querySelector('.lb-close')).focus();
+  }
+  function close(){
+    lb.classList.remove('on');
+    document.body.classList.remove('lb-lock');
+    img.removeAttribute('src');
+    if (opener && opener.focus) opener.focus();
+  }
+  function step(d){
+    if (gallery.length < 2) return;
+    pos = (pos + d + gallery.length) % gallery.length;
+    paint();
+  }
+
+  // 点缩略图：从所属卡片的 data-gallery 取出完整图集（含未显示的 +N 张）
+  document.addEventListener('click', function(e){
+    var t = e.target.closest ? e.target.closest('.thumb') : null;
+    if (!t) return;
+    e.preventDefault();
+    var card = t.closest('.card');
+    if (!card) return;
+    var box = card.querySelector('.thumbs');
+    if (!box) return;
+
+    var list = [];
+    try { list = JSON.parse(box.dataset.gallery || '[]'); } catch (err) { list = []; }
+    if (!list.length) return;
+    open(list, parseInt(t.dataset.i || '0', 10) || 0,
+         box.dataset.cap || '', box.dataset.href || '', t);
+  });
+
+  // 本地图片缺失时给出明确提示，而不是只留一块空白
+  img.addEventListener('error', function(){
+    img.hidden = true;
+    if (hint) hint.style.display = '';
+  });
+
+  lb.querySelector('.lb-close').addEventListener('click', close);
+  prev.addEventListener('click', function(e){ e.stopPropagation(); step(-1); });
+  next.addEventListener('click', function(e){ e.stopPropagation(); step(1); });
+  ori.addEventListener('click', function(e){ e.stopPropagation(); });
+  lb.addEventListener('click', function(e){
+    if (e.target === lb) close();   // 点背景关闭；点图片本身不关
+  });
+
+  // 键盘：capture 阶段拦截，避免与搜索框的 Esc 清空冲突
+  document.addEventListener('keydown', function(e){
+    if (!lb.classList.contains('on')) return;
+    if (e.key === 'Escape'){ e.stopPropagation(); close(); }
+    else if (e.key === 'ArrowLeft'){ e.stopPropagation(); step(-1); }
+    else if (e.key === 'ArrowRight'){ e.stopPropagation(); step(1); }
+  }, true);
+
+  // 触屏左右滑动
+  var x0 = null;
+  lb.addEventListener('touchstart', function(e){
+    x0 = e.changedTouches[0].clientX;
+  }, {passive:true});
+  lb.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 45) step(dx < 0 ? 1 : -1);
+    x0 = null;
+  }, {passive:true});
 })();
 """
 
@@ -392,8 +585,21 @@ HTML_TPL = """<!DOCTYPE html>
 <main class="wrap">
   <div id="groups">__SECTIONS__</div>
   <div class="empty" id="empty" style="display:none">没有匹配的情报，换个关键词或筛选条件试试。</div>
-  <div class="legend">__LEGEND__　·　点击卡片底部的按钮可跳转原始微博（需在浏览器登录微博）。</div>
+  <div class="legend">__LEGEND__　·　点击右栏缩略图可放大看原图，点标题或按钮可跳转原博（需登录微博）。</div>
 </main>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="配图放大预览">
+  <button class="lb-btn lb-close" type="button" aria-label="关闭预览">×</button>
+  <button class="lb-btn lb-nav lb-prev" type="button" aria-label="上一张">‹</button>
+  <button class="lb-btn lb-nav lb-next" type="button" aria-label="下一张">›</button>
+  <img id="lb-img" alt="">
+  <div class="lb-hint" id="lb-hint" style="display:none">⚠️ 图片没加载出来 —— 请确认这个 HTML 同目录下存在 <b>media/</b> 文件夹（由 <code>attach_media.py --download</code> 生成）。</div>
+  <div class="cap" id="lb-cap"></div>
+  <div class="lb-idx" id="lb-idx"></div>
+  <a class="lb-ori" id="lb-ori" target="_blank" rel="noopener noreferrer"
+     referrerpolicy="no-referrer">查看原图 ↗</a>
+</div>
+
 <script>__JS__</script>
 </body>
 </html>
@@ -454,6 +660,83 @@ def render_html(data, items, date):
             .replace("__RELCHIPS__", "".join(rel_chips))
             .replace("__SECTIONS__", "\n".join(sections))
             .replace("__LEGEND__", "*由 weibo-figure-intel 生成，数据取自微博关注列表*"))
+
+
+# 图床尺寸路径段（与 attach_media.py 保持一致）
+_SIZE_SEG = re.compile(r"/(orj360|orj960|orj1080|large|mw690|thumbnail|thumb150|bmiddle|small|mw2000)/")
+
+MEDIA_DIR = os.path.join(SKILL_DIR, "output", "media")
+MEDIA_REL = "media"          # 相对 HTML 文件的路径，由 main() 按输出位置改写
+
+MAX_THUMBS = 3
+
+
+def img_variant(url, seg):
+    """把图床 URL 换成指定尺寸档：orj360 缩略图 / orj960 预览大图。"""
+    if not url:
+        return ""
+    return _SIZE_SEG.sub(f"/{seg}/", url, count=1)
+
+
+def _img_name(url):
+    return os.path.basename((url or "").split("?")[0])
+
+
+def thumb_src(url):
+    """缩略图：本地已下载则内嵌 base64（HTML 单文件也永远有图），否则回退外链。"""
+    p = os.path.join(MEDIA_DIR, "thumb", _img_name(url))
+    if os.path.exists(p):
+        try:
+            with open(p, "rb") as f:
+                return "data:image/jpeg;base64," + base64.b64encode(f.read()).decode()
+        except Exception:
+            pass
+    return img_variant(url, "orj360")
+
+
+def view_src(url):
+    """预览大图：本地已下载则用相对路径（图床外链会被 403），否则回退外链。"""
+    name = _img_name(url)
+    if os.path.exists(os.path.join(MEDIA_DIR, "view", name)):
+        return f"{MEDIA_REL}/view/{name}"
+    return img_variant(url, "orj960")
+
+
+def render_thumbs(it, e, url):
+    """方案 A：缩略图放右栏顶部。最多显示 MAX_THUMBS 张，多余用 +N 角标，
+    完整图集另存到卡片的 data-gallery，供放大预览左右翻页。"""
+    imgs = [u for u in (it.get("images") or []) if u]
+    if not imgs:
+        return ""
+
+    title = " · ".join(filter(None, [e("brand"), e("character") or e("ip")]))
+    if not title:
+        title = e("summary")[:22]
+    cap = " · ".join(filter(None, [e("blogger"), title]))
+
+    # 图集存最终可用地址（本地相对路径优先），供放大预览直接使用
+    gal = htmllib.escape(json.dumps([view_src(u) for u in imgs], ensure_ascii=False),
+                         quote=True)
+    href = f' data-href="{htmllib.escape(url, quote=True)}"' if url else ""
+    tre = " tre" if (it.get("image_source") or "") == "retweeted" else ""
+
+    out = ['<div class="thumbs"']
+    out.append(f' data-gallery="{gal}"')
+    out.append(f' data-cap="{htmllib.escape(cap, quote=True)}"')
+    out.append(f'{href}>')
+    for i, u in enumerate(imgs[:MAX_THUMBS]):
+        more = (f'<span class="more">+{len(imgs) - MAX_THUMBS}</span>'
+                if i == MAX_THUMBS - 1 and len(imgs) > MAX_THUMBS else "")
+        out.append(
+            f'<button class="thumb{tre}" type="button" data-i="{i}"'
+            f' aria-label="放大预览第 {i + 1} 张配图（共 {len(imgs)} 张）"'
+            f' title="点击放大预览（共 {len(imgs)} 张）">'
+            f'<img src="{htmllib.escape(thumb_src(u), quote=True)}" alt=""'
+            f" onerror=\"this.closest('.thumb').style.display='none'\">"
+            f'{more}</button>'
+        )
+    out.append('</div>')
+    return "".join(out)
 
 
 def render_card(it):
@@ -519,6 +802,9 @@ def render_card(it):
     if e("relevance_reason"):
         parts.append(f'<div class="why">相关理由：{e("relevance_reason")}</div>')
     parts.append('</div><div class="side">')
+    thumbs = render_thumbs(it, e, url)     # 方案 A：缩略图在右栏最顶部
+    if thumbs:
+        parts.append(thumbs)
     if facts:
         parts.append('<div class="facts">' + "".join(facts) + '</div>')
     parts.append(src)
@@ -535,8 +821,13 @@ def main():
     ap.add_argument("--html-out", help="输出 HTML 路径（--format html/both 时生效）")
     ap.add_argument("--format", choices=["md", "html", "both"], default="both",
                     help="输出格式，默认 both（Markdown + HTML）")
+    ap.add_argument("--media-dir", help="本地配图目录（默认 output/media）")
     ap.add_argument("--validate-only", action="store_true")
     args = ap.parse_args()
+
+    global MEDIA_DIR, MEDIA_REL
+    if args.media_dir:
+        MEDIA_DIR = args.media_dir
 
     if not os.path.exists(args.input):
         print(f"❌ 找不到输入文件：{args.input}")
@@ -571,9 +862,19 @@ def main():
             print("⚠️ 没有情报条目，跳过 HTML 输出")
         else:
             out = args.html_out or os.path.join(OUTPUT_DIR, f"手办情报-{date}.html")
+            # 配图相对路径按 HTML 实际落地位置算，避免 HTML 换目录后图全丢
+            MEDIA_REL = os.path.relpath(MEDIA_DIR,
+                                        os.path.dirname(os.path.abspath(out))
+                                        ).replace("\\", "/")
             with open(out, "w", encoding="utf-8") as f:
                 f.write(render_html(data, items, date))
             written.append(out)
+            n_img = sum(1 for it in items if it.get("images"))
+            if n_img:
+                local = os.path.join(MEDIA_DIR, "view")
+                have = len(os.listdir(local)) if os.path.isdir(local) else 0
+                print(f"配图：{n_img} 条带图，本地 media/view 已有 {have} 张"
+                      + ("" if have else "（跑 attach_media.py --download 可补齐）"))
 
     for p in written:
         print(f"简报已生成：{p}")
