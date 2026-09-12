@@ -238,11 +238,17 @@ main{padding:20px 0 60px}
 .group h2 .gbar{margin-left:auto;height:3px;width:38px;border-radius:2px;
   background:#e9edf3}
 .group.off{display:none}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
-  gap:14px}
+.grid{display:grid;grid-template-columns:1fr;gap:11px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
-  padding:16px 17px 14px;display:flex;flex-direction:column;gap:9px}
+  padding:14px 17px 15px;display:flex;flex-direction:column;gap:9px}
 .card:hover{border-color:#cfd8e5;box-shadow:0 2px 10px rgba(20,30,50,.06)}
+.body{display:grid;grid-template-columns:minmax(0,1fr) 258px;gap:20px;
+  align-items:start}
+.main{display:flex;flex-direction:column;gap:8px;min-width:0}
+.side{display:flex;flex-direction:column;gap:10px;align-items:stretch;
+  border-left:1px solid var(--line);padding-left:17px;min-width:0}
+.side .src{align-self:flex-start}
+.side .tags{align-self:flex-start}
 .head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .badge{font-size:11.5px;padding:2px 9px;border-radius:6px;font-weight:600;
   letter-spacing:.2px}
@@ -270,8 +276,6 @@ main{padding:20px 0 60px}
 .facts i b{color:var(--ink);font-weight:600;margin-right:3px}
 .why{background:#fbfaf4;border-left:3px solid #e0c98a;border-radius:4px;
   padding:7px 10px;font-size:12.5px;color:#6b5a24}
-.foot{margin-top:auto;padding-top:4px;display:flex;align-items:center;
-  gap:10px;flex-wrap:wrap}
 .src{display:inline-flex;align-items:center;gap:5px;font-size:13px;
   font-weight:600;background:var(--accent-soft);border-radius:8px;
   padding:6px 12px}
@@ -280,10 +284,17 @@ main{padding:20px 0 60px}
 .tags em{font-style:normal;font-size:11.5px;color:var(--ink3)}
 .empty{text-align:center;color:var(--ink3);padding:60px 0;font-size:14px}
 .legend{margin:18px 0 10px;color:var(--ink3);font-size:12.5px}
+@media(max-width:860px){
+  .body{grid-template-columns:1fr;gap:0}
+  .side{border-left:0;border-top:1px solid var(--line);padding-left:0;
+    padding-top:11px;margin-top:11px;flex-direction:row;flex-wrap:wrap;
+    align-items:center;gap:9px;width:100%}
+  .side .facts{flex:1 1 100%}
+}
 @media(max-width:640px){
-  .grid{grid-template-columns:1fr}
   h1{font-size:19px}
   .count{margin-left:0;width:100%}
+  .card{padding:13px 14px 14px}
 }
 @media print{
   .top{position:static}.controls{display:none}
@@ -481,6 +492,7 @@ def render_card(it):
              f' data-type="{htmllib.escape(t, quote=True)}"',
              f' data-rel="{htmllib.escape(rel, quote=True)}"',
              f' data-search="{htmllib.escape(search, quote=True)}">']
+    # 第一行：类型 / 相关度 / 时间
     parts.append('<div class="head">')
     parts.append(f'<span class="badge {TYPE_CLASS.get(t, "t-other")}">{htmllib.escape(t)}</span>')
     if rel:
@@ -488,18 +500,21 @@ def render_card(it):
     if e("posted_at"):
         parts.append(f'<span class="time">{e("posted_at")}</span>')
     parts.append('</div>')
+
+    # 第二行：左栏正文，右栏固定宽度放元信息与来源按钮
+    parts.append('<div class="body"><div class="main">')
     parts.append(f'<h3>{title}</h3>')
     if e("summary"):
         parts.append(f'<p class="sum">{e("summary")}</p>')
-    if facts:
-        parts.append('<div class="facts">' + "".join(facts) + '</div>')
     if e("relevance_reason"):
         parts.append(f'<div class="why">相关理由：{e("relevance_reason")}</div>')
-    parts.append('<div class="foot">')
+    parts.append('</div><div class="side">')
+    if facts:
+        parts.append('<div class="facts">' + "".join(facts) + '</div>')
     parts.append(src)
     if tags:
         parts.append(f'<span class="tags">{tags}</span>')
-    parts.append('</div></article>')
+    parts.append('</div></div></article>')
     return "".join(parts)
 
 
