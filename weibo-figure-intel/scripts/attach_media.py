@@ -50,6 +50,7 @@ import os
 import re
 import sqlite3
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -294,7 +295,11 @@ def _basename(url):
 
 
 def download_one(task):
-    """下载单张图。task = (url, dest)。已存在则跳过。"""
+    """下载单张图。task = (url, dest)。已存在则跳过。
+
+    失败重试 3 次并退避——走代理时图床常见瞬时 502（同一 URL 隔秒重试即成功），
+    不重试会让每次运行都留下几十张缺口、得手动补跑。
+    """
     url, dest = task
     if os.path.exists(dest) and os.path.getsize(dest) > 0:
         return dest, os.path.getsize(dest), True
@@ -303,11 +308,17 @@ def download_one(task):
         "Referer": "https://weibo.com/",      # 关键：必须带微博域 Referer
         "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
     })
-    try:
-        with urllib.request.urlopen(req, timeout=25) as r:
-            data = r.read()
-    except Exception as e:
-        return dest, 0, False
+    data = b""
+    for attempt in range(3):
+        if attempt:
+            time.sleep(1.5 * attempt)
+        try:
+            with urllib.request.urlopen(req, timeout=25) as r:
+                data = r.read()
+        except Exception:
+            data = b""
+        if data:
+            break
     if not data:
         return dest, 0, False
     with open(dest, "wb") as f:
