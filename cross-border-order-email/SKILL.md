@@ -99,6 +99,7 @@ Ask the user or infer from context. Four scenarios exist:
 3. **scenario_3** — Logistics issue / Delivery failed → Urge buyer to contact local post
 4. **scenario_4_po_box** — Address not deliverable (PO Box / 备注「地址不可达」) → Ask buyer for a physical street address, otherwise cancel for a full refund
 5. **scenario_5_repack_delay** — Damage found while packing, replacement being prepared → Notify shipping delay + ask buyer to extend the delivery time (users often hand over a rough口语 draft; polish it into the standard style)
+6. **scenario_6_extend_reminder** — Follow-up nudge when scenario_5 was already sent and the buyer has not extended the delivery time yet → One short, polite repeat request (do NOT re-explain the whole reason)
 
 ### Step 3: Generate the Email
 
@@ -239,6 +240,13 @@ These rules were established through user feedback and must be followed exactly.
 | scenario_3 | Urgent: Delivery Issue - Action Required | 紧急物流问题通知 |
 | scenario_4_po_box | `[Platform] Order [Order#]: Address Issue - PO Box Not Deliverable` | 收货地址问题：邮政信箱无法投递 |
 | scenario_5_repack_delay | `[Platform] Order [Order#]: Shipping Delay Notice - Please Extend Delivery Time` | 发货延期通知：请延长收货时间 |
+| scenario_6_extend_reminder | `[Platform] Order [Order#]: Gentle Reminder - Please Extend Delivery Time` | 温馨提醒：请延长收货时间 |
+
+**scenario_6_extend_reminder style (added 2026-09-14)**: the follow-up to scenario_5. Shorter than the
+first mail — one sentence of context ("your replacement is being prepared"), one clear request
+("extend the delivery time… keeps the order from being closed by the system"), one thank-you.
+Same clean style: "Dear Valued Customer," + "Hope you are doing well.", no `<b>`, no discount line.
+Only use it when a previous delay notice has already gone out.
 
 **scenario_4_po_box style (added 2026-09-12)**: same clean style as scenario_1 —
 "Dear Valued Customer," + "Hope you are doing well.", no `<b>` tags, **no discount/

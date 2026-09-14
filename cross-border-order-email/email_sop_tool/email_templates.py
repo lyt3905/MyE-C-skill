@@ -7,6 +7,7 @@ Scenarios:
 - scenario_3: Urgent: Delivery Issue - Action Required / 紧急物流问题通知
 - scenario_4_po_box: Address Issue - PO Box Not Deliverable / 收货地址问题（邮政信箱无法投递）
 - scenario_5_repack_delay: Shipping Delay Notice (repacking) / 发货延期通知（重新备货）
+- scenario_6_extend_reminder: Gentle Reminder - Extend Delivery Time / 温馨提醒：请延长收货时间
 """
 
 from dataclasses import dataclass
@@ -203,6 +204,38 @@ def generate_email(scenario_key: str, order: OrderInfo) -> dict:
             "因此发货时间可能会有所延迟，对此我们深表歉意。<br><br>"
             "能否请您为订单延长收货时间，以免订单被系统自动关闭？非常感谢您的帮助。<br><br>"
             "如有任何问题，欢迎随时联系我们。<br><br>"
+            "此致，<br>"
+            "客服团队"
+        )
+
+    elif scenario_key in ("scenario_6_extend_reminder", "scenario_6"):
+        # 二次催办：已发过延期通知、买家尚未延长收货时间时的跟进提醒。
+        # （新增 2026-09-14，主人要求对墨西哥订单 8213887221128775 再发一封）
+        # 语气比首次更客气、更短，不重复解释原因，只做一次明确请求。
+        product_ref = order.product_name or "your item"
+        subject = (
+            f"{platform} Order {order_number}: "
+            "Gentle Reminder - Please Extend Delivery Time / 温馨提醒：请延长收货时间"
+        )
+        body_en = (
+            "Dear Valued Customer,<br><br>"
+            "Hope you are doing well.<br><br>"
+            f"We are writing again regarding your item {product_ref} (Order No. {order_number}). "
+            "Your replacement is being prepared and we are doing our best to ship it as soon "
+            "as possible.<br><br>"
+            "Could you please extend the delivery time on your order? It only takes a moment, and it "
+            "will keep the order from being closed by the system.<br><br>"
+            "Thank you very much for your patience and understanding.<br><br>"
+            "Best regards,<br>"
+            "Customer Service Team"
+        )
+        body_cn = (
+            "尊敬的客户：<br><br>"
+            "希望您一切安好。<br><br>"
+            f"我们再次就您的商品 {product_ref}（订单号 {order_number}）与您联系。"
+            "替换商品正在准备中，我们会尽最大努力尽快为您发货。<br><br>"
+            "能否请您为订单延长收货时间？只需简单操作一下，即可避免订单被系统自动关闭。<br><br>"
+            "非常感谢您的耐心与理解。<br><br>"
             "此致，<br>"
             "客服团队"
         )
