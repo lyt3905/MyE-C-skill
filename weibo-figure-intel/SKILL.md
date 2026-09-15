@@ -161,7 +161,7 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 ### 第 4 步：精抽（由 agent 完成，不调外部 API）
 
 读取 `data/filtered-*.json`，按 `references/intel-schema.md` 的字段定义逐条抽取，
-写入 `data/intel-YYYY-MM-DD.json`。要点：
+**先写成草稿 spec，再由脚本组装**为 `data/intel-YYYY-MM-DD.json`（见下方）。要点：
 
 - 严格遵循 `intel_type` 枚举，不要自造类型
 - 原文没有的价格 / 发售日留空，不要推测
