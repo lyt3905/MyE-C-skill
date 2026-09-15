@@ -84,6 +84,7 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 |---|---|
 | `scripts/weibo_fetch.py` | 校验登录态、拉取关注列表、按账号抓取微博增量、SQLite 去重 |
 | `scripts/prefilter.py` | 用 `scripts/lexicon.json` 打分粗筛，输出候选情报 |
+| `scripts/assemble_intel.py` | 把精抽草稿组装成规范 intel JSON：**`url`/`blogger`/`posted_at` 按 `post_id` 自动填充**，并拦截未定义字段与非法枚举 |
 | `scripts/attach_media.py` | 给情报条回填配图 `images[]`（本地库离线匹配 + 一致性校验），`--download` 抓图到 `output/media/` |
 | `scripts/build_digest.py` | 校验结构化情报 JSON，渲染 Markdown + HTML 简报（HTML 自带缩略图、放大预览、搜索/筛选与原博链接） |
 | `scripts/lexicon.json` | 手办情报词库与权重，**主要调优入口** |
@@ -170,6 +171,35 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 - 转发（`is_repost=true`）且原博才是情报主体的：`blogger` 写**原博作者**
   （`retweeted.author`），`url` 用原博链接，`summary` 里可注明经谁转发
 - 若带 `also_reposted_by`，可在 `summary` 末尾补一句"另有 X 家账号转发"
+
+**不要手写 `url` / `blogger` / `posted_at`。** 先把内容字段写成一个「草稿 spec」
+（JSON 数组，每条必须有 `post_id`），再交给脚本组装——这三个字段会从原始采集数据里
+按 `post_id` 取，从流程上杜绝手抄错误：
+
+```bash
+"$PY" "$SKILL/scripts/assemble_intel.py" \
+  --source "$SKILL/data/filtered-YYYYMMDD-HHMMSS.json" \
+  --spec   "$SKILL/data/_spec_YYYYMMDD.json" \
+  --out    "$INTEL"
+```
+
+草稿 spec 只写内容字段，例如：
+
+```json
+[{ "post_id": "5343320952014745", "intel_type": "实物测评", "brand": "塞伯世界",
+   "ip": "变形金刚", "summary": "……", "relevance": "高",
+   "relevance_reason": "变形玩具，62 店主类目", "tags": ["变形金刚"] }]
+```
+
+脚本会拦下这些错误（直接报错退出，不静默放行）：未定义的字段名（历史上的 `ip` 误打成
+`iv` 就是被静默丢弃的）、`post_id` 在源文件里找不到、`intel_type` / `relevance` 不在枚举内、
+必填字段缺失。转发类情报要写原博作者时，显式给 `blogger` + `url` 覆盖即可，脚本会提示
+哪些被手写覆盖，便于复核。
+
+> ⚠️ `url` 的 uid 段取自博文的 `user.idstr`。**关注列表接口返回的 `uid` 取的是 `user.id`，
+> 部分账号两者不同**（2026-09-15 实测：某账号 `id`=5490307047、`idstr`=1538683825 是同一人）。
+> 所以看到「url 里的 uid 和候选里的 uid 不一致」**不要改**——经回连核实，URL 用 `idstr`
+> 是正确的，改了反而会错。
 
 ### 第 4.5 步：回填配图（可选但推荐）
 
@@ -373,7 +403,14 @@ open('_lb.html', 'w', encoding='utf-8').write(s)"
 9. **尺寸档**：`/orj360/`≈15KB、`/orj960/`≈70KB、`thumbnail`≈3.4KB，均返回 `image/jpeg`；
    部分图 `/large/` 与 `/orj960/` 等价（原图本身不够大）。转档只需替换 URL 中的路径段。
 
-10. 仅供个人自用，不要把采集结果对外分发。
+10. **同一个账号可能有两个数值 uid**（2026-09-15 实测）。`friendships/friends`（关注列表）返回的
+    `id` 与博文 `user` 对象里的 `idstr` 在部分账号上不同（实测一例：`id`=5490307047、
+    `idstr`=1538683825，经 `ajax/statuses/show` 回连确认为同一人）。因此：
+    `weibo_fetch.py` 存进候选的 `uid` 取 `id`，而 `url` 的 uid 段取 `idstr`，**两者不一致是正常的**，
+    不必"修正"。回连核实的办法：`GET https://weibo.com/ajax/statuses/show?id=<mblogid>`，
+    响应里的 `idstr` / `mblogid` / `user.screen_name` 三者对齐即可确认 URL 无误。
+
+11. 仅供个人自用，不要把采集结果对外分发。
 
 ## 安全与凭据
 
