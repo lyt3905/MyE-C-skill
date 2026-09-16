@@ -282,7 +282,9 @@ New-Item -ItemType Junction -Path "<目标目录>\media" -Target "$SKILL\output\
 - `terms.core`：手办 / 可动人偶等泛词
 - `terms.line_weak`：`HG`/`MG`/`RG`/`PG`/`MP` 这类 2 字母代号。歧义大（`HG` 可能指
   高达，也可能是路由器型号），因此只给 1 分，单独命中不放行，需要配合其他类别才生效
-- `terms.negative`：抽奖、招聘、带货等营销词，命中扣分
+- `terms.negative`：抽奖、招聘、带货等营销词，命中扣分。**负分只计一次，不随命中词数叠加**
+  （2026-09-16 修正：此前按命中数翻倍，导致「开订公告 + 抽奖福利」被 抽奖+开奖 的双重负分压死，
+  DLX 钢铁侠 Mark 1 开订因此漏报）
 
 新增厂商或产品线时，优先加到 `brand` / `line`（权重高、判定准），不要加到 `core`。
 

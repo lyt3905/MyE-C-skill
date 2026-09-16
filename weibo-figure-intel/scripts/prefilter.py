@@ -104,7 +104,13 @@ def score_post(post, matchers, weights):
         hits = [term for term, fn in pairs if fn(text)]
         if hits:
             matched[cat] = hits
-            score += weights.get(cat, 0) * min(len(hits), 3)
+            if cat == "negative":
+                # 负分只计一次：营销词存在即降权，不随命中词数叠加。
+                # 否则「开订公告 + 抽奖福利」这类真情报会被 抽奖+开奖 的
+                # 双重负分（-12）压死（2026-09-16 实测 DLX 钢铁侠 Mark 1 开订被埋）。
+                score += weights.get(cat, 0)
+            else:
+                score += weights.get(cat, 0) * min(len(hits), 3)
 
     # 核心词与厂商/产品线同时命中，额外加权（大概率是真情报而非泛泛提到）
     if matched.get("core") and (matched.get("brand") or matched.get("line")):
