@@ -48,6 +48,7 @@ UA_DESKTOP = (
 BASE = "https://weibo.com"
 API_FRIENDS = BASE + "/ajax/friendships/friends"
 API_MYBLOG = BASE + "/ajax/statuses/mymblog"
+API_LONGTEXT = BASE + "/ajax/statuses/longtext"
 
 CST = timezone(timedelta(hours=8))
 
@@ -280,6 +281,24 @@ def _pics_of(mblog):
     return urls
 
 
+def fetch_long_text(cookie, mblogid):
+    """补抓长文微博全文。
+
+    2026-09-16 实测：`mymblog` 列表接口对长文只返回截断摘要（约 140 字），
+    `show` 接口同样只有摘要；`GET /ajax/statuses/longtext?id=<mblogid>`
+    返回 {"ok":1,"data":{"longTextContent":"…全文…"}}，是唯一可用的全文通道。
+    失败（无权限 / 无全文 / 风控）一律返回空串，由调用方决定是否保留摘要。
+    """
+    try:
+        data = get_json(f"{API_LONGTEXT}?id={mblogid}", cookie, referer=BASE + "/", retries=1)
+    except Exception:  # noqa: BLE001 - 全文属尽力而为，失败不阻断采集
+        return ""
+    if data.get("ok") != 1:
+        return ""
+    txt = ((data.get("data") or {}).get("longTextContent") or "").strip()
+    return txt
+
+
 def parse_mblog(mblog, uid):
     post_id = str(mblog.get("idstr") or mblog.get("id") or "")
     if not post_id:
@@ -431,6 +450,30 @@ def cmd_pull_following(args):
     return 0
 
 
+def enrich_long_text(conn, cookie, posts):
+    """对新增的长文微博补抓全文，替换截断摘要并同步回 SQLite。
+
+    只在文本确实更长时替换，避免把接口偶发返回的短内容覆盖掉原摘要。
+    """
+    filled = 0
+    for p in posts:
+        if not p.get("is_long_text"):
+            continue
+        mblogid = (p.get("url") or "").rsplit("/", 1)[-1]
+        if not mblogid or mblogid.isdigit():
+            continue
+        full = fetch_long_text(cookie, mblogid)
+        if full and len(full) > len(p.get("text") or ""):
+            p["text"] = full
+            conn.execute("UPDATE posts SET text = ? WHERE post_id = ?",
+                         (full, p["post_id"]))
+            filled += 1
+    if filled:
+        conn.commit()
+        print(f"  └ 长文补全 {filled} 条（ajax/statuses/longtext）")
+    return posts
+
+
 def cmd_scan(args):
     cookie = load_cookie()
     conn = db()
@@ -472,6 +515,8 @@ def cmd_scan(args):
         try:
             posts, newest = fetch_user_posts(cookie, uid, boundary, pages=args.pages)
             new = save_posts(conn, posts)
+            if not args.no_fulltext:
+                new = enrich_long_text(conn, cookie, new)
             route = "whitelist" if uid in whitelist else "keyword"
             for p in new:
                 p["route"] = route
@@ -538,6 +583,8 @@ def main():
     p.add_argument("--pages", type=int, default=1, help="每个账号最多抓取页数")
     p.add_argument("--max-accounts", type=int, default=0, help="限制账号数，用于试跑")
     p.add_argument("--full", action="store_true", help="忽略增量边界，全量抓取")
+    p.add_argument("--no-fulltext", action="store_true",
+                   help="不为长文微博补抓全文（默认补抓，每条约多耗时 2–4 秒）")
     p.set_defaults(func=cmd_scan)
 
     sub.add_parser("stats", help="查看本地状态").set_defaults(func=cmd_stats)

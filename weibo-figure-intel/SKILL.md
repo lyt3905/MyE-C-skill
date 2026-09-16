@@ -82,7 +82,7 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 
 | 文件 | 作用 |
 |---|---|
-| `scripts/weibo_fetch.py` | 校验登录态、拉取关注列表、按账号抓取微博增量、SQLite 去重 |
+| `scripts/weibo_fetch.py` | 校验登录态、拉取关注列表、按账号抓取微博增量、SQLite 去重；长文微博自动经 `ajax/statuses/longtext` 补抓全文（`--no-fulltext` 关闭） |
 | `scripts/prefilter.py` | 用 `scripts/lexicon.json` 打分粗筛，输出候选情报 |
 | `scripts/assemble_intel.py` | 把精抽草稿组装成规范 intel JSON：**`url`/`blogger`/`posted_at` 按 `post_id` 自动填充**，并拦截未定义字段与非法枚举 |
 | `scripts/attach_media.py` | 给情报条回填配图 `images[]`（本地库离线匹配 + 一致性校验），`--download` 抓图到 `output/media/` |
@@ -381,7 +381,12 @@ open('_lb.html', 'w', encoding='utf-8').write(s)"
 6. **接口不返回登录者自己的 uid。** `friendships/friends` 不带 uid 时即代表本人，
    这是身份识别的唯一依据；脚本因此不需要用户提供自己的 uid。
 
-7. **长文微博**（`isLongText`）只拿到摘要文本，完整版需要额外请求，当前不取。
+7. **长文微博**（`isLongText`）：列表接口（`mymblog`）和 `show` 接口都只给约 140 字截断摘要；
+   全文要走 `GET https://weibo.com/ajax/statuses/longtext?id=<mblogid>`
+   （响应 `data.longTextContent`）。**2026-09-16 起 `weibo_fetch.py` 已内置**：
+   scan 时对新增长文自动补抓全文并回写 SQLite，每条多耗 2–4 秒，`--no-fulltext` 可关闭。
+   补抓失败的条目保留摘要，精抽时若发现关键信息（价格/发售日）被 `…` 截断，可单独重跑
+   `scan`（增量机制不会重抓旧微博，需用临时脚本按 mblogid 补抓）。转发的**原博**长文不补。
 
 8. **微博图床防盗链会挡住本地 HTML 外链**（2026-09 实测）。`wx*.sinaimg.cn` 的判定逻辑是：
    只要请求带浏览器特征头（真实 Chrome/Edge UA + `Sec-Fetch-*`），Referer 不是 `weibo.com`
