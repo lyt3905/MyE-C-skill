@@ -6,9 +6,12 @@ description: |
   announcements, pre-orders, release dates, re-releases, delays, exhibitions and photo reviews.
   It fetches posts with the user's Weibo login cookie, pre-filters them against a curated
   keyword lexicon, has the agent structure the surviving posts into intel records, attaches
-  each record's product photos, and renders a digest grouped by intel type — both Markdown
-  and an HTML file with inline image thumbnails, a click-to-zoom lightbox gallery, search /
-  filter controls, and clickable links back to the original Weibo posts.
+  each record's product photos, and renders a digest whose DEFAULT view is a flat
+  new-product list (新品清单) — one numbered row per product, decoupled from intel-type
+  grouping, with same-product reports merged — plus a toggle back to the full
+  type-grouped view. Output comes as both Markdown and an HTML file with inline image
+  thumbnails, a click-to-zoom lightbox gallery, search / filter controls, and clickable
+  links back to the original Weibo posts.
   Triggered when the user asks for 手办情报 / 可动人偶情报 / figure news, says things like
   "看看今天有什么手办情报", "微博上有没有新开订的手办", "抓一下我关注的手办号",
   "collect figure news from Weibo", or wants to tune the intel keyword lexicon.
@@ -20,8 +23,11 @@ agent_created: true
 ## Purpose
 
 从用户关注的微博账号中采集微博，筛出与动漫手办 / 可动人偶相关的情报，抽取成结构化
-字段，产出按情报类型分组的简报。目标是将"刷微博找新品/开订信息"这一动作自动化，
-服务于店铺选品。
+字段，产出简报。目标是将"刷微博找新品/开订信息"这一动作自动化，服务于店铺选品。
+
+> **用户的核心诉求是「微博里告诉了我有哪些新品」**，不是情报分类学。因此简报的默认
+> 形态是**脱离分类的纯新品清单**（连续编号、一行一款），分类分组退居次要视图。
+> 调优时优先保证**新品不漏**，其次才是分类准确。
 
 简报默认产出两种格式：
 
@@ -86,7 +92,7 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 | `scripts/prefilter.py` | 用 `scripts/lexicon.json` 打分粗筛，输出候选情报 |
 | `scripts/assemble_intel.py` | 把精抽草稿组装成规范 intel JSON：**`url`/`blogger`/`posted_at` 按 `post_id` 自动填充**，并拦截未定义字段与非法枚举 |
 | `scripts/attach_media.py` | 给情报条回填配图 `images[]`（本地库离线匹配 + 一致性校验），`--download` 抓图到 `output/media/` |
-| `scripts/build_digest.py` | 校验结构化情报 JSON，渲染 Markdown + HTML 简报（HTML 自带缩略图、放大预览、搜索/筛选与原博链接） |
+| `scripts/build_digest.py` | 校验结构化情报 JSON，渲染 Markdown + HTML 简报。**新品判定（`is_new`）、同款合并（`dedupe_items`）、新品清单视图**都在这里，见「新品判定规则」一节 |
 | `scripts/lexicon.json` | 手办情报词库与权重，**主要调优入口** |
 | `scripts/watchlist.json` | 白名单 / 黑名单账号 UID |
 | `references/intel-schema.md` | 精抽输出的字段定义与判定口径 |
@@ -254,8 +260,11 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 
 ### 第 6 步：回报与调优
 
-汇报时包含：抓取账号数 / 新增微博数 / 通过粗筛数 / 情报条数 / 高相关条数 / 带配图条数 /
-简报路径（HTML 与 MD 各一份）。展示结果时把 HTML 放在 `present_files` 的第一项。
+汇报时包含：抓取账号数 / 新增微博数 / 通过粗筛数 / **新品件数** / 情报总条数 / 高相关条数 /
+带配图条数 / 简报路径（HTML 与 MD 各一份）。展示结果时把 HTML 放在 `present_files` 的第一项。
+
+`build_digest.py` 收尾会打印 `共 N 条情报`（合并后的条数），结合标题区
+`其中新品清单 N 条` 即可取到这两个数。
 
 若 HTML 与 `media/` 不在同一目录，预览会找不到图。同步到别处时用目录联接而不是复制
 （省掉 ~68MB 重复占用）：
@@ -266,9 +275,53 @@ New-Item -ItemType Junction -Path "<目标目录>\media" -Target "$SKILL\output\
 
 根据用户反馈调优：
 
-- **漏了情报** → 往 `lexicon.json` 的对应类别补词，重跑 `prefilter.py`（无需重新抓取）
-- **噪声多** → 把噪声账号 UID 加进 `watchlist.json` 的 `blacklist`，或提高 `threshold`
-- **某账号总被关键词漏掉** → 把其 UID 加进 `whitelist`，该账号免筛直通
+| 用户反馈 | 排查路径 |
+|---|---|
+| **漏了情报 / 漏了新品**（最高频） | 三级定位：①`prefilter.py --show-dropped` 查是否被粗筛丢 → 补 `lexicon.json` 词；②粗筛过了但不在 intel → 补精抽 spec 重跑 `assemble_intel.py`；③在 intel 但不在新品清单 → 扩 `build_digest.py` 的 `is_new()` 正则，详见「新品判定规则」 |
+| **噪声多** | 把噪声账号 UID 加进 `watchlist.json` 的 `blacklist`，或提高 `threshold` |
+| **某账号总被关键词漏掉** | 把其 UID 加进 `whitelist`，该账号免筛直通 |
+| **同一款产品重复出现多次** | 检查 `dedupe_items()` 的成键规则，泛词是否该进 `_STOP_LINE`（见「同款合并」） |
+
+> 效率提示：**只有第 ① 级需要重跑采集**。②③ 都是本地重算（`assemble_intel.py` /
+> `build_digest.py` 秒级完成），不要为了补一条漏报去重抓一遍微博。
+
+## 新品判定规则（`build_digest.py`）
+
+新品清单的收录范围由 `is_new()` 决定，这是**调优的第一优先级**——用户投诉最多的是
+「有新品被漏了」。判定分三档：
+
+| 档位 | 判据 | 备注 |
+|---|---|---|
+| 主档（一定算） | `intel_type ∈ {新品公布, 开订, 发售, 再版}` | `NEW_TYPES` |
+| 扩展：实物测评 | 命中 `FIRST_LOOK_PAT`（首度 / 首曝 / 大货实测 / 实物曝光 …）或 `FRESH_ACTION_PAT`（开箱 / 实测 / 实物 / 大货），**且未命中** `NOT_FRESH_PAT`（回顾 / 重温 / 情怀 / 老货 / 剧情） | 首度实拍本质就是新品露面 |
+| 扩展：展会 | 命中 `EVENT_NEW_PAT`（特别发售 / 限量 / 限定 / 首展 / 现场售卖 / 推出 …） | 会场限定本身就是新面市产品 |
+
+判定用的文本是 `summary + line + character + scale + channel` 的拼接（`blob`）。
+`new_reason()` 会给扩展档的卡片打上「首次实物曝光」/「会场限定」角标。
+
+**调优入口**：以上 `*_PAT` 正则与 `NEW_TYPES` 都集中在 `build_digest.py` 顶部
+`# ---- 新品清单` 区块。改完**必须重跑**（纯渲染层，秒级出结果，不用重抓微博）：
+
+```bash
+"$PY" "$SKILL/scripts/build_digest.py" --input "$INTEL"
+```
+
+> ⚠️ 历史教训：扩宽 `is_new()` 时**宁可多收**。用户对"多收了无关内容"的容忍度远高于
+> "漏了新品"——2026-09-17 那次漏报（FT-63 / NA 漂移 / TRANSBOTS 拦路虎等 7 条）就是
+> 因为「实物测评」被整类排除在新品之外。
+
+## 同款合并（`dedupe_items()`）
+
+同一款产品被多个博主转发报道时，简报里会出现多张几乎一样的卡。合并规则：
+
+- 归一键 `make_key(brand, character, line)` → `brand|character`，`character` 为空时
+  退化为 `brand|line`；`_STOP_LINE` / `_STOP_SUBJECT` 里的泛词（"限定""特别版"等）不参与成键
+- 保留信息最全的一条为主卡，缺失字段（价格 / 发售日 / 渠道 / 比例 / 角色）从其余条目补齐
+- 配图取并集，其余来源在卡片底部渲染成「另有 N 条报道」可点击直达
+- 键为空（品牌缺失、或角色/产品线都是泛词）的条目不参与合并，原样展示
+
+实测效果：布鲁可擎天柱 Ver.EVO 由 4 条微博合成 1 张卡（「另有 3 条报道」），
+千值练大师级攻略王由 2 条合成 1 张。
 
 ## 调整词库
 
@@ -332,7 +385,7 @@ cd "$SKILL/output" && "$PY" -m http.server 8912 --bind 127.0.0.1
 - 换 `--window-size=560,1100` 复检窄屏（缩略图折行、右栏转横排）
 - 截完用 Read 工具看图，肉眼确认缩略图、标题链接、筛选条是否正常
 
-### 3. 验证交互组件（缩略图放大预览）
+### 3. 验证交互组件（缩略图放大预览 / 视图切换）
 
 静态截图看不到点击后的状态。**往 HTML 注入一段自动点击脚本**再截即可：
 
@@ -344,7 +397,27 @@ s = s.replace('</body>',
 open('_lb.html', 'w', encoding='utf-8').write(s)"
 ```
 
-对 `_lb.html` 截图，就能看到弹层、`1 / 18` 计数、左右导航是否正常。验证完删掉 `_lb.html`。
+对 `_lb.html` 截图，就能看到弹层、`1 / 18` 计数、左右导航是否正常。
+
+**两个视图都要验**（默认是新品清单视图，注入点击切到全部情报视图）：
+
+```bash
+"$PY" -c "
+s = open('_preview.html', encoding='utf-8').read()
+inj = '<script>window.addEventListener(\"load\",function(){var b=document.querySelector(\"[data-view=all]\");if(b)b.click();});</script></body>'
+open('_all.html', 'w', encoding='utf-8').write(s.replace('</body>', inj, 1))"
+```
+
+重点核对右下角计数：**新品视图应为「显示 N / N 条」（N = 新品件数），全部情报视图应为
+「显示 M / M 条」（M = 情报总条数）**。两个视图各渲染一份 DOM（共 2N 张卡），
+若计数出现「显示 N / 2N」说明卡片归属判定错了——归属靠 `c.closest('.group-new')`。
+
+> ⚠️ **多行 Python 一律写成临时 `.py` 文件再执行，不要用 stdin heredoc。** 2026-09-17
+> 踩坑：`"$PY" - << 'EOF'` 少写一个变量导致 fallback 分支启动**交互式 REPL**，
+> 在无 tty 的无头环境里疯狂刷 `_pyrepl` 的 `OSError: [WinError 123]`，
+> 2 分钟产出约 295MB stderr。用 `TaskStop` 才停掉。
+
+验证完删掉 `_lb.html` / `_all.html` / `_preview.html`。
 
 ### 4. 收尾
 
@@ -352,8 +425,13 @@ open('_lb.html', 'w', encoding='utf-8').write(s)"
   面板留下「僵尸条目」，一直显示"已运行 XXmXXs"，而 `TaskStop` 事后又清不掉（报 `not found`），
   只能重启应用。⚠️ 面板上那个计时**不代表进程还在**——查 `tasklist` 和端口才是准的。
   **不起服务就没有这一节的烦恼，这也是默认走 `file://` 的原因之一。**
-- 临时文件**用完即删**：截图目录 `_shots/`，以及复制出来的 `_preview.html` / `_lb.html`。
+- 临时文件**用完即删**：截图目录 `_shots/`，以及复制出来的 `_preview.html` / `_lb.html` / `_all.html`。
   无头浏览器的 `--user-data-dir` 很占地方，实测跑一轮截图能到 99MB。
+  省事写法：`rm -rf output/_shots output/_preview.html output/_all.html output/_lb.html`
+- 这些临时文件不会污染 git——根 `.gitignore` 第 9–10 行把整个 `weibo-figure-intel/data/`
+  与 `weibo-figure-intel/output/` 都排除了（**简报产物、抓取数据、媒体文件均不入库**，
+  只有 `scripts/` / `references/` / `SKILL.md` 进版本控制）。但仍要删干净，别把乱糟糟的
+  中间文件留在输出目录里影响主人翻看。
 
 ## 已知限制
 
