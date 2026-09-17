@@ -53,16 +53,44 @@ def norm_type(value):
     return alias.get(v, "其他")
 
 
-# --------------------------------------------------------------------------- 新品雷达
+# --------------------------------------------------------------------------- 新品清单
 # 用户最关心「微博里告诉了我有哪些新品」，因此把新品视角单列一档：
 # NEW_MAIN_TYPES 是「新品本体」（首次露面的产品），NEW_ACT_TYPES 是它的可行动后续
-# （开订 / 发售 / 再版），二者合起来构成「新品雷达」，默认展示。
+# （开订 / 发售 / 再版），二者合起来构成「新品清单」，默认展示。
 
 NEW_MAIN_TYPES = ("新品公布",)
 NEW_ACT_TYPES = ("开订", "发售", "再版")
 NEW_TYPES = NEW_MAIN_TYPES + NEW_ACT_TYPES
 
-# 新品雷达内的顺序：先本体、后动作，各自按类型次序
+# 「实物测评」里属于**首次曝光**的也算新品。
+#
+# 2026-09-17 用户反馈漏报：FT-63 充电器、NA 漂移、TRANSBOTS 拦路虎、机械入侵大力神、
+# HP-02 粉碎这类「实物 / 开箱 / 实测」帖，本质是新品首度实拍露面，但被归到实物测评后
+# 就掉出了新品清单。
+#
+# 判据分两步，宁可多收也不要再漏：
+#   ① 摘要明确写了首度语义（首度 / 首次 / 大货来了 / 实物来了 …）→ 直接算新品
+#   ② 否则看是否「开箱 / 实测 / 实物」这类首曝动作帖
+# 排除项：纯剧情回顾、老货复拍（摘要含「回顾 / 重温 / 情怀」等）。
+FIRST_LOOK_PAT = re.compile(
+    r"首度|首次|首曝|首发实拍|初公开|首度公开|"
+    r"大货实测|大货实拍|大货来了|实物来了|实物首|"
+    r"放出实物|实物亮相|实物曝光|首度亮相"
+)
+
+# 首曝动作词：开箱 / 实测 / 实物 等
+FRESH_ACTION_PAT = re.compile(r"开箱|实测|实物|大货|首测|上手")
+
+# 排除：明显不是新品的内容帖
+NOT_FRESH_PAT = re.compile(r"回顾|重温|情怀|十年前|当年|老货|复刻已久|剧情|动画|电影预告")
+
+# 展会类里的「特别发售 / 限定 / 首展」也是新品——会场限定本身就是新面市的产品。
+# 纯展会信息（仅展位、售卖通知，不含新品的）不算。
+EVENT_NEW_PAT = re.compile(
+    r"特别发售|限量|限定|首展|全球首展|首次亮相|新品|现场售卖|推出"
+)
+
+# 新品清单内的顺序：先本体、后动作，各自按类型次序
 NEW_KIND_ORDER = ["新品公布", "开订", "发售", "再版"]
 
 # 同一款产品的不同微博合并成一张卡：厂商+角色 或 厂商+产品线 相同即视为同一款
@@ -84,7 +112,36 @@ def make_key(brand, character, line):
 
 
 def is_new(it):
-    return it["_type"] in NEW_TYPES
+    """是否算「新品」：新品公布 / 开订 / 发售 / 再版，或实物测评·展会里的首度曝光。"""
+    if it["_type"] in NEW_TYPES:
+        return True
+    blob = " ".join(str(it.get(k) or "") for k in
+                    ("summary", "line", "character", "scale", "channel"))
+    if it["_type"] == "实物测评":
+        if NOT_FRESH_PAT.search(blob):
+            return False
+        if FIRST_LOOK_PAT.search(blob):
+            return True
+        # 开箱 / 实测 / 实物 类帖：本质是新品首度实拍，一并计入
+        return bool(FRESH_ACTION_PAT.search(blob))
+    if it["_type"] == "展会":
+        # 会场限定 / 特别发售 / 首展 = 新面市的产品
+        return bool(EVENT_NEW_PAT.search(blob))
+    return False
+
+
+def new_reason(it):
+    """新品清单里只保留一句「为什么值得看」，避免与摘要重复。"""
+    if it["_type"] == "实物测评" and is_new(it):
+        return "首次实物曝光"
+    if it["_type"] == "展会" and is_new(it):
+        return "会场限定"
+    return ""
+
+
+# 纯新品清单的展示列（脱离情报分类，按内容组织）
+NEW_COLUMNS = ["#", "厂商", "产品 / 角色", "作品 & 产品线", "参考价",
+               "发售 / 开订", "看点", "来源"]
 
 
 def rel_rank(it):
@@ -255,7 +312,7 @@ def build(data):
         meta.append(data["source_note"])
     meta.append(f"共提取 **{len(items)}** 条情报")
     if new_items:
-        meta.append(f"其中新品雷达 **{len(new_items)}** 条")
+        meta.append(f"其中新品清单 **{len(new_items)}** 条")
     if high:
         meta.append(f"其中 **{len(high)}** 条与选品高度相关")
     if data.get("generated_at"):
@@ -263,22 +320,38 @@ def build(data):
     out.append("　".join(meta))
     out.append("")
 
-    # ---- 新品雷达：用户最关心「有哪些新品」，放在最前面 ----
+    # ---- 新品清单：用户最关心「有哪些新品」，脱离情报分类单独成节 ----
     if new_items:
-        out.append("## 🌟 新品速览")
+        new_sorted = sorted(new_items, key=lambda x: NEW_KIND_ORDER.index(x["_type"])
+                           if x["_type"] in NEW_KIND_ORDER else 99)
+        out.append("## 🆕 新品清单")
         out.append("")
-        out.append("> 微博里首次露面的新品 + 它们的开订 / 发售 / 再版动向，"
+        out.append("> 微博里出现的新品，按「首次亮相 → 可下单」的顺序排列；"
                    "同一款产品的多条微博已合并。")
         out.append("")
-        out.append("| 类别 | 厂商 | 角色 / 作品 | 产品线 | 参考价 | 发售 | 情报摘要 | 来源 |")
-        out.append("|" + "---|" * 8)
-        for it in sorted(new_items, key=lambda x: (NEW_KIND_ORDER.index(x["_type"])
-                                                  if x["_type"] in NEW_KIND_ORDER else 99,
-                                                  rel_rank(x))):
+        out.append("| " + " | ".join(NEW_COLUMNS) + " |")
+        out.append("|" + "---|" * len(NEW_COLUMNS))
+        for n, it in enumerate(new_sorted, 1):
             subject = " / ".join(filter(None, [
                 (it.get("character") or "").strip(),
+                (it.get("brand") or "").strip() and "" or "",
+            ])) or (it.get("character") or "—")
+            works = " · ".join(filter(None, [
                 (it.get("ip") or "").strip(),
+                (it.get("line") or "").strip(),
             ])) or "—"
+            when = " / ".join(filter(None, [
+                (it.get("release_date") or "").strip(),
+                (it.get("channel") or "").strip(),
+            ])) or "—"
+            # 看点：优先相关理由，其余用摘要
+            look = (it.get("relevance_reason") or "").strip() or \
+                   (it.get("summary") or "").strip()
+            state = it["_type"]
+            if it.get("also_kinds"):
+                state += " · " + " / ".join(it["also_kinds"])
+            if new_reason(it):
+                state += f"（{new_reason(it)}）"
             source = it.get("url") or ""
             blogger = (it.get("blogger") or "原博").strip()
             src = f"[{blogger}]({source})" if source else blogger
@@ -289,19 +362,20 @@ def build(data):
                 src += f"<br/>配图 {n_img} 张"
             if it.get("also_sources"):
                 src += f"<br/>另有 {len(it['also_sources'])} 条报道"
-            kind = cell(it["_type"])
-            if it.get("also_kinds"):
-                kind += " + " + " / ".join(it["also_kinds"])
             out.append("| " + " | ".join([
-                kind,
+                str(n),
                 cell(it.get("brand")),
                 cell(subject),
-                cell(it.get("line")),
+                cell(works),
                 cell(it.get("price")),
-                cell(it.get("release_date")),
-                cell(it.get("summary")),
+                cell(when),
+                cell(look),
                 src,
             ]) + " |")
+        out.append("")
+        out.append("**状态说明**：" + "　".join(
+            f"{t} {sum(1 for x in new_sorted if x['_type'] == t)}"
+            for t in NEW_KIND_ORDER if any(x["_type"] == t for x in new_sorted)))
         out.append("")
 
     if high:
@@ -402,7 +476,8 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .count{color:var(--ink3);font-size:12.5px;margin-left:auto;white-space:nowrap}
 
-/* 视图切换：新品雷达 / 全部情报 */
+/* 视图切换：新品清单 / 全部情报 */
+.view-new .group-all{display:none}
 .views{display:flex;gap:4px;margin-top:14px;background:var(--bg);
   border:1px solid var(--line);border-radius:11px;padding:4px;width:fit-content}
 .view{border:0;background:transparent;color:var(--ink2);font-family:inherit;
@@ -414,7 +489,7 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
 .view b{font-weight:700}
 .view .vh{font-weight:400;opacity:.62;font-size:12px;margin-left:3px}
 
-/* 新品雷达：同一款产品的多条报道 */
+/* 新品清单：同一款产品的多条报道 */
 .reports{margin:0;font-size:12.5px;color:var(--ink2);background:var(--bg);
   border:1px dashed var(--line);border-radius:8px;padding:7px 10px;
   display:flex;flex-wrap:wrap;gap:6px 12px}
@@ -424,6 +499,26 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
 .kinds em{font-style:normal;font-size:11.5px;color:var(--ink3);
   background:var(--bg);border:1px solid var(--line);border-radius:5px;
   padding:1px 6px}
+
+/* 纯新品清单：脱离情报分类的单列编号列表 */
+.newlist{display:flex;flex-direction:column;gap:11px}
+.newlist .card{position:relative;padding-left:52px}
+.newlist .idx{position:absolute;left:15px;top:15px;width:24px;height:24px;
+  border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  font-size:12.5px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;line-height:1}
+.rank{display:inline-flex;align-items:center;gap:5px;font-size:12px;
+  font-weight:600;border-radius:6px;padding:2px 9px;letter-spacing:.2px}
+.rank-1{background:#e3f5ea;color:#1a7a45}
+.rank-2{background:#fdf3dc;color:#8a6412}
+.rank-3{background:#ede7fd;color:#5b3ec8}
+.rank-4{background:#eef0f3;color:#5f6b7a}
+.newhead{display:flex;align-items:baseline;gap:10px;margin:0 0 13px;
+  padding-bottom:9px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.newhead h2{margin:0;font-size:15px;font-weight:650;letter-spacing:.2px}
+.newhead .nh{color:var(--ink3);font-size:12.5px;font-weight:400}
+.newhead .gbar{margin-left:auto;height:3px;width:38px;border-radius:2px;
+  background:#e9edf3}
 
 /* 卡片 */
 main{padding:20px 0 60px}
@@ -575,34 +670,45 @@ HTML_JS = r"""
   var viewBtns  = [].slice.call(document.querySelectorAll('[data-view]'));
   var out = document.getElementById('count');
   var empty = document.getElementById('empty');
-  var state = {type:'全部', rel:'全部', view:'all'};
+  var state = {type:'全部', rel:'全部', view:'new'};
 
   function match(c){
-    if (state.view === 'new' && c.dataset.isnew !== '1') return false;
-    // 新品雷达视图下，类型筛选退化为「新品本体 / 开订+发售+再版」两档
-    if (state.type !== '全部' && state.view !== 'new'
-        && c.dataset.type !== state.type) return false;
+    // 两个视图各渲染一份 DOM：新品清单容器里的卡片只属于新品视图，
+    // 分类分组里的卡片只属于「全部情报」视图
+    var inNew = !!(c.closest && c.closest('.group-new'));
+    if (inNew !== (state.view === 'new')) return false;
+    // 新品视图下是纯清单、无分类，类型筛选只在「全部情报」视图生效
+    if (state.type !== '全部' && c.dataset.type !== state.type) return false;
     if (state.rel === '高' && c.dataset.rel !== '高') return false;
     var t = (q.value || '').trim().toLowerCase();
     if (t && (c.dataset.search || '').indexOf(t) === -1) return false;
     return true;
-  }
+}
   function apply(){
-    var n = 0;
+    var n = 0, shown = 0, total = 0;
     cards.forEach(function(c){
+      var inNew = !!(c.closest && c.closest('.group-new'));
+      if (inNew) total++;
       var ok = match(c);
       c.style.display = ok ? '' : 'none';
       if (ok) n++;
+      // 计数只统计当前视图真正可见的那份卡片
+      // （新品清单与分类分组里各渲染一份 DOM，靠所在容器区分）
+      if (ok) shown++;
     });
     // 分组标题随筛选联动：组内没有可见卡片就整组隐藏
+    // （纯新品清单不参与类型筛选，整体显隐由视图决定）
     groups.forEach(function(g){
+      if (g.dataset.group === '__new__') return;
       var vis = 0;
       [].slice.call(g.querySelectorAll('.card')).forEach(function(c){
         if (c.style.display !== 'none') vis++;
       });
       g.classList.toggle('off', vis === 0);
     });
-    out.textContent = '显示 ' + n + ' / ' + cards.length + ' 条';
+    var newSec = document.querySelector('.group-new');
+    if (newSec) newSec.style.display = (state.view === 'new') ? '' : 'none';
+    out.textContent = '显示 ' + shown + ' / ' + total + ' 条';
     empty.style.display = n ? 'none' : '';
   }
   typeChips.forEach(function(b){
@@ -629,14 +735,26 @@ HTML_JS = r"""
       typeChips.forEach(function(x){
         x.classList.toggle('on', x.dataset.typeChip === '全部');
       });
+      // 纯新品清单没有分类，类型筛选条在「新品清单」视图下隐藏
+      var chipBox = document.getElementById('typeChips');
+      if (chipBox) chipBox.style.display = (state.view === 'new') ? 'none' : '';
       apply();
+      syncViewNotes();
     });
   });
-  q.addEventListener('input', apply);
-  // 视图相关小字（如「默认只显示新品」提示）随视图显隐
-  document.querySelectorAll('[data-only-view]').forEach(function(el){
-    el.hidden = el.dataset.onlyView !== state.view;
-  });
+  q.addEventListener('input', function(){ apply(); syncViewNotes(); });
+  function syncViewNotes(){
+    // 视图相关小字（如「当前为新品清单」提示）随视图显隐
+    document.querySelectorAll('[data-only-view]').forEach(function(el){
+      el.hidden = el.dataset.onlyView !== state.view;
+    });
+  }
+  // 初始状态：默认新品清单，类型筛选条隐藏
+  (function init(){
+    var chipBox = document.getElementById('typeChips');
+    if (chipBox) chipBox.style.display = (state.view === 'new') ? 'none' : '';
+    syncViewNotes();
+  })();
   document.addEventListener('keydown', function(e){
     // 放大预览打开时把键盘让给它，避免 Esc / 数字键冲突
     if (document.body.classList.contains('lb-lock')) return;
@@ -839,13 +957,30 @@ def render_html(data, items, date):
     if high_n:
         rel_chips.append(f'<button class="chip" data-rel-chip="高">仅高相关 {high_n}</button>')
 
-    # 视图切换：默认「新品雷达」——用户最关心微博里有哪些新品
+    # 视图切换：默认「新品清单」——用户最关心微博里有哪些新品
     views = [f'<button class="view on" type="button" data-view="new">'
-             f'<b>新品雷达</b><span class="vh">{new_n} 条</span></button>']
+             f'<b>🆕 新品清单</b><span class="vh">{new_n} 件</span></button>']
     views.append(f'<button class="view" type="button" data-view="all">'
                  f'全部情报<span class="vh">{len(items)} 条</span></button>')
 
     sections = []
+    # ① 纯新品清单：脱离情报分类，单一连续列表（用户主视图，默认展开）
+    new_sorted = sorted(new_items, key=lambda x: NEW_KIND_ORDER.index(x["_type"])
+                        if x["_type"] in NEW_KIND_ORDER else 99)
+    if new_sorted:
+        inner = "\n".join(
+            render_card(it, idx=i) for i, it in enumerate(new_sorted, 1)
+        )
+        sections.append(
+            '<section class="group group-new" data-group="__new__">'
+            '<div class="newhead">'
+            '<h2>🆕 新品清单</h2>'
+            f'<span class="nh">{len(new_sorted)} 件新品</span>'
+            '<span class="gbar"></span></div>'
+            f'<div class="newlist">{inner}</div></section>'
+        )
+
+    # ② 全部情报：按类型分组（切到「全部情报」视图才显示）
     for t in ordered_types:
         inner = "\n".join(
             render_card(it)
@@ -853,7 +988,7 @@ def render_html(data, items, date):
         )
         badge = TYPE_CLASS.get(t, "t-other")
         sections.append(
-            f'<section class="group" data-group="{htmllib.escape(t, quote=True)}">'
+            f'<section class="group group-all" data-group="{htmllib.escape(t, quote=True)}">'
             f'<h2><span class="badge {badge}">{htmllib.escape(t)}</span>'
             f'<span class="gn">{len(groups[t])} 条</span>'
             f'<span class="gbar"></span></h2>'
@@ -862,7 +997,7 @@ def render_html(data, items, date):
 
     stats = [f'共 <b>{len(items)}</b> 条情报']
     if new_n:
-        stats.append(f'其中新品雷达 <b>{new_n}</b> 条')
+        stats.append(f'其中新品清单 <b>{new_n}</b> 条')
     if high_n:
         stats.append(f'其中 <b>{high_n}</b> 条高相关')
     for t in ordered_types:
@@ -872,11 +1007,12 @@ def render_html(data, items, date):
 
     subtitle = htmllib.escape(data.get("source_note") or "微博关注列表情报采集")
 
-    # 视图提示：页面加载即处于「新品雷达」，需把 body 标记与提示同步置位
-    legend = ('<span data-only-view="new">当前为 <b>新品雷达</b>：只显示微博里首次露面的新品'
-              '及其开订 / 发售 / 再版动向，同一款产品的多条微博已合并。</span>'
+    # 视图提示：页面加载即处于「新品清单」，需把 body 标记与提示同步置位
+    legend = ('<span data-only-view="new">当前为 <b>新品清单</b>：'
+              '只列微博里出现的新品与它们的开订 / 发售 / 再版动向，'
+              '按「首次亮相 → 可下单」排序，同一款产品的多条微博已合并。</span>'
               '<span data-only-view="all" hidden>当前为 <b>全部情报</b>：'
-              '含实物测评、展会限定等全部类别。</span>'
+              '含实物测评、展会限定等全部类别，按类型分组。</span>'
               '　·　点击右栏缩略图可放大看原图，点标题或按钮可跳转原博（需登录微博）。')
 
     html = (HTML_TPL
@@ -891,7 +1027,7 @@ def render_html(data, items, date):
             .replace("__RELCHIPS__", "".join(rel_chips))
             .replace("__SECTIONS__", "\n".join(sections))
             .replace("__LEGEND__", legend))
-    # 默认视图为「新品雷达」：body 带上标记，供 CSS / JS 初始状态对齐
+    # 默认视图为「新品清单」：body 带上标记，供 CSS / JS 初始状态对齐
     return html.replace("<body>", '<body class="view-new">', 1)
 
 
@@ -972,7 +1108,7 @@ def render_thumbs(it, e, url):
     return "".join(out)
 
 
-def render_card(it):
+def render_card(it, idx=None):
     t, rel = it["_type"], it["_rel"]
     e = lambda k: htmllib.escape(str(it.get(k) or "").strip())
 
@@ -1010,17 +1146,24 @@ def render_card(it):
                        "price", "release_date", "channel", "scale", "intel_type")
                       ).lower()
 
+    is_new_it = is_new(it)
     parts = ['<article class="card"',
              f' data-type="{htmllib.escape(t, quote=True)}"',
              f' data-rel="{htmllib.escape(rel, quote=True)}"',
-             f' data-isnew="{"1" if is_new(it) else "0"}"',
+             f' data-isnew="{"1" if is_new_it else "0"}"',
              f' data-search="{htmllib.escape(search, quote=True)}">']
+    # 纯新品清单：左上角编号（仅在清单视图出现）
+    if idx is not None:
+        parts.append(f'<span class="idx">{idx}</span>')
     # 第一行：类型 / 相关度 / 时间
     parts.append('<div class="head">')
     parts.append(f'<span class="badge {TYPE_CLASS.get(t, "t-other")}">{htmllib.escape(t)}</span>')
     for k in (it.get("also_kinds") or []):
         parts.append(f'<span class="badge {TYPE_CLASS.get(k, "t-other")}"'
                      f' style="opacity:.62">{htmllib.escape(k)}</span>')
+    nr = new_reason(it)
+    if nr:
+        parts.append(f'<span class="rank rank-1">{htmllib.escape(nr)}</span>')
     if rel:
         parts.append(f'<span class="rel {REL_CLASS.get(rel, "r-low")}">{htmllib.escape(rel)}相关</span>')
     if e("posted_at"):
