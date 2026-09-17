@@ -19,6 +19,7 @@ import os
 import re
 import sys
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote, unquote
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -50,6 +51,126 @@ def norm_type(value):
         "延期通知": "延期", "砍单": "延期",
     }
     return alias.get(v, "其他")
+
+
+# --------------------------------------------------------------------------- 新品雷达
+# 用户最关心「微博里告诉了我有哪些新品」，因此把新品视角单列一档：
+# NEW_MAIN_TYPES 是「新品本体」（首次露面的产品），NEW_ACT_TYPES 是它的可行动后续
+# （开订 / 发售 / 再版），二者合起来构成「新品雷达」，默认展示。
+
+NEW_MAIN_TYPES = ("新品公布",)
+NEW_ACT_TYPES = ("开订", "发售", "再版")
+NEW_TYPES = NEW_MAIN_TYPES + NEW_ACT_TYPES
+
+# 新品雷达内的顺序：先本体、后动作，各自按类型次序
+NEW_KIND_ORDER = ["新品公布", "开订", "发售", "再版"]
+
+# 同一款产品的不同微博合并成一张卡：厂商+角色 或 厂商+产品线 相同即视为同一款
+_STOP_SUBJECT = {"", "-", "—", "无", "n/a"}
+_STOP_LINE = {"", "-", "—", "无", "n/a", "限定", "限定版", "特别版", "会场限定"}
+
+
+def make_key(brand, character, line):
+    b = (brand or "").strip().lower()
+    c = (character or "").strip().lower()
+    ln = (line or "").strip().lower()
+    ln = "" if ln in _STOP_LINE else ln
+    if not b:
+        return None
+    subj = c or ln
+    if not subj or subj in _STOP_SUBJECT:
+        return None
+    return f"{b}|{subj}"
+
+
+def is_new(it):
+    return it["_type"] in NEW_TYPES
+
+
+def rel_rank(it):
+    return RELEVANCE_ORDER.get(it["_rel"], 3)
+
+
+def dedupe_items(items):
+    """同一款产品的重复条目合并：保留信息最全的一条，其余记为 also_reported_by。
+
+    2026-09-17 实测：布鲁可「擎天柱 Ver.EVO」被 4 条微博分别报道，简报里成了 4 张
+    几乎一样的卡。合并后 summary 取最长的一条，关键字段（价格 / 发售日 / 渠道 /
+    比例 / 角色）从其余条目里补齐，来源链接全部保留成「另有 N 条报道」。
+    """
+    groups, order = {}, []
+    for it in items:
+        key = make_key(it.get("brand"), it.get("character"), it.get("line"))
+        if key is None:
+            order.append(("_solo", len(order), it))
+            continue
+        if key not in groups:
+            groups[key] = []
+            order.append((key, len(order), None))
+        groups[key].append(it)
+
+    out = []
+    for key, _pos, solo in order:
+        if solo is not None:
+            out.append(solo)
+            continue
+        grp = groups[key]
+        if len(grp) == 1:
+            out.append(grp[0])
+            continue
+
+        # 主条：信息完整度优先（摘要长度 + 关键字段命中数），再比相关度与时间
+        def richness(x):
+            facts = sum(1 for k in ("price", "release_date", "channel", "scale")
+                        if (x.get(k) or "").strip())
+            return (facts, len(x.get("summary") or ""), -rel_rank(x))
+
+        grp_sorted = sorted(grp, key=richness, reverse=True)
+        main = dict(grp_sorted[0])
+        rest = grp_sorted[1:]
+
+        for x in rest:
+            for k in ("price", "release_date", "channel", "scale",
+                      "relevance_reason", "character", "ip", "line"):
+                if not (main.get(k) or "").strip() and (x.get(k) or "").strip():
+                    main[k] = x[k]
+            if rel_rank(x) < rel_rank(main):
+                main["_rel"] = x["_rel"]
+                main["relevance"] = x.get("relevance")
+
+        # 合并类型：本体优先（新品公布 > 开订 > 发售 > 再版），另记全部动作
+        kinds = []
+        for x in grp_sorted:
+            if x["_type"] not in kinds:
+                kinds.append(x["_type"])
+        kinds.sort(key=lambda t: NEW_KIND_ORDER.index(t)
+                   if t in NEW_KIND_ORDER else 99)
+        if kinds and kinds[0] != main["_type"]:
+            main["_type"] = kinds[0]
+        if len(kinds) > 1:
+            main["also_kinds"] = kinds[1:]
+
+        # 合并来源：保留其余微博的链接与博主
+        srcs = []
+        for x in rest:
+            if not x.get("url") and not x.get("post_id"):
+                continue
+            srcs.append({"blogger": x.get("blogger") or "原博",
+                         "url": x.get("url") or "",
+                         "posted_at": x.get("posted_at") or ""})
+        if srcs:
+            main["also_sources"] = srcs
+        # 配图取并集（去重，保持主条优先）
+        imgs, seen = [], set()
+        for x in grp_sorted:
+            for u in (x.get("images") or []):
+                if u and u not in seen:
+                    seen.add(u)
+                    imgs.append(u)
+        if imgs:
+            main["images"] = imgs
+        out.append(main)
+    return out
 
 
 def cell(value):
@@ -115,10 +236,12 @@ def build(data):
     for it in items:
         it["_type"] = norm_type(it.get("intel_type"))
         it["_rel"] = (it.get("relevance") or "").strip()
+    items = dedupe_items(items)
 
     date = data.get("date") or datetime.now(CST).strftime("%Y-%m-%d")
 
     high = [i for i in items if i["_rel"] == "高"]
+    new_items = [i for i in items if is_new(i)]
     groups = {}
     for it in items:
         groups.setdefault(it["_type"], []).append(it)
@@ -131,12 +254,55 @@ def build(data):
     if data.get("source_note"):
         meta.append(data["source_note"])
     meta.append(f"共提取 **{len(items)}** 条情报")
+    if new_items:
+        meta.append(f"其中新品雷达 **{len(new_items)}** 条")
     if high:
         meta.append(f"其中 **{len(high)}** 条与选品高度相关")
     if data.get("generated_at"):
         meta.append(f"生成于 {data['generated_at']}")
     out.append("　".join(meta))
     out.append("")
+
+    # ---- 新品雷达：用户最关心「有哪些新品」，放在最前面 ----
+    if new_items:
+        out.append("## 🌟 新品速览")
+        out.append("")
+        out.append("> 微博里首次露面的新品 + 它们的开订 / 发售 / 再版动向，"
+                   "同一款产品的多条微博已合并。")
+        out.append("")
+        out.append("| 类别 | 厂商 | 角色 / 作品 | 产品线 | 参考价 | 发售 | 情报摘要 | 来源 |")
+        out.append("|" + "---|" * 8)
+        for it in sorted(new_items, key=lambda x: (NEW_KIND_ORDER.index(x["_type"])
+                                                  if x["_type"] in NEW_KIND_ORDER else 99,
+                                                  rel_rank(x))):
+            subject = " / ".join(filter(None, [
+                (it.get("character") or "").strip(),
+                (it.get("ip") or "").strip(),
+            ])) or "—"
+            source = it.get("url") or ""
+            blogger = (it.get("blogger") or "原博").strip()
+            src = f"[{blogger}]({source})" if source else blogger
+            if it.get("posted_at"):
+                src += f"<br/>{cell(it['posted_at'])}"
+            n_img = len(it.get("images") or [])
+            if n_img:
+                src += f"<br/>配图 {n_img} 张"
+            if it.get("also_sources"):
+                src += f"<br/>另有 {len(it['also_sources'])} 条报道"
+            kind = cell(it["_type"])
+            if it.get("also_kinds"):
+                kind += " + " + " / ".join(it["also_kinds"])
+            out.append("| " + " | ".join([
+                kind,
+                cell(it.get("brand")),
+                cell(subject),
+                cell(it.get("line")),
+                cell(it.get("price")),
+                cell(it.get("release_date")),
+                cell(it.get("summary")),
+                src,
+            ]) + " |")
+        out.append("")
 
     if high:
         out.append("## 重点关注")
@@ -235,6 +401,29 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
 .chip:hover{border-color:#c9d2de;color:var(--ink)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .count{color:var(--ink3);font-size:12.5px;margin-left:auto;white-space:nowrap}
+
+/* 视图切换：新品雷达 / 全部情报 */
+.views{display:flex;gap:4px;margin-top:14px;background:var(--bg);
+  border:1px solid var(--line);border-radius:11px;padding:4px;width:fit-content}
+.view{border:0;background:transparent;color:var(--ink2);font-family:inherit;
+  font-size:13.5px;font-weight:600;padding:7px 16px;border-radius:8px;
+  cursor:pointer;transition:.15s;white-space:nowrap}
+.view:hover{color:var(--ink)}
+.view.on{background:var(--card);color:var(--accent);
+  box-shadow:0 1px 4px rgba(20,30,50,.1)}
+.view b{font-weight:700}
+.view .vh{font-weight:400;opacity:.62;font-size:12px;margin-left:3px}
+
+/* 新品雷达：同一款产品的多条报道 */
+.reports{margin:0;font-size:12.5px;color:var(--ink2);background:var(--bg);
+  border:1px dashed var(--line);border-radius:8px;padding:7px 10px;
+  display:flex;flex-wrap:wrap;gap:6px 12px}
+.reports span{display:inline-flex;align-items:center;gap:4px}
+.reports .k{color:var(--ink3);font-size:12px}
+.kinds{display:inline-flex;gap:4px}
+.kinds em{font-style:normal;font-size:11.5px;color:var(--ink3);
+  background:var(--bg);border:1px solid var(--line);border-radius:5px;
+  padding:1px 6px}
 
 /* 卡片 */
 main{padding:20px 0 60px}
@@ -362,6 +551,8 @@ body.lb-lock{overflow:hidden}
     align-items:center;gap:9px;width:100%}
   .side .facts{flex:1 1 100%}
   .side .thumbs{flex:1 1 100%}
+  .views{width:100%}
+  .view{flex:1;text-align:center}
 }
 @media(max-width:640px){
   h1{font-size:19px}
@@ -381,12 +572,16 @@ HTML_JS = r"""
   var groups = [].slice.call(document.querySelectorAll('.group'));
   var typeChips = [].slice.call(document.querySelectorAll('[data-type-chip]'));
   var relChips  = [].slice.call(document.querySelectorAll('[data-rel-chip]'));
+  var viewBtns  = [].slice.call(document.querySelectorAll('[data-view]'));
   var out = document.getElementById('count');
   var empty = document.getElementById('empty');
-  var state = {type:'全部', rel:'全部'};
+  var state = {type:'全部', rel:'全部', view:'all'};
 
   function match(c){
-    if (state.type !== '全部' && c.dataset.type !== state.type) return false;
+    if (state.view === 'new' && c.dataset.isnew !== '1') return false;
+    // 新品雷达视图下，类型筛选退化为「新品本体 / 开订+发售+再版」两档
+    if (state.type !== '全部' && state.view !== 'new'
+        && c.dataset.type !== state.type) return false;
     if (state.rel === '高' && c.dataset.rel !== '高') return false;
     var t = (q.value || '').trim().toLowerCase();
     if (t && (c.dataset.search || '').indexOf(t) === -1) return false;
@@ -424,7 +619,24 @@ HTML_JS = r"""
       apply();
     });
   });
+  viewBtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      state.view = b.dataset.view;
+      viewBtns.forEach(function(x){ x.classList.toggle('on', x === b); });
+      document.body.classList.toggle('view-new', state.view === 'new');
+      // 两个视图的类型筛选语义不同，切视图时把类型筛选重置回「全部」
+      state.type = '全部';
+      typeChips.forEach(function(x){
+        x.classList.toggle('on', x.dataset.typeChip === '全部');
+      });
+      apply();
+    });
+  });
   q.addEventListener('input', apply);
+  // 视图相关小字（如「默认只显示新品」提示）随视图显隐
+  document.querySelectorAll('[data-only-view]').forEach(function(el){
+    el.hidden = el.dataset.onlyView !== state.view;
+  });
   document.addEventListener('keydown', function(e){
     // 放大预览打开时把键盘让给它，避免 Esc / 数字键冲突
     if (document.body.classList.contains('lb-lock')) return;
@@ -574,6 +786,7 @@ HTML_TPL = """<!DOCTYPE html>
     <h1>__H1__</h1>
     <div class="sub">__SUBTITLE__</div>
     <div class="stat">__STATS__</div>
+    <div class="views" id="views">__VIEWS__</div>
     <div class="controls">
       <input id="q" type="search" placeholder="搜索厂商 / 角色 / 产品线 / 摘要…（按 / 聚焦）">
       <div class="chips" id="typeChips">__TYPECHIPS__</div>
@@ -615,6 +828,8 @@ def render_html(data, items, date):
     ordered_types += [t for t in groups if t not in TYPE_ORDER]
 
     high_n = sum(1 for it in items if it["_rel"] == "高")
+    new_items = [it for it in items if is_new(it)]
+    new_n = len(new_items)
 
     chips = ['<button class="chip on" data-type-chip="全部">全部</button>']
     for t in ordered_types:
@@ -623,6 +838,12 @@ def render_html(data, items, date):
     rel_chips = ['<button class="chip on" data-rel-chip="全部">不限相关度</button>']
     if high_n:
         rel_chips.append(f'<button class="chip" data-rel-chip="高">仅高相关 {high_n}</button>')
+
+    # 视图切换：默认「新品雷达」——用户最关心微博里有哪些新品
+    views = [f'<button class="view on" type="button" data-view="new">'
+             f'<b>新品雷达</b><span class="vh">{new_n} 条</span></button>']
+    views.append(f'<button class="view" type="button" data-view="all">'
+                 f'全部情报<span class="vh">{len(items)} 条</span></button>')
 
     sections = []
     for t in ordered_types:
@@ -640,6 +861,8 @@ def render_html(data, items, date):
         )
 
     stats = [f'共 <b>{len(items)}</b> 条情报']
+    if new_n:
+        stats.append(f'其中新品雷达 <b>{new_n}</b> 条')
     if high_n:
         stats.append(f'其中 <b>{high_n}</b> 条高相关')
     for t in ordered_types:
@@ -649,17 +872,27 @@ def render_html(data, items, date):
 
     subtitle = htmllib.escape(data.get("source_note") or "微博关注列表情报采集")
 
-    return (HTML_TPL
+    # 视图提示：页面加载即处于「新品雷达」，需把 body 标记与提示同步置位
+    legend = ('<span data-only-view="new">当前为 <b>新品雷达</b>：只显示微博里首次露面的新品'
+              '及其开订 / 发售 / 再版动向，同一款产品的多条微博已合并。</span>'
+              '<span data-only-view="all" hidden>当前为 <b>全部情报</b>：'
+              '含实物测评、展会限定等全部类别。</span>'
+              '　·　点击右栏缩略图可放大看原图，点标题或按钮可跳转原博（需登录微博）。')
+
+    html = (HTML_TPL
             .replace("__CSS__", HTML_CSS)
             .replace("__JS__", HTML_JS)
             .replace("__TITLE__", f"手办情报 · {date}")
             .replace("__H1__", f"手办 / 可动人偶情报　<span style=\"font-size:15px;color:#8b95a3;font-weight:400\">{htmllib.escape(date)}</span>")
             .replace("__SUBTITLE__", subtitle)
             .replace("__STATS__", "".join(f"<span>{s}</span>" for s in stats))
+            .replace("__VIEWS__", "".join(views))
             .replace("__TYPECHIPS__", "".join(chips))
             .replace("__RELCHIPS__", "".join(rel_chips))
             .replace("__SECTIONS__", "\n".join(sections))
-            .replace("__LEGEND__", "*由 weibo-figure-intel 生成，数据取自微博关注列表*"))
+            .replace("__LEGEND__", legend))
+    # 默认视图为「新品雷达」：body 带上标记，供 CSS / JS 初始状态对齐
+    return html.replace("<body>", '<body class="view-new">', 1)
 
 
 # 图床尺寸路径段（与 attach_media.py 保持一致）
@@ -780,10 +1013,14 @@ def render_card(it):
     parts = ['<article class="card"',
              f' data-type="{htmllib.escape(t, quote=True)}"',
              f' data-rel="{htmllib.escape(rel, quote=True)}"',
+             f' data-isnew="{"1" if is_new(it) else "0"}"',
              f' data-search="{htmllib.escape(search, quote=True)}">']
     # 第一行：类型 / 相关度 / 时间
     parts.append('<div class="head">')
     parts.append(f'<span class="badge {TYPE_CLASS.get(t, "t-other")}">{htmllib.escape(t)}</span>')
+    for k in (it.get("also_kinds") or []):
+        parts.append(f'<span class="badge {TYPE_CLASS.get(k, "t-other")}"'
+                     f' style="opacity:.62">{htmllib.escape(k)}</span>')
     if rel:
         parts.append(f'<span class="rel {REL_CLASS.get(rel, "r-low")}">{htmllib.escape(rel)}相关</span>')
     if e("posted_at"):
@@ -801,6 +1038,19 @@ def render_card(it):
         parts.append(f'<p class="sum">{e("summary")}</p>')
     if e("relevance_reason"):
         parts.append(f'<div class="why">相关理由：{e("relevance_reason")}</div>')
+    # 同一款产品的其他报道：保留全部来源链接，避免合并后丢线索
+    alsos = [x for x in (it.get("also_sources") or []) if x.get("url")]
+    if alsos:
+        items_html = []
+        for x in alsos:
+            b = htmllib.escape((x.get("blogger") or "原博"), quote=True)
+            u = htmllib.escape(x.get("url"), quote=True)
+            when = x.get("posted_at") or ""
+            tail = f'<span class="k">{htmllib.escape(when)}</span>' if when else ""
+            items_html.append(f'<span><a href="{u}" target="_blank" '
+                              f'rel="noopener noreferrer">@{b} ↗</a>{tail}</span>')
+        parts.append(f'<div class="reports"><span class="k">另有 '
+                     f'{len(alsos)} 条报道：</span>' + "".join(items_html) + '</div>')
     parts.append('</div><div class="side">')
     thumbs = render_thumbs(it, e, url)     # 方案 A：缩略图在右栏最顶部
     if thumbs:
