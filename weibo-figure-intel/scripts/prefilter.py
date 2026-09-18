@@ -227,9 +227,19 @@ def main():
             record["passed_by"] = "whitelist"
             passed.append(record)
         elif is_empty_comment(post):
-            record["passed_by"] = None
-            record["drop_reason"] = "无实质评论的转发"
-            empty_comment.append(record)
+            # 空评论转发（`转发微博`/纯@）：正文没信息，但转来的原博可能才是情报本体。
+            # score_post 已把 retweeted.text 计入打分，因此总分与 require_any 达标
+            # 就按原博放行，不再整体丢弃——否则连续两轮（09-16/09-17）都出现
+            # 「原博是开订/预售公告、转发者只 @ 了几个人」的真情报被误杀、
+            # 只能事后人工补录的情况（2026-09-18 实测：吞时工作室波风水门预售、
+            # 芽芽工坊 WF2026 新品等 4 条）。
+            if is_intel(score, matched, threshold, require_any):
+                record["passed_by"] = "keyword-rt"
+                passed.append(record)
+            else:
+                record["passed_by"] = None
+                record["drop_reason"] = "无实质评论的转发"
+                empty_comment.append(record)
         elif is_intel(score, matched, threshold, require_any):
             record["passed_by"] = "keyword"
             passed.append(record)

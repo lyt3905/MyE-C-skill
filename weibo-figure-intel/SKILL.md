@@ -89,7 +89,7 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 | 文件 | 作用 |
 |---|---|
 | `scripts/weibo_fetch.py` | 校验登录态、拉取关注列表、按账号抓取微博增量、SQLite 去重；长文微博自动经 `ajax/statuses/longtext` 补抓全文（`--no-fulltext` 关闭） |
-| `scripts/prefilter.py` | 用 `scripts/lexicon.json` 打分粗筛，输出候选情报 |
+| `scripts/prefilter.py` | 用 `scripts/lexicon.json` 打分粗筛，输出候选情报。**空评论转发**（`转发微博`/纯 @）不再整体丢弃：打分本就计入原博文本，总分与 `require_any` 达标即按 `passed_by=keyword-rt` 放行（2026-09-18 起，此前连续两轮出现「原博是开订/预售公告、转发者只 @ 几个人」被误杀、需人工补录） |
 | `scripts/assemble_intel.py` | 把精抽草稿组装成规范 intel JSON：**`url`/`blogger`/`posted_at` 按 `post_id` 自动填充**，并拦截未定义字段与非法枚举 |
 | `scripts/attach_media.py` | 给情报条回填配图 `images[]`（本地库离线匹配 + 一致性校验），`--download` 抓图到 `output/media/` |
 | `scripts/build_digest.py` | 校验结构化情报 JSON，渲染 Markdown + HTML 简报。**新品判定（`is_new`）、同款合并（`dedupe_items`）、新品清单视图**都在这里，见「新品判定规则」一节 |
