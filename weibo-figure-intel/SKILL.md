@@ -174,8 +174,12 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 - 一条微博含多个产品就拆成多条
 - 只有"敬请期待"这类无实质信息的不要输出
 - `relevance` 按 62 店选品视角判定，高相关度的补 `relevance_reason`
-- 转发（`is_repost=true`）且原博才是情报主体的：`blogger` 写**原博作者**
-  （`retweeted.author`），`url` 用原博链接，`summary` 里可注明经谁转发
+- 转发（`is_repost=true`）且原博才是情报主体的：**不要 override `blogger` / `url`**。
+  采集数据里 `retweeted` 只有 post_id / author / text / pics，**没有原博链接与时间**，
+  手写 blogger 会与 url 对不上、触发 attach_media 的「来源存疑」告警。保留自动填充
+  （blogger/url 指向捕获到的转发帖），原博作者写进 summary（如「原博 @XXX 公布…」），
+  点开链接即见原博内容。（2026-09-18 约定；若日后 scan 把 `retweeted.url` /
+  `retweeted.created_at` 一并落库，可再放开手写归因）
 - 若带 `also_reposted_by`，可在 `summary` 末尾补一句"另有 X 家账号转发"
 
 **不要手写 `url` / `blogger` / `posted_at`。** 先把内容字段写成一个「草稿 spec」
