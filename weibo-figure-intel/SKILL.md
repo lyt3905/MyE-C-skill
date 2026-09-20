@@ -73,6 +73,25 @@ agent_created: true
 
    该文件已在 `.gitignore` 中排除，不会进入仓库。
 
+   > ⚠️ **Cookie 失效时不要试图从浏览器 cookie 库自动提取**（2026-09-20 实测，排查耗时约 12 次工具调用，结论是死路）：
+   >
+   > - Edge / Chrome 127+ 用 **App-Bound Encryption** 加密 cookie——DB 里 `encrypted_value` 的
+   >   十六进制前缀是 `763230`（即 `v20`，不是旧版 `v10`）；密钥由 ABE 服务校验调用进程身份，
+   >   任何第三方进程（含 DPAPI + AES-256-GCM 方案）都解不开。真正的值在 `encrypted_value`
+   >   （BLOB）列，`value` 列全为空串，别在 `value` 上白找。
+   > - 浏览器运行时会**独占锁定** `User Data/<profile>/Network/Cookies`
+   >   （读 `User Data/Default/...` 报 `PermissionError [Errno 13]`，`cp` 报 `Device or resource busy`），
+   >   连 profile 复制都做不了，所以「复制 profile 再让浏览器自己解密」也走不通。
+   > - 已验证的旁路全部无效：所有**未被锁定**的 profile（Edge Guest / Profile 2–4、Chrome Default）
+   >   里都没有任何 `host_key like '%weibo%'` 的 cookie，主人的微博登录只存在于被锁的
+   >   Edge `Default` 与 `Profile 1` 中。
+   > - 判定是「SUB 过期」还是「Domain 取错」从外部无法区分：用
+   >   `GET https://weibo.com/ajax/side/hotSearch`（免登录、应返回 `ok=1`）确认站点可达，
+   >   再对比 `friendships/friends` 返回 `ok=-100`，即可锁定为**凭据问题而非网络问题**。
+   >
+   > **结论：定期手工重取 SUB 是当前唯一可靠方式**（上面 F12 流程，约 30 秒）。
+   > 不要为了续期去关掉主人的浏览器。
+
 2. **无需额外 Python 依赖**，脚本仅使用标准库。
 
 ## Tool Paths
@@ -107,7 +126,13 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 
 返回 `登录态有效  账号=<昵称>  关注=<N> 人` 则继续。若报未通过登录校验，说明 Cookie 已过期
 或取错了 Domain（见前置条件），提示用户重新获取 `SUB` 并写回 `scripts/wb_cookie.json`，
-不要重试超过一次。
+**不要重试超过一次，也不要去翻浏览器的 cookie 库**（原因见前置条件的「Cookie 失效时不要试图
+从浏览器 cookie 库自动提取」）。
+
+> 这一步是**全流程的唯一硬前置**：失败则采集、粗筛、精抽、简报全部无从谈起，没有任何降级产物。
+> 定时任务场景下，此时应当**立即收尾并明确报告**（Cookie 已失效 + 重取步骤 + 本地已缓存多少条微博），
+> 不要反复重试刷接口。历史进度可用 `weibo_fetch.py stats` 查看（已见微博 / 已扫描账号数），
+> 重取 Cookie 后增量机制会自动接上，不会丢数据。
 
 ### 第 2 步：采集（首次需先拉关注列表）
 
