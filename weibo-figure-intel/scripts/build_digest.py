@@ -688,7 +688,9 @@ HTML_JS = r"""
     var n = 0, shown = 0, total = 0;
     cards.forEach(function(c){
       var inNew = !!(c.closest && c.closest('.group-new'));
-      if (inNew) total++;
+      // 分母跟随当前视图：新品视图数 group-new 里的卡片，
+      // 全部情报视图数 group-all 里的卡片（否则全部视图会显示 N/新品数）
+      if (inNew === (state.view === 'new')) total++;
       var ok = match(c);
       c.style.display = ok ? '' : 'none';
       if (ok) n++;
