@@ -253,20 +253,102 @@ def attach_media_paths(days, all_items):
 # --------------------------------------------------------------------------- CSS
 
 EXTRA_CSS = """
-/* 日期切换器：总览页的入口控件 */
-.datebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;
-  margin-top:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.datebar .lab{font-size:12.5px;color:var(--ink3);margin-right:2px;
-  white-space:nowrap}
+/* ── 顶部区域：紧凑折叠版 ────────────────────────────────────────────────
+   改前实测顶栏 318px、视口 803px（占 40%），正文被挤到看不见。
+   现在拆成两层：
+     ① .topbar   常驻一行：标题 + 统计摘要 + 日期条 + 「筛选」按钮
+     ② .expand   展开区：视图切换 / 搜索 / 类型 / 相关度 / 统计 chips
+   默认收起，顶栏约 96px；点「筛选」或按 / 才展开。
+   另配滚动方向感应：下滚收起顶栏（只留一条极简日期条），上滚立刻回来。 */
+
+.top{background:var(--card);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:9;
+  transition:transform .22s ease}
+/* 下滚时整条顶栏上滑隐藏，给正文让位 */
+.top.hide{transform:translateY(-100%)}
+
+/* ① 常驻行：单行布局，所有元素垂直居中 */
+.topbar{display:flex;align-items:center;gap:9px;
+  padding:9px 0 8px;flex-wrap:nowrap;min-height:0}
+.topbar h1{margin:0;font-size:16px;letter-spacing:.2px;white-space:nowrap;
+  flex:0 0 auto}
+.topbar .meta{color:var(--ink3);font-size:12.5px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0;
+  max-width:220px}
+.topbar .meta b{color:var(--ink2);font-weight:600}
+
+/* 日期条：常驻行内横向滚动，不换行、不撑高 */
+.dates{display:flex;align-items:center;gap:5px;flex:1 1 auto;
+  min-width:0;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.dates::-webkit-scrollbar{display:none}
+.dates .lab{font-size:12px;color:var(--ink3);white-space:nowrap;
+  flex:0 0 auto}
 .dchip{border:1px solid var(--line);background:var(--card);color:var(--ink2);
-  border-radius:8px;padding:5px 11px;font-size:12.5px;cursor:pointer;
-  font-family:inherit;transition:.12s;white-space:nowrap;
-  display:inline-flex;align-items:center;gap:5px}
+  border-radius:7px;padding:3px 9px;font-size:12px;cursor:pointer;
+  font-family:inherit;transition:.12s;white-space:nowrap;flex:0 0 auto;
+  display:inline-flex;align-items:center;gap:4px;line-height:1.5}
 .dchip:hover{border-color:#c9d2de;color:var(--ink)}
 .dchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.dchip .n{font-size:11px;opacity:.68}
+.dchip .n{font-size:10.5px;opacity:.66}
 .dchip.on .n{opacity:.85}
 .dchip.allday{font-weight:600}
+
+/* 「筛选」开关：常驻行右侧 */
+.tgl{border:1px solid var(--line);background:var(--bg);color:var(--ink2);
+  border-radius:7px;padding:4px 11px;font-size:12.5px;cursor:pointer;
+  font-family:inherit;white-space:nowrap;flex:0 0 auto;
+  display:inline-flex;align-items:center;gap:5px;transition:.12s}
+.tgl:hover{border-color:#c9d2de;color:var(--ink)}
+.tgl.on{background:var(--accent-soft);border-color:#bcd2fb;color:var(--accent)}
+.tgl .caret{font-size:9px;transition:transform .2s}
+.tgl.on .caret{transform:rotate(180deg)}
+
+/* ② 展开区：默认折叠 */
+.expand{display:none;padding:0 0 11px}
+.expand.on{display:block}
+.expand .views{margin:0 0 9px}
+.expand .controls{margin:0;padding:0}
+.stat{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 9px}
+.stat span{background:var(--bg);border:1px solid var(--line);border-radius:999px;
+  padding:2px 10px;font-size:12px;color:var(--ink2)}
+.stat span b{color:var(--ink);font-weight:600}
+
+/* 视图切换 */
+.views{display:flex;gap:3px;background:var(--bg);
+  border:1px solid var(--line);border-radius:10px;padding:3px;width:fit-content}
+.view{border:0;background:transparent;color:var(--ink2);font-family:inherit;
+  font-size:13px;font-weight:600;padding:6px 14px;border-radius:7px;
+  cursor:pointer;transition:.15s;white-space:nowrap}
+.view:hover{color:var(--ink)}
+.view.on{background:var(--card);color:var(--accent);
+  box-shadow:0 1px 4px rgba(20,30,50,.1)}
+.view b{font-weight:700}
+.view .vh{font-weight:400;opacity:.62;font-size:11.5px;margin-left:3px}
+
+/* 筛选控件（沿用 build_digest 的 .controls，这里只调间距） */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#q{flex:1 1 240px;min-width:180px;padding:7px 11px;border:1px solid var(--line);
+  border-radius:8px;font-size:13.5px;font-family:inherit;background:var(--bg)}
+#q:focus{outline:2px solid var(--accent-soft);border-color:var(--accent);
+  background:var(--card)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink2);
+  border-radius:999px;padding:4px 11px;font-size:12px;cursor:pointer;
+  font-family:inherit;transition:.12s}
+.chip:hover{border-color:#c9d2de;color:var(--ink)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.count{color:var(--ink3);font-size:12.5px;margin-left:auto;white-space:nowrap}
+
+/* 下滚时贴顶的极简日期条（只在顶栏收起后出现） */
+.mini{position:fixed;top:0;left:0;right:0;z-index:8;background:var(--card);
+  border-bottom:1px solid var(--line);padding:6px 0;
+  transform:translateY(-100%);transition:transform .22s ease;
+  box-shadow:0 2px 8px rgba(20,30,50,.05)}
+.mini.on{transform:translateY(0)}
+.mini .wrap{display:flex;align-items:center;gap:8px;
+  padding-top:0;padding-bottom:0}
+.mini .dates{flex:1 1 auto}
+.mini .tgl{padding:3px 9px;font-size:12px}
 
 /* 跨天出现标记 */
 .span{font-size:11.5px;color:var(--ink3);background:var(--bg);
@@ -274,21 +356,41 @@ EXTRA_CSS = """
   white-space:nowrap}
 
 /* 按天分组时的天标题 */
-.dayhead{display:flex;align-items:center;gap:10px;margin:24px 0 12px;
-  padding-bottom:9px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.dayhead{display:flex;align-items:center;gap:10px;margin:20px 0 11px;
+  padding-bottom:8px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .dayhead h2{margin:0;font-size:16px;font-weight:650;letter-spacing:.2px}
 .dayhead .dh{color:var(--ink3);font-size:12.5px;font-weight:400}
 .dayhead .dlink{margin-left:auto;font-size:12.5px}
 
-/* 日期跳转区（按天分组视图的快速导航） */
+/* 按天浏览的日期快速导航：吸顶在顶栏之下 */
 .daynav{position:sticky;top:0;z-index:5;background:var(--card);
-  border-bottom:1px solid var(--line);padding:8px 0;display:none}
+  border-bottom:1px solid var(--line);padding:7px 0;display:none}
 .daynav.on{display:block}
-.daynav .wrap{display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+.daynav .wrap{display:flex;flex-wrap:wrap;gap:5px;align-items:center;
   padding-top:0;padding-bottom:0}
-.daynav a{font-size:12.5px;padding:3px 9px;border-radius:7px;
+.daynav li{display:inline}
+.daynav a{font-size:12px;padding:3px 9px;border-radius:7px;
   background:var(--bg);border:1px solid var(--line);color:var(--ink2)}
 .daynav a:hover{color:var(--accent);border-color:var(--accent);text-decoration:none}
+
+@media(max-width:860px){
+  .topbar{flex-wrap:wrap;gap:7px}
+  .topbar h1{font-size:15px}
+  .dates{order:3;flex:1 1 100%}
+  .topbar .meta{order:2}
+  .tgl{margin-left:auto}
+  .views{width:100%}
+  .view{flex:1;text-align:center}
+}
+
+/* 顶栏压扁后，正文与分组标题的间距要补回来：
+   原来靠顶栏自身的大 padding 撑开视觉呼吸感，现在得由 main / 分组标题自己给 */
+main{padding:14px 0 60px}
+.newhead{margin:0 0 12px}
+.group{margin-bottom:24px}
+.group h2{margin:0 0 12px}
+/* 新品清单是页面第一个区块，顶栏收起时不要贴太紧 */
+.group-new .newhead{margin-top:2px}
 """
 
 
@@ -310,14 +412,25 @@ def render_index(days, all_items, default_view="new"):
     high_n = sum(1 for it in all_items if it["_rel"] == "高")
 
     # ---- 日期切换器 ----
-    dchips = ['<button class="dchip allday on" type="button" data-day="全部">'
-              f'全部 <span class="n">{len(all_items)}</span></button>']
-    for d in reversed(dates):                  # 新日期排前面
-        n = len(days[d])
-        label = d[5:]                          # 09-26
-        dchips.append(
-            f'<button class="dchip" type="button" data-day="{htmllib.escape(d, quote=True)}">'
-            f'{label} <span class="n">{n}</span></button>')
+    # 渲染两份：常驻行内一份、下滚后的极简条一份。两边靠 data-day 同步选中态。
+    def day_chips():
+        out = ['<button class="dchip allday on" type="button" data-day="全部">'
+               f'全部 <span class="n">{len(all_items)}</span></button>']
+        for d in reversed(dates):              # 新日期排前面
+            out.append(
+                f'<button class="dchip" type="button" '
+                f'data-day="{htmllib.escape(d, quote=True)}">'
+                f'{d[5:]} <span class="n">{len(days[d])}</span></button>')
+        return "".join(out)
+
+    dchips = day_chips()
+    dchips2 = day_chips()
+
+    # 常驻行里的一行摘要（替代原来占一整行的统计 chips）
+    metaline = (f'共 <b>{len(dates)}</b> 天 · <b>{len(all_items)}</b> 条 · '
+                f'新品 <b>{len(new_items)}</b>')
+    if high_n:
+        metaline += f' · 高相关 <b>{high_n}</b>'
 
     # ---- 视图切换 ----
     views = [f'<button class="view on" type="button" data-view="new">'
@@ -429,11 +542,10 @@ def render_index(days, all_items, default_view="new"):
             .replace("__CSS__", bd.HTML_CSS + EXTRA_CSS)
             .replace("__JS__", bd.HTML_JS + INDEX_JS)
             .replace("__TITLE__", "手办情报总览")
-            .replace("__H1__", '手办 / 可动人偶情报　<span style="font-size:15px;'
-                               'color:#8b95a3;font-weight:400">跨天总览</span>')
-            .replace("__SUBTITLE__", htmllib.escape(counts_line))
+            .replace("__METALINE__", metaline)
             .replace("__STATS__", "".join(f"<span>{s}</span>" for s in stats))
-            .replace("__DATES__", "".join(dchips))
+            .replace("__DATES2__", dchips2)
+            .replace("__DATES__", dchips)
             .replace("__VIEWS__", "".join(views))
             .replace("__TYPECHIPS__", "".join(chips))
             .replace("__RELCHIPS__", "".join(rel_chips))
@@ -471,33 +583,76 @@ INDEX_JS = r"""
  * 计数会互相覆盖，日期筛选看起来「点了没反应」。
  */
 (function(){
+  var body = document.body;
+  var top = document.getElementById('top');
+  var mini = document.getElementById('mini');
+  var expand = document.getElementById('expand');
+  var tgl = document.getElementById('tgl');
+  var tgl2 = document.getElementById('tgl2');
   var dayChips = [].slice.call(document.querySelectorAll('[data-day]'));
   var viewBtns = [].slice.call(document.querySelectorAll('[data-view]'));
-  var body = document.body;
 
   function currentView(){
     if (body.classList.contains('view-days')) return 'days';
     if (body.classList.contains('view-all'))  return 'all';
     return 'new';
   }
-  function currentDay(){
+  function selectedDay(){
     var on = dayChips.filter(function(c){ return c.classList.contains('on'); })[0];
     return on ? on.dataset.day : '全部';
   }
   function dayOk(card){
-    var sel = currentDay();
+    var sel = selectedDay();
     if (sel === '全部') return true;
-    var ds = (card.dataset.days || '').split(',');
-    return ds.indexOf(sel) !== -1;
+    return (card.dataset.days || '').split(',').indexOf(sel) !== -1;
   }
-
-  // 按天浏览视图里，天段落整体显隐（卡片已在天段落内部，不需要再逐个判）
   function applyDays(){
-    var sel = currentDay();
+    var sel = selectedDay();
     document.querySelectorAll('.group-days[data-day]').forEach(function(sec){
       sec.style.display = (sel === '全部' || sec.dataset.day === sel) ? '' : 'none';
     });
   }
+
+  /* 展开区开合：常驻行与极简条两个按钮同步 */
+  function setExpand(open){
+    expand.classList.toggle('on', open);
+    [tgl, tgl2].forEach(function(b){
+      if (b){ b.classList.toggle('on', open); b.setAttribute('aria-expanded', open); }
+    });
+    if (open) setTopHidden(false);          // 展开时顶栏必须可见
+  }
+  function isExpanded(){ return expand.classList.contains('on'); }
+  [tgl, tgl2].forEach(function(b){
+    if (!b) return;
+    b.addEventListener('click', function(){ setExpand(!isExpanded()); });
+  });
+
+  /* 滚动方向感应：下滚收起，上滚出现。
+     展开区打开时不收起，否则会打断主人正在进行的筛选操作。 */
+  var lastY = window.pageYOffset || 0;
+  var ticking = false;
+  function setTopHidden(hide){
+    if (top) top.classList.toggle('hide', hide);
+    if (mini) mini.classList.toggle('on', hide);
+    // 顶栏隐藏时，按天导航条要贴到最顶
+    var nav = document.getElementById('daynav');
+    if (nav) nav.style.top = hide ? '0' : '';
+  }
+  function onScroll(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){
+      var y = window.pageYOffset || 0;
+      var dy = y - lastY;
+      if (!isExpanded()){
+        if (dy > 4 && y > 120) setTopHidden(true);        // 下滚
+        else if (dy < -4 || y <= 120) setTopHidden(false); // 上滚 / 回到顶部
+      }
+      lastY = y;
+      ticking = false;
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
 
   function setView(v){
     body.classList.remove('view-new','view-all','view-days');
@@ -513,9 +668,11 @@ INDEX_JS = r"""
     applyDays();
   }
 
+  /* 两份日期条（常驻行 + 极简条）同步选中态 */
   dayChips.forEach(function(b){
     b.addEventListener('click', function(){
-      dayChips.forEach(function(x){ x.classList.toggle('on', x === b); });
+      var d = b.dataset.day;
+      dayChips.forEach(function(x){ x.classList.toggle('on', x.dataset.day === d); });
       applyDays();
       if (window.__apply) window.__apply();
     });
@@ -526,6 +683,16 @@ INDEX_JS = r"""
       if (window.__apply) window.__apply();
     });
   });
+
+  /* 搜索框默认藏在展开区里，按 / 要先把面板打开再聚焦 */
+  document.addEventListener('keydown', function(e){
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    var q = document.getElementById('q');
+    if (!q || document.activeElement === q) return;
+    e.preventDefault();
+    setExpand(true);
+    q.focus();
+  }, true);
 
   // 把日期维度插进 build_digest 的 match()：包一层 apply，先跑原逻辑，
   // 再对「当前视图真正可见」的卡片叠加日期条件，并把计数改成日期过滤后的数。
@@ -565,6 +732,13 @@ INDEX_JS = r"""
   }
 
   setView('__DEFAULT_VIEW__');
+  // Esc 收起展开区（搜索框的 Esc 清空由 build_digest 处理，这里只管面板）
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && isExpanded() &&
+        document.activeElement !== document.getElementById('q')){
+      setExpand(false);
+    }
+  });
   if (!patch()){
     // HTML_JS 尚未执行完时兜底：等一拍再补
     setTimeout(function(){ patch(); if (window.__apply) window.__apply(); }, 0);
@@ -583,12 +757,15 @@ TPL = """<!DOCTYPE html>
 <style>__CSS__</style>
 </head>
 <body>
-<header class="top">
-  <div class="wrap inner">
-    <h1>__H1__</h1>
-    <div class="sub">__SUBTITLE__</div>
+<header class="top" id="top">
+  <div class="wrap topbar">
+    <h1>手办 / 可动人偶情报</h1>
+    <span class="meta">__METALINE__</span>
+    <div class="dates" id="dates"><span class="lab">📅</span>__DATES__</div>
+    <button class="tgl" id="tgl" type="button" aria-expanded="false"
+            title="展开筛选与视图切换（快捷键 /）">筛选<span class="caret">▾</span></button>  </div>
+  <div class="wrap expand" id="expand">
     <div class="stat">__STATS__</div>
-    <div class="datebar"><span class="lab">📅 日期</span>__DATES__</div>
     <div class="views" id="views">__VIEWS__</div>
     <div class="controls">
       <input id="q" type="search" placeholder="搜索厂商 / 角色 / 产品线 / 摘要…（按 / 聚焦）">
@@ -598,8 +775,16 @@ TPL = """<!DOCTYPE html>
     </div>
   </div>
 </header>
+<!-- 下滚后贴顶的极简条：只保留日期与筛选开关 -->
+<div class="mini" id="mini">
+  <div class="wrap">
+    <div class="dates" id="dates2"><span class="lab">📅</span>__DATES2__</div>
+    <button class="tgl" id="tgl2" type="button"
+            title="展开筛选与视图切换">筛选<span class="caret">▾</span></button>
+  </div>
+</div>
 <div class="daynav" id="daynav">
-  <div class="wrap"><span class="lab" style="font-size:12.5px;color:#8b95a3">跳到</span>__DAYNAV__</div>
+  <div class="wrap"><span class="lab" style="font-size:12px;color:#8b95a3">跳到</span>__DAYNAV__</div>
 </div>
 <main class="wrap">
   <div id="groups">__SECTIONS__</div>
