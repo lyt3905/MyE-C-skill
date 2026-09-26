@@ -764,6 +764,9 @@ HTML_JS = r"""
     if (e.key === 'Escape' && document.activeElement === q){ q.value=''; apply(); q.blur(); }
   });
   apply();
+  // 暴露给总览页（build_index.py）：它要在筛选链上再叠一层「按日期过滤」，
+  // 直接把 apply 包一层即可，不必复制这段逻辑。
+  window.__apply = apply;
 })();
 
 /* 配图放大预览：点缩略图弹出，同一条情报的全部配图可左右翻 */
@@ -1110,7 +1113,14 @@ def render_thumbs(it, e, url):
     return "".join(out)
 
 
-def render_card(it, idx=None):
+def render_card(it, idx=None, allow_new_in_main=False):
+    """渲染一张情报卡。
+
+    allow_new_in_main：默认 False。单日简报里新品清单与分类分组各渲染一份 DOM，
+    靠 .group-new 容器区分归属（JS 的 match() 依赖这一点），所以分类分组里的卡片
+    不能再带 isnew 归属标记。总览页的「按天浏览」视图只有一份 DOM、不参与新品归属
+    判定，传 True 让新品标记正常显示即可。
+    """
     t, rel = it["_type"], it["_rel"]
     e = lambda k: htmllib.escape(str(it.get(k) or "").strip())
 
@@ -1149,11 +1159,19 @@ def render_card(it, idx=None):
                       ).lower()
 
     is_new_it = is_new(it)
+    # data-days：这款产品被报道过的日期（总览页跨天合并后才有；单日简报为空）。
+    # 总览页的日期切换器靠它把卡片按天过滤。
+    it_days = ",".join(str(x) for x in (it.get("_dates") or []) if x)
     parts = ['<article class="card"',
              f' data-type="{htmllib.escape(t, quote=True)}"',
              f' data-rel="{htmllib.escape(rel, quote=True)}"',
-             f' data-isnew="{"1" if is_new_it else "0"}"',
-             f' data-search="{htmllib.escape(search, quote=True)}">']
+             f' data-isnew="{"1" if is_new_it else "0"}"']
+    if it_days:
+        parts.append(f' data-days="{htmllib.escape(it_days, quote=True)}"')
+    parts.append(f' data-search="{htmllib.escape(search, quote=True)}">')
+    if allow_new_in_main:
+        # 供单页总览的「按天浏览」视图使用
+        parts[0] = '<article class="card" data-in-main="1"'
     # 纯新品清单：左上角编号（仅在清单视图出现）
     if idx is not None:
         parts.append(f'<span class="idx">{idx}</span>')
