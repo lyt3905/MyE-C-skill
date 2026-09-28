@@ -92,8 +92,55 @@ agent_created: true
    >   `GET https://weibo.com/ajax/side/hotSearch`（免登录、应返回 `ok=1`）确认站点可达，
    >   再对比 `friendships/friends` 返回 `ok=-100`，即可锁定为**凭据问题而非网络问题**。
    >
-   > **结论：定期手工重取 SUB 是当前唯一可靠方式**（上面 F12 流程，约 30 秒）。
-   > 不要为了续期去关掉主人的浏览器。
+   > **结论：读浏览器 cookie 库是死路，但 CDP 是活路 —— 见下方「自动取 SUB（CDP 方案）」。**
+
+   ### 自动取 SUB（CDP 方案）
+
+   **2026-09-28 实测可行，`scripts/cdp_get_sub.py` 已实现。** 思路：不去解密 cookie 库，
+   而是用 CDP（Chrome DevTools Protocol）的 `Network.getAllCookies` 命令
+   **让浏览器自己把明文 cookie 交出来**——这是内核级 API，**不受 HttpOnly 限制**
+   （HttpOnly 只挡页面 JS 的 `document.cookie`）。正好绕开 ABE 加密与 profile 独占锁。
+
+   | 事实 | 实测结果 |
+   |---|---|
+   | CDP 能否读到 HttpOnly cookie | ✅ **能**。实测读到 `SUB domain=.weibo.com len=94`、`SRT`、`WBPSESS` 等 9 条 HttpOnly |
+   | 是否受 ABE 加密阻碍 | ❌ 不受。CDP 返回的是浏览器解密后的明文值 |
+   | 是否需要人类介入 | **首次需要**：得让 Edge 带调试参数重启一次 |
+
+   ```bash
+   "$PY" scripts/cdp_get_sub.py probe                      # 探测端口是否可用
+   "$PY" scripts/cdp_get_sub.py grab  --port 9222          # 抓取 + 登录校验（不写文件）
+   "$PY" scripts/cdp_get_sub.py grab  --port 9222 --write  # 抓取 + 写回 wb_cookie.json
+   ```
+
+   让 Edge 带上调试端口：
+
+   ```bash
+   # ⚠️ 必须先完全退出 Edge，否则新参数会被已有实例忽略、端口不会开
+   "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" --remote-debugging-port=9222
+   ```
+
+   > ⚠️ **这仍是「半自动」**：需要对浏览器做一次「关闭 → 带参重启」。
+   > 好处是**不用解密、不用 F12 手抄**；重启后若登录态仍在即可直接抓取。
+   > 若登录态已失效，仍需先在浏览器里重新登录微博一次——**自动取数解决的是「取」，不解决「为什么失效」**。
+
+   **三个已踩的坑（都已在脚本内修掉，别再重蹈）：**
+
+   1. **本机代理会吞掉回环请求。** 环境有 `HTTP_PROXY=http://127.0.0.1:54077` 时，
+      `urllib` 请求 `127.0.0.1:9222` 返回 **`HTTP Error 502: Bad Gateway`**，
+      看起来像「端口没开」，极易误判成实例没启动。
+      **必须用 `ProxyHandler({})` 绕开代理**（`curl` 则加 `--noproxy '*'`）。
+      裸 `socket` 同样要自建而不走 `create_connection`。
+   2. **`webSocketDebuggerUrl` 可能不含端口号。** 实测 Edge 153 返回
+      `ws://127.0.0.1/devtools/page/XXX`（没有 `:9222`）；若 fallback 到 80 端口会
+      `ConnectionRefused`，**表现和「实例挂了」一模一样，白排查很久**。
+      脚本已改为用已知调试端口补全（`default_port` 参数）。
+   3. **CDP 的 wsUrl 是短时效的。** 页面导航/回收后旧 URL 立即失效 → 脚本的重试逻辑
+      必须**重新取 target**，不能缓存 URL 复用。
+
+   > 结论：**这是当前唯一不依赖人手抄 SUB 的自动化路径**，前提是主人接受
+   > 「让 Edge 带调试端口重启」这一步。若不接受，仍走上面的手工 F12 流程。
+
 
 2. **无需额外 Python 依赖**，脚本仅使用标准库。
 
@@ -117,6 +164,7 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 | `scripts/build_digest.py` | 校验结构化情报 JSON，渲染 Markdown + HTML 简报。**新品判定（`is_new`）、同款合并（`dedupe_items`）、新品清单视图**都在这里，见「新品判定规则」一节 |
 | `scripts/build_index.py` | **跨天总览页生成器**：把 `data/intel-*.json` 里所有日期合成**一个** HTML，顶部带日期切换器。渲染层直接 `import build_digest`，卡片样式与判定规则永远一致。详见「总览页」一节 |
 | `scripts/lexicon.json` | 手办情报词库与权重，**主要调优入口** |
+| `scripts/cdp_get_sub.py` | **CDP 自动取 SUB**（2026-09-28 新增）。通过远程调试端口让浏览器交出 HttpOnly 的 `SUB`，绕开 ABE 加密与 profile 锁。子命令 `probe` / `grab`，`--write` 直接写回 `wb_cookie.json`。仅用标准库 |
 | `scripts/watchlist.json` | 白名单 / 黑名单账号 UID |
 | `references/intel-schema.md` | 精抽输出的字段定义与判定口径 |
 
