@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""SKU 热键出号器 —— 按 Ctrl+B 自动把下一个 SKU 编号粘贴到光标处。
+"""编号热键出号器 —— 按 Ctrl+B 自动把下一个编号粘贴到光标处。
 
-工作方式
-    ├─ 常驻后台，注册全局热键 Ctrl+B（无需管理员权限）
-    ├─ 按一下 Ctrl+B → 按「上次的规格」分配下一个流水号 → 写剪贴板 → 自动 Ctrl+V 粘贴
-    ├─ 剪贴板里是速记符时，按 Ctrl+Shift+B 可切换规格（比如从 SS86 换到 JCS）
-    └─ 每次出号都写进同一份台账，和命令行模式共用流水号，绝不会撞号
+默认：纯流水号（装上就能用，不需要任何设置）
+    ├─ 按一下 Ctrl+B → 出下一个流水号 0001 → 0002 → 0003 → … → 自动粘贴
+    ├─ 序号记在 data/hotkey_state.json，关掉重开接着往下走，不会重号
+    └─ 不写台账，只管出号
+
+可选：SKU 编码模式（需要带前缀时才用）
+    ├─ python sku_hotkey.py --set "mts tf ss86 r" 切过去，出 MTS-TF-SS86-0001-RD
+    ├─ 剪贴板里放着速记符时，按 Ctrl+Shift+B 也能切
+    └─ 这个模式下才写台账，和命令行模式共用流水号，不会撞号
 
 用法
-    设置规格：  python sku_hotkey.py --set "mts tf ss86 r"
-    启动热键：  python sku_hotkey.py           （或双击 start_hotkey.bat）
+    启动热键：  python sku_hotkey.py       （或双击 start_hotkey.bat）
     查看状态：  python sku_hotkey.py --status
+    指定起点：  python sku_hotkey.py --plain --from 1200
+    切 SKU ：  python sku_hotkey.py --set "mts tf ss86 r"
     停止：      python sku_hotkey.py --stop
 
 只依赖标准库（ctypes 直调 user32/kernel32），管理版 Python 即可运行。
@@ -56,6 +61,7 @@ VK_V = 0x56
 INPUT_KEYBOARD = 1
 KEYEVENTF_KEYUP = 0x0002
 PROCESS_TERMINATE = 0x0001
+PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
 ULONG_PTR = ctypes.c_ulonglong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_ulong
 
@@ -98,6 +104,38 @@ user32.SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
 user32.SendInput.restype = wintypes.UINT
 user32.RegisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int, wintypes.UINT, wintypes.UINT]
 user32.RegisterHotKey.restype = wintypes.BOOL
+# 必须声明签名：否则 64 位下 OpenProcess 返回的句柄会被默认 restype 截成 32 位
+kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+kernel32.OpenProcess.restype = wintypes.HANDLE
+kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+kernel32.CloseHandle.restype = wintypes.BOOL
+kernel32.TerminateProcess.argtypes = [wintypes.HANDLE, wintypes.UINT]
+kernel32.TerminateProcess.restype = wintypes.BOOL
+
+
+# ---------------------------------------------------------------- 进程状态
+
+def read_pid():
+    if not PID_FILE.exists():
+        return None
+    try:
+        return int(PID_FILE.read_text(encoding="utf-8").strip())
+    except Exception:
+        return None
+
+
+def pid_alive(pid: int) -> bool:
+    h = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+    if not h:
+        return False
+    kernel32.CloseHandle(h)
+    return True
+
+
+def daemon_running() -> bool:
+    """pid 文件存在 ≠ 进程还活着：被强杀后残留的 pid 会让状态误报「运行中」。"""
+    pid = read_pid()
+    return bool(pid and pid_alive(pid))
 
 
 # ---------------------------------------------------------------- 剪贴板
@@ -275,7 +313,7 @@ def next_sku(cfg: core.Config, ledger: core.Ledger, state: dict, commit: bool = 
     """
     spec = state.get("spec")
     if not spec:
-        return None, '还没有设置规格：先跑一次 --set "mts tf ss86 r"'
+        return None, '当前是 SKU 编码模式但还没设规格：先跑一次 --set "mts tf ss86 r"'
 
     variants = spec.get("variants") or [None]
     base = state.get("base")
@@ -316,6 +354,30 @@ def next_sku(cfg: core.Config, ledger: core.Ledger, state: dict, commit: bool = 
     return sku, None
 
 
+# ---------------------------------------------------------------- 纯流水号模式
+
+def next_plain(cfg: core.Config, state: dict) -> str:
+    """纯流水号：0001 → 0002 → 0003。不带前缀，不写台账，只管出号。"""
+    n = int(state.get("next", 1) or 1)
+    if n < 1:
+        n = 1
+    state["next"] = n + 1
+    state["count"] = int(state.get("count", 0)) + 1
+    return str(n).zfill(int(cfg.width))
+
+
+def mode_of(state: dict) -> str:
+    """默认就是纯流水号模式 —— 装上按 Ctrl+B 就能用，不需要任何设置。"""
+    return "sku" if state.get("mode") == "sku" else "plain"
+
+
+def next_code(cfg: core.Config, ledger: core.Ledger, state: dict, commit: bool = True):
+    """统一出口：按当前模式取下一个编号。"""
+    if mode_of(state) == "plain":
+        return next_plain(cfg, state), None
+    return next_sku(cfg, ledger, state, commit=commit)
+
+
 # ---------------------------------------------------------------- 热键循环
 
 class HotkeyDaemon:
@@ -332,16 +394,33 @@ class HotkeyDaemon:
 
     def banner(self):
         print("=" * 70)
-        print("  SKU 热键出号器")
+        print("  SKU 出号器")
         print("=" * 70)
-        print(f"  台账     {self.ledger.path}（已有 {len(self.ledger.items)} 条）")
-        print(f"  当前规格 {describe(self.state['spec']) if self.state.get('spec') else '（未设置）'}")
-        print(f"  快捷键   Ctrl+B = 出号并粘贴    Ctrl+Shift+B = 用剪贴板里的速记符切换规格")
+        if mode_of(self.state) == "plain":
+            nxt = str(int(self.state.get("next", 1) or 1)).zfill(int(self.cfg.width))
+            print(f"  模式     纯流水号，下一个 {nxt}")
+        else:
+            print("  模式     SKU 编码")
+            print(f"  当前规格 {describe(self.state['spec'])}")
+            print(f"  台账     {self.ledger.path}（已有 {len(self.ledger.items)} 条）")
+        print("  快捷键   Ctrl+B = 出号并粘贴    Ctrl+Shift+B = 用剪贴板里的速记符切到 SKU 模式")
         print(f"           {'（仅复制到剪贴板，不自动粘贴）' if self.args.copy_only else ''}")
         print("  退出     本窗口 Ctrl+C，或另开窗口跑 --stop")
         print("=" * 70)
 
+    def refresh(self):
+        """每次按键前重读磁盘状态。
+
+        守护进程是常驻的。若只在启动时读一次：
+          1) 外部 `--set` 改的规格不会生效（按出来还是旧规格的号）；
+          2) 接着 `save_state(self.state)` 还会把内存里的旧规格写回文件，把设置覆盖掉；
+          3) 命令行模式（sku_gen.py）写了新号，这边也不知道，会重复分配同一个流水号。
+        """
+        self.state = load_state()
+        self.ledger.reload()
+
     def do_switch(self):
+        self.refresh()
         text = get_clipboard()
         spec = parse_spec(self.cfg, text)
         if not spec:
@@ -349,13 +428,15 @@ class HotkeyDaemon:
             self.log("          正确写法如：mts tf ss86 r   /   ss86 r   /   62店 md msb 01")
             return
         self.state["spec"] = spec
+        self.state["mode"] = "sku"
         self.state["base"] = None
         self.state["queue_index"] = 0
         save_state(self.state)
-        self.log(f"规格已切换 → {describe(spec)}")
+        self.log(f"规格已切换 → {describe(spec)}（SKU 模式）")
 
     def do_press(self):
-        sku, err = next_sku(self.cfg, self.ledger, self.state)
+        self.refresh()
+        sku, err = next_code(self.cfg, self.ledger, self.state)
         if err:
             self.log(f"× {err}")
             return
@@ -453,6 +534,20 @@ def probe(cfg, ledger):
         ok = False
         print(f"  [FAIL] INPUT 结构体大小 {ctypes.sizeof(INPUT)}，预期 {expect}，Ctrl+V 会注入失败")
 
+    st_plain = {"next": 1}
+    got_plain = [next_plain(cfg, st_plain) for _ in range(3)]
+    if got_plain == ["0001", "0002", "0003"]:
+        print("  [OK]   纯流水号自增：0001 → 0002 → 0003")
+    else:
+        ok = False
+        print(f"  [FAIL] 纯流水号自增异常：{got_plain}")
+
+    if mode_of({}) == "plain" and mode_of({"mode": "sku", "spec": {"store": "MTS"}}) == "sku":
+        print("  [OK]   模式判定：默认纯流水号，--set 后为 SKU 模式")
+    else:
+        ok = False
+        print("  [FAIL] 模式判定异常")
+
     spec = parse_spec(cfg, "mts tf ss86 r,b")
     if spec and spec["variants"] == ["RD", "BL"]:
         print("  [OK]   规格解析：mts tf ss86 r,b → MTS/TF/SS86 + RD,BL")
@@ -477,9 +572,14 @@ def main():
     global STATE_FILE
     core.setup_console()
     ap = argparse.ArgumentParser(prog="sku_hotkey.py",
-                                 description="SKU 热键出号器：Ctrl+B 自动粘贴下一个 SKU 编号")
-    ap.add_argument("--set", metavar="速记符", help='设置规格，如 --set "mts tf ss86 r"')
-    ap.add_argument("--status", action="store_true", help="查看当前规格与下一个编号")
+                                 description="按 Ctrl+B 自动粘贴下一个编号（默认纯流水号，装上即用）")
+    ap.add_argument("--plain", action="store_true",
+                    help="切到纯流水号模式（默认就是这个，0001→0002→…，不记台账）")
+    ap.add_argument("--from", dest="from_", type=int, metavar="N",
+                    help="配合 --plain：把下一个编号设为 N")
+    ap.add_argument("--set", metavar="速记符",
+                    help='切到 SKU 编码模式并设规格，如 --set "mts tf ss86 r"')
+    ap.add_argument("--status", action="store_true", help="查看当前模式与下一个编号")
     ap.add_argument("--stop", action="store_true", help="停止正在运行的热键程序")
     ap.add_argument("--probe", action="store_true", help="环境自检（热键/剪贴板/按键注入/解析）")
     ap.add_argument("--copy-only", action="store_true", help="只复制到剪贴板，不自动粘贴")
@@ -488,7 +588,7 @@ def main():
                     help="触发后等多久再粘贴（默认180ms，让手离开Ctrl）")
     ap.add_argument("--config", default=str(core.DEFAULT_CONFIG))
     ap.add_argument("--ledger", default=str(core.DEFAULT_LEDGER))
-    ap.add_argument("--state", default=str(STATE_FILE), help="规格状态文件路径（一般不用改）")
+    ap.add_argument("--state", default=str(STATE_FILE), help="状态文件路径（一般不用改）")
     args = ap.parse_args()
 
     STATE_FILE = Path(args.state).resolve()
@@ -496,13 +596,13 @@ def main():
     ledger = core.Ledger(Path(args.ledger).resolve())
 
     if args.stop:
-        if not PID_FILE.exists():
+        pid = read_pid()
+        if not pid:
             core.die("没找到运行中的热键程序（没有 pid 文件）。")
-        pid = int(PID_FILE.read_text(encoding="utf-8").strip())
         h = kernel32.OpenProcess(PROCESS_TERMINATE, False, pid)
         if not h:
             PID_FILE.unlink(missing_ok=True)
-            core.die(f"进程 {pid} 已不在运行，已清理 pid 文件。")
+            core.die(f"进程 {pid} 已不在运行，已清理残留的 pid 文件。")
         kernel32.TerminateProcess(h, 0)
         kernel32.CloseHandle(h)
         PID_FILE.unlink(missing_ok=True)
@@ -512,30 +612,53 @@ def main():
     if args.probe:
         sys.exit(probe(cfg, ledger))
 
+    if args.plain:
+        st = load_state()
+        st["mode"] = "plain"
+        st.setdefault("next", 1)
+        if args.from_ is not None:
+            if args.from_ < 1:
+                core.die("--from 需要是不小于 1 的整数。")
+            st["next"] = args.from_
+        save_state(st)
+        print(f"已切到纯流水号模式，下一个编号 {sku_preview(cfg, ledger, st)}")
+        return
+
     if args.set:
         spec = parse_spec(cfg, args.set)
         if not spec:
             core.die(f'无法识别规格「{args.set}」。正确写法如：mts tf ss86 r  /  ss86 r  /  62店 md msb 01')
         st = load_state()
         st["spec"] = spec
+        st["mode"] = "sku"
         st["base"] = None
         st["queue_index"] = 0
         save_state(st)
-        print(f"规格已设置 → {describe(spec)}")
-        print(f"下一个编号    {sku_preview(cfg, ledger, st)}")
+        print(f"已切到 SKU 编码模式 → {describe(spec)}")
+        print(f"下一个编号            {sku_preview(cfg, ledger, st)}")
         return
 
     if args.status:
         st = load_state()
-        if not st.get("spec"):
-            print("尚未设置规格。跑一次：  --set \"mts tf ss86 r\"")
-            return
-        print(f"当前规格   {describe(st['spec'])}")
-        print(f"原始输入   {st['spec'].get('raw', '')}")
-        print(f"已出号     {st.get('count', 0)} 个")
-        print(f"下一个编号 {sku_preview(cfg, ledger, st)}")
-        print(f"台账       {ledger.path}（{len(ledger.items)} 条）")
-        print(f"运行中     {'是' if PID_FILE.exists() else '否'}")
+        if mode_of(st) == "plain":
+            print(f"模式       纯流水号（{int(cfg.width)} 位，不记台账）")
+            print(f"已出号     {st.get('count', 0)} 个")
+            print(f"下一个编号 {sku_preview(cfg, ledger, st)}")
+        else:
+            print("模式       SKU 编码")
+            print(f"当前规格   {describe(st['spec'])}")
+            print(f"原始输入   {st['spec'].get('raw', '')}")
+            print(f"已出号     {st.get('count', 0)} 个")
+            print(f"下一个编号 {sku_preview(cfg, ledger, st)}")
+            print(f"台账       {ledger.path}（{len(ledger.items)} 条）")
+        if daemon_running():
+            run_str = "是"
+        elif read_pid():
+            run_str = "否（pid 文件是残留的，已清理）"
+            PID_FILE.unlink(missing_ok=True)
+        else:
+            run_str = "否"
+        print(f"运行中     {run_str}")
         return
 
     HotkeyDaemon(cfg, ledger, args).run()
@@ -543,7 +666,7 @@ def main():
 
 def sku_preview(cfg, ledger, state) -> str:
     """只算不写：预览下一个会出什么号。"""
-    sku, err = next_sku(cfg, ledger, copy.deepcopy(state), commit=False)
+    sku, err = next_code(cfg, ledger, copy.deepcopy(state), commit=False)
     return sku if sku else (err or "?")
 
 

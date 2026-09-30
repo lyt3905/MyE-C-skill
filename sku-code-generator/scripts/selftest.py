@@ -145,13 +145,67 @@ def main():
     got2 = [hk.next_sku(hcfg, hledger, st2)[0] for _ in range(2)]
     check("无变体规格每次都是新流水号",
           got2 == ["MTS-TF-SS86-0001", "MTS-TF-SS86-0002"], str(got2))
-    st3 = {"base": None, "queue_index": 0}
-    sku3, err3 = hk.next_sku(hcfg, hledger, st3)
-    check("未设规格时拒绝出号并给提示", sku3 is None and err3 and "--set" in err3, f"{sku3} / {err3}")
+    st3 = {}
+    got3 = [hk.next_code(hcfg, hledger, st3)[0] for _ in range(3)]
+    check("默认模式出纯流水号 0001→0002→0003", got3 == ["0001", "0002", "0003"], str(got3))
+
+    st4 = {"mode": "sku", "base": None, "queue_index": 0}
+    sku4, err4 = hk.next_code(hcfg, hledger, st4)
+    check("SKU 模式但缺规格时报错", sku4 is None and bool(err4) and "--set" in err4, f"{sku4} / {err4}")
+
+    n_before = len(json.loads(hled.read_text(encoding="utf-8"))["items"])
+    hk.next_code(hcfg, hledger, {})
+    n_after = len(json.loads(hled.read_text(encoding="utf-8"))["items"])
+    check("纯流水号模式不写台账", n_before == n_after, f"{n_before} -> {n_after}")
+
     prev = len(json.loads(hled.read_text(encoding="utf-8"))["items"])
-    hk.next_sku(hcfg, hledger, {"spec": hk.parse_spec(hcfg, "ss86"), "base": None}, commit=False)
+    hk.next_code(hcfg, hledger, {"mode": "sku", "spec": hk.parse_spec(hcfg, "ss86"), "base": None},
+                 commit=False)
     after = len(json.loads(hled.read_text(encoding="utf-8"))["items"])
     check("预览（commit=False）不写台账", prev == after, f"{prev} -> {after}")
+
+    print("\n13. 守护进程重读磁盘（外部改动即时生效，不撞号）")
+    # 13.1 Ledger.reload：另一个「进程」写入的新记录必须能被看见
+    rled = tmp / "reload_led.json"
+    writer = core.Ledger(rled)
+    writer.add({"sku": "A-0001", "base": "A-0001"})
+    writer.save(backup=False)
+    holder = core.Ledger(rled)                     # 模拟常驻进程持有的旧副本
+    writer.add({"sku": "A-0002", "base": "A-0002"})
+    writer.save(backup=False)
+    holder.reload()
+    check("reload 后能看见外部写入的新记录", len(holder.items) == 2, str(len(holder.items)))
+
+    # 13.2 daemon.refresh：外部 --set 换规格后，再按 Ctrl+B 必须出「新」规格的号
+    stfile = tmp / "hk_state.json"
+    saved_state_file = hk.STATE_FILE
+    try:
+        hk.STATE_FILE = stfile
+        hk.save_state({"mode": "sku", "spec": hk.parse_spec(hcfg, "ss86 r"),
+                       "base": None, "queue_index": 0})
+
+        class _Args:
+            quiet = True
+            copy_only = True
+            settle_ms = 180
+
+        daemon = hk.HotkeyDaemon(hcfg, core.Ledger(tmp / "hk_daemon_led.json"), _Args())
+        daemon.refresh()
+        before, _ = hk.next_code(hcfg, daemon.ledger, daemon.state)
+
+        hk.save_state({"mode": "sku", "spec": hk.parse_spec(hcfg, "cmt af dw g"),
+                       "base": None, "queue_index": 0})
+        daemon.refresh()
+        after, _ = hk.next_code(hcfg, daemon.ledger, daemon.state)
+        check("外部 --set 后守护进程立即换到新规格",
+              before.startswith("MTS-TF-SS86") and after.startswith("CMT-AF-DW"),
+              f"{before} -> {after}")
+
+        hk.save_state(daemon.state)                # 模拟 do_press 落盘
+        disk_series = json.loads(stfile.read_text(encoding="utf-8"))["spec"]["series"]
+        check("出号落盘后磁盘规格仍是新值（没被内存旧副本覆盖）", disk_series == "DW", disk_series)
+    finally:
+        hk.STATE_FILE = saved_state_file
 
     print("\n" + "=" * 60)
     print(f"通过 {len(PASS)} 项，失败 {len(FAIL)} 项")

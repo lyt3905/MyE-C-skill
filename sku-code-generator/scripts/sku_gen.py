@@ -228,6 +228,24 @@ class Ledger:
     def scope_key(self, cfg: Config, rec: dict) -> str:
         return "|".join(str(rec.get(k, "")) for k in cfg.scope)
 
+    def reload(self) -> None:
+        """从磁盘重读台账，覆盖内存副本。
+
+        常驻进程（热键出号器）必须每次出号前调用：命令行或另一个窗口写入新记录后，
+        内存里的旧副本会让流水号重复分配。文件读不动时保留现状，绝不用残缺数据覆盖磁盘。
+        """
+        if not self.path.exists():
+            return
+        try:
+            with self.path.open("r", encoding="utf-8") as f:
+                loaded = json.load(f)
+        except Exception:
+            return
+        self.data.update(loaded)
+        self.data.setdefault("counters", {})
+        self.data.setdefault("items", [])
+        self._dirty = False
+
     def peek_next(self, cfg: Config, rec: dict) -> int:
         return int(self.data["counters"].get(self.scope_key(cfg, rec), 0)) + 1
 
