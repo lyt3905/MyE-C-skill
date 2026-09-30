@@ -112,6 +112,47 @@ def main():
     run(["-s", "mts", "-c", "af", "-e", "jcs", "--dry-run"], led)
     check("台账未变", len(load(led)["items"]) == len(before))
 
+    print("\n11. 热键：规格解析")
+    sys.path.insert(0, str(HERE))
+    import sku_hotkey as hk
+    cfg0 = __import__("sku_gen").Config(GEN.parent.parent / "config" / "sku_config.json")
+    cases = [("mts tf ss86 r,b", "SS86", ["RD", "BL"]),
+             ("ss86 r", "SS86", ["RD"]),
+             ("62店 md msb 01", "MSB", ["01"]),
+             ("jcs w", "JCS", ["WH"])]
+    for text, series, variants in cases:
+        sp = hk.parse_spec(cfg0, text)
+        got_v = sp["variants"] if sp else None
+        ok_case = sp is not None and got_v == variants and (series is None or sp["series"] == series)
+        check(f"解析 {text!r} → {variants}", ok_case, str(sp))
+    sp = hk.parse_spec(cfg0, "ss86 w")
+    check("'ss86 w' 的 w 判为变体 WH 而非系列 WFC",
+          sp is not None and sp["series"] == "SS86" and sp["variants"] == ["WH"], str(sp))
+    bad = [t for t in ("SS86 擎天柱", "随便一段话", "mts tf", "zzz", "s", "w")
+           if hk.parse_spec(cfg0, t)]
+    check("非规格文本全部被拒（含只有变体没有系列的 'w'）", not bad, str(bad))
+
+    print("\n12. 热键：连按出号与变体轮转")
+    hled = tmp / "hk_led.json"
+    core = __import__("sku_gen")
+    hcfg = core.Config(GEN.parent.parent / "config" / "sku_config.json")
+    hledger = core.Ledger(hled)
+    st = {"spec": hk.parse_spec(hcfg, "jcs b,bk"), "base": None, "queue_index": 0}
+    got = [hk.next_sku(hcfg, hledger, st)[0] for _ in range(3)]
+    check("同一流水号先出齐变体再进新号",
+          got == ["MTS-TF-JCS-0001-BL", "MTS-TF-JCS-0001-BK", "MTS-TF-JCS-0002-BL"], str(got))
+    st2 = {"spec": hk.parse_spec(hcfg, "ss86"), "base": None, "queue_index": 0}
+    got2 = [hk.next_sku(hcfg, hledger, st2)[0] for _ in range(2)]
+    check("无变体规格每次都是新流水号",
+          got2 == ["MTS-TF-SS86-0001", "MTS-TF-SS86-0002"], str(got2))
+    st3 = {"base": None, "queue_index": 0}
+    sku3, err3 = hk.next_sku(hcfg, hledger, st3)
+    check("未设规格时拒绝出号并给提示", sku3 is None and err3 and "--set" in err3, f"{sku3} / {err3}")
+    prev = len(json.loads(hled.read_text(encoding="utf-8"))["items"])
+    hk.next_sku(hcfg, hledger, {"spec": hk.parse_spec(hcfg, "ss86"), "base": None}, commit=False)
+    after = len(json.loads(hled.read_text(encoding="utf-8"))["items"])
+    check("预览（commit=False）不写台账", prev == after, f"{prev} -> {after}")
+
     print("\n" + "=" * 60)
     print(f"通过 {len(PASS)} 项，失败 {len(FAIL)} 项")
     if FAIL:

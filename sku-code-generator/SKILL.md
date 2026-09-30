@@ -8,9 +8,12 @@ description: |
   numbers never collide, single-item CLI mode, interactive mode, and batch generation from
   CSV/TSV/XLSX product tables. Series and variant dictionaries live in a JSON file so new
   lines can be added without touching code.
+  ALSO ships a resident Windows global-hotkey mode: press Ctrl+B and the next SKU code is
+  pasted straight at the cursor (no terminal, no command line), reusing the last spec and
+  auto-incrementing the serial every press; Ctrl+Shift+B switches spec from the clipboard.
   Triggered when the user asks for SKU 编码 / SKU 生成 / 生成货号 / 编码规则 / 批量生成 SKU /
-  "给这批商品编个号" / "SKU 代号" / wants to add a new series or colour to the SKU dictionary /
-  or asks what a generated SKU means.
+  "给这批商品编个号" / "SKU 代号" / 热键出号 / Ctrl+B 自动粘贴 / "按一下就来一个编号" /
+  wants to add a new series or colour to the SKU dictionary / asks what a generated SKU means.
 agent_created: true
 ---
 
@@ -56,6 +59,9 @@ MTS - TF - SS86 - 0001 - RD
 ⚠️ 输入 `s` 会报歧义（SS86 / SXX / ST 三个候选）——这是故意的，避免编错货。
 输入 `?` 可随时打印该字段的完整字典。
 
+热键的模式匹配用的是**跨字典判定**：先找「精确匹配」的字段（`w` 精确命中变体 WH，而不是前缀命中系列 WFC），
+找不到再退回前缀匹配；且要求每个 token 都能识别，否则整条作废 —— 商品标题、闲聊文本不会被误当成规格。
+
 ## 用法
 
 脚本：`scripts/sku_gen.py`。**跑之前先确认用哪个解释器**：
@@ -70,6 +76,48 @@ PYX="C:/Users/shana/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
 S="C:/Users/shana/.workbuddy/skills/sku-code-generator/scripts/sku_gen.py"
 # 或仓库路径：C:/Users/shana/Documents/GitHub/MyE-C-skill/sku-code-generator/scripts/sku_gen.py
 ```
+
+## 热键模式（Ctrl+B 自动粘贴）—— 日常最省事的用法
+
+**不开终端、不打命令**：脚本常驻后台，按一下 Ctrl+B，下一个编号直接粘在光标处。
+跑 `scripts/start_hotkey.bat` 启动（或 `"$PY" "$S_HK"`）。
+
+```
+Ctrl+B          → 按上次的规格出下一个流水号 → 写剪贴板 → 自动 Ctrl+V 粘贴
+Ctrl+Shift+B    → 把剪贴板里的速记符设为新规格（比如复制「jcs r」后按一下，就切到 JCS）
+```
+
+首次使用先设一次规格（之后就不用再管了）：
+
+```bash
+S_HK="C:/Users/shana/.workbuddy/skills/sku-code-generator/scripts/sku_hotkey.py"
+
+"$PY" "$S_HK" --set "mts tf ss86 r"    # 设定规格，之后每次 Ctrl+B 都是 SS86 的下一个号
+"$PY" "$S_HK" --status                 # 看当前规格 + 下一个会出什么号（只算不写）
+"$PY" "$S_HK" --stop                   # 停止热键程序
+"$PY" "$S_HK" --probe                  # 环境自检（热键/剪贴板/按键注入/解析）
+```
+
+出号规则（与主人确认过的口径一致）：
+
+| 规格 | 连按 Ctrl+B 的结果 |
+|---|---|
+| `ss86`（无变体） | 0001 → 0002 → 0003（每次一个新流水号） |
+| `ss86 r`（单变体） | 0001-RD → 0002-RD → 0003-RD |
+| `ss86 r,b`（多变体） | 0001-RD → 0001-BL → 0002-RD → 0002-BL（同款先出齐颜色） |
+| 换商品 | 复制新速记符 → Ctrl+Shift+B 切换（或 `--set`） |
+
+- 每次出号**都写进同一份台账**，和命令行模式共用流水号，绝不会撞号
+- 日志窗口留着能看见每次出了什么号；不想要日志就加 `--quiet`
+- 只复制不粘贴（比如手动 Ctrl+V）加 `--copy-only`
+- 开机自启：`Win+R` → `shell:startup` → 把 `start_hotkey.bat` 的**快捷方式**放进去
+
+### 怎么验证热键真的能用（改完代码后）
+
+改完 `sku_hotkey.py` 一定要跑 `--probe`（校验 Ctrl+B 可注册、剪贴板中文往返、`INPUT` 结构体布局 40 字节、
+规格解析与非规格拒绝）。想验证整条链路（真热键 → 出号 → 剪贴板），做法是：
+**用 `SendInput` 注入真实的 Ctrl+B**，而不是只调函数 —— 注入的按键同样会触发 `RegisterHotKey`
+（已实测通过）。测的时候一定加 `--copy-only`，否则测试编号会被粘到当前前台窗口里。
 
 ### 1. 交互模式（日常首选）
 
@@ -150,9 +198,14 @@ sku-code-generator/
 ├── SKILL.md
 ├── agents/openai.yaml
 ├── config/sku_config.json      # 字典（进 git）
-├── scripts/sku_gen.py          # 主脚本
+├── scripts/sku_gen.py          # 命令行主脚本
+├── scripts/sku_hotkey.py       # 全局热键出号器（Ctrl+B）
+├── scripts/start_hotkey.bat    # 热键启动器（双击即用）
 ├── scripts/selftest.py         # 冒烟自测
-└── data/sku_ledger.json        # 台账（本地数据，已 gitignore）
+└── data/                       # 本地数据（已 gitignore）
+    ├── sku_ledger.json         #   台账
+    ├── hotkey_state.json       #   热键当前规格
+    └── hotkey.pid              #   运行中的热键进程
 ```
 
 ## 环境坑（已踩过，别重踩）
@@ -163,3 +216,8 @@ sku-code-generator/
 | 管理版 Python 无 `openpyxl` | 读写 XLSX 报 ImportError | 已建隔离 venv：`C:/Users/shana/.workbuddy/binaries/python/envs/default`（openpyxl 3.1.5）。纯 CSV/交互用管理版即可 |
 | 控制台中文乱码 | 中文提示变问号 | 脚本内 `setup_console()` 把控制台代码页切 UTF-8；管道输入测试时加 `PYTHONIOENCODING=utf-8` |
 | 路径给原生 Windows Python | 传 `/tmp/...` 会失败 | 一律用 `C:/...` 形式 |
+| Ctrl+B 与办公软件冲突 | WPS/Excel/Word 里 Ctrl+B 是「加粗」，在表格里按会先加粗 | 在**输入框/表单**里用（无冲突）；非要在表格里用就改 `sku_hotkey.py` 里的 `VK_B`/`MOD_CONTROL` 常量 |
+| 剪贴板被别的程序占着 | `OpenClipboard` 失败 | 已做 20 次重试（每次 30ms），仍失败会报「写剪贴板失败」并保留 SKU 在日志里 |
+| 热键被占用 | `RegisterHotKey` 返回 1409 | 启动时会明确报错并提示关掉占用的程序；`Ctrl+Shift+B` 被占用则只降级提示，不影响 `Ctrl+B` |
+| 多变体规格的字段判定 | `w` 既能前缀匹配系列 WFC、又是变体 WH 的速记符 | `classify()` 采用**跨字典精确匹配优先**：`w` → WH（变体），而不是 WFC |
+| `--stop` 强杀进程 | `finally` 不执行、热键不显式注销 | 无影响：进程退出时系统自动回收热键注册（已实测杀掉后能立刻重新注册） |
