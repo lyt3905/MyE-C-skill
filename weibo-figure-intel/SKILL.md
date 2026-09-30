@@ -166,6 +166,7 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 | `scripts/attach_media.py` | 给情报条回填配图 `images[]`（本地库离线匹配 + 一致性校验），`--download` 抓图到 `output/media/` |
 | `scripts/build_digest.py` | 校验结构化情报 JSON，渲染 Markdown + HTML 简报。**新品判定（`is_new`）、同款合并（`dedupe_items`）、新品清单视图**都在这里，见「新品判定规则」一节 |
 | `scripts/build_index.py` | **跨天总览页生成器**：把 `data/intel-*.json` 里所有日期合成**一个** HTML，顶部带日期切换器。渲染层直接 `import build_digest`，卡片样式与判定规则永远一致。详见「总览页」一节 |
+| `scripts/publish_daily.py` | **发布到 GitHub Pages**（2026-09-30 新增）：当日 HTML/MD + 页面引用到的缩略图 → 独立 public 仓 `lyt3905/figure-intel`，维护固定入口 `index.html`（永远最新）与 `archive.html`，然后 commit + push。**原图 `media/view/` 一律不发布**。详见「第 5.7 步」 |
 | `scripts/lexicon.json` | 手办情报词库与权重，**主要调优入口** |
 | `scripts/cdp_get_sub.py` | **CDP 自动取 SUB**（2026-09-28 新增）。通过远程调试端口让浏览器交出 HttpOnly 的 `SUB`，绕开 ABE 加密与 profile 锁。子命令 `probe` / `grab`，`--write` 直接写回 `wb_cookie.json`。仅用标准库 |
 | `scripts/watchlist.json` | 白名单 / 黑名单账号 UID |
@@ -468,6 +469,55 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 实测效果：13 天里 14 款产品跨天被重复报道而合并，如
 布鲁可「擎天柱 Ver.EVO」09-15 → 09-21（3 次报道）、NA_NEWAGE「漂移」09-19 → 09-24。
 
+### 第 5.7 步：发布到 GitHub Pages（固定网址）
+
+把当日简报送上一个独立的 **public** 仓库 `lyt3905/figure-intel`（`scripts/publish_daily.py`），
+用 GitHub Pages 对外提供固定入口。**发布仓与代码仓 `MyE-C-skill`（private）完全分离**，
+互不影响。每天生成完简报后跑一次即可。
+
+```bash
+"$PY" "$SKILL/scripts/publish_daily.py"                    # 发布最新一天并推送
+"$PY" "$SKILL/scripts/publish_daily.py" --date 2026-09-30  # 指定日期
+"$PY" "$SKILL/scripts/publish_daily.py" --dry-run          # 只生成，不 commit/push
+"$PY" "$SKILL/scripts/publish_daily.py" --repo-dir D:/x    # 指定发布仓本地目录
+```
+
+| 固定地址 | 内容 |
+|---|---|
+| `https://lyt3905.github.io/figure-intel/` | **固定入口，永远是最新一期**（收藏这一个） |
+| `https://lyt3905.github.io/figure-intel/archive.html` | 历史归档（列出全部日期） |
+| `https://lyt3905.github.io/figure-intel/YYYY-MM-DD.html` | 单期存档 |
+
+#### 发布什么、不发布什么
+
+| | 内容 | 理由 |
+|---|---|---|
+| ✅ 发布 | 当日 HTML/MD + **缩略图**（`media/thumb/`，去重后约 60~90 张） | 页面要能看图 |
+| ❌ 不发布 | **原图**（`media/view/`，单日 30~40 MB） | 撑爆仓库；看大图交给原博 |
+| ❌ 不发布 | `data/`、`wb_cookie.json` | 凭据与本地缓存 |
+
+发布版由 `build_digest.py --publish` 生成，与本地版有两处差异：
+
+1. **缩略图外链**（`media/thumb/<name>`）而非 base64 内嵌 —— HTML 由 **7.07 MB 降到约 210 KB**。
+   顺带消掉一处隐性浪费：单日简报每张卡有「新品清单 / 全部情报」两份 DOM，内嵌时同一张图的
+   base64 会被写两遍。
+2. **点缩略图直接跳原微博**（`<a target="_blank">`），不再输出 `data-gallery` / 灯箱。
+   灯箱模块的 JS 仍在（本地版用），但点击处理已改为「无图集就放行、不 preventDefault」，
+   否则会把 `<a>` 的默认跳转吃掉。
+
+> ⚠️ **踩坑（真浏览器才抓得到）**：`main()` 原本会把 `MEDIA_REL` 按「HTML 落地位置 → 本地
+> media 目录」反推，正好覆盖掉 `--media-rel`，发布版图片被写成
+> `../MyE-C-skill/weibo-figure-intel/output/media/thumb/...`，线上必然 404。
+> 注意 grep 统计 `media/thumb/` 出现次数**完全看不出这个错**，因为错误路径里也含该子串。
+> 已修：显式传 `--media-rel` 时不做反推。
+
+体积参考（实测 2026-09-30）：HTML 211 KB + 缩略图 74 张 2.6 MB ≈ **2.8 MB/天**，
+对比原方案的 40 MB/天；缩略图跨天去重，实际增速低于线性。
+
+> ⚠️ **发布仓是 public**，拿到网址的人都能看。之所以和代码仓分开，就是为了让
+> 「公开简报」与「私有 skill 代码」互不牵连。想下线：仓库 Settings → 删除仓库，
+> 或在 Pages 设置里关掉站点。
+
 ### 第 6 步：回报与调优
 
 汇报时包含：抓取账号数 / 新增微博数 / 通过粗筛数 / **新品件数** / 情报总条数 / 高相关条数 /
@@ -584,6 +634,11 @@ New-Item -ItemType Junction -Path "<目标目录>\media" -Target "$SKILL\output\
   扫描必须**按去重键**判可见性（任一副本可见即可），不能按元素逐个判——
   隐藏副本 `getBoundingClientRect()` 全为 0，会把可见副本刚设好的停留计时器清零，
   导致自动已读**永不触发**（2026-09-30 踩过，结构上看完全正常）
+- ⚠️ **「只看未读」的过滤条件必须判两项**：`c.dataset.first !== '1' || 有 .read`。
+  只判 `.read` 会漏掉 `data-first="0"` 的旧闻卡 —— 它们既不算未读、也不会被标上 `.read`，
+  筛完仍赖在列表里（实测 36 张里剩 9 张），**而 `#count` 照样在变，弱断言抓不到**。
+  `check_ui.js` 已改为直接数可见卡，并断言「残留旧闻卡 = 0」「筛出数 ≤ 未读数」。
+  （2026-09-30 修复：此前只断言「计数变了」，上线后才被真实浏览器发现）
 
 ### 跨天续接
 

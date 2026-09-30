@@ -872,8 +872,12 @@ HTML_JS = r"""
     // 新品视图下是纯清单、无分类，类型筛选只在「全部情报」视图生效
     if (state.type !== '全部' && c.dataset.type !== state.type) return false;
     if (state.rel === '高' && c.dataset.rel !== '高') return false;
-    // 「只看未读」由未读模块拨动 state.unread；已读与否写在卡片的 .read 类上
-    if (state.unread && c.classList.contains('read')) return false;
+    // 「只看未读」由未读模块拨动 state.unread，只保留「本日新出现」且还没读过的卡。
+    // 两个条件都得判：只判 .read 的话，data-first="0" 的旧闻卡既不算未读、也不会被
+    // 标上 .read，会永远赖在列表里（实测 27 张未读旁边还挂着 9 张旧闻，筛完数量和
+    // 顶栏未读胶囊对不上）。总览页不渲染未读组件，state.unread 恒为 false，不受影响。
+    if (state.unread && (c.dataset.first !== '1' || c.classList.contains('read')))
+      return false;
     var t = (q.value || '').trim().toLowerCase();
     if (t && (c.dataset.search || '').indexOf(t) === -1) return false;
     return true;
@@ -1042,7 +1046,6 @@ HTML_JS = r"""
   document.addEventListener('click', function(e){
     var t = e.target.closest ? e.target.closest('.thumb') : null;
     if (!t) return;
-    e.preventDefault();
     var card = t.closest('.card');
     if (!card) return;
     var box = card.querySelector('.thumbs');
@@ -1050,7 +1053,9 @@ HTML_JS = r"""
 
     var list = [];
     try { list = JSON.parse(box.dataset.gallery || '[]'); } catch (err) { list = []; }
+    // 没有图集（发布模式：缩略图是 <a>，点开直接跳原微博）→ 不拦截，交给浏览器
     if (!list.length) return;
+    e.preventDefault();
     open(list, parseInt(t.dataset.i || '0', 10) || 0,
          box.dataset.cap || '', box.dataset.href || '', t);
   });
@@ -1464,6 +1469,14 @@ MEDIA_REL = "media"          # 相对 HTML 文件的路径，由 main() 按输�
 
 MAX_THUMBS = 3
 
+# --publish：面向静态站点发布（GitHub Pages 等）的模式。两处变化，都是为了
+# 「原图不入库、HTML 足够小」：
+#   ① 缩略图不再内嵌 base64，改成外链 media/thumb/<name> —— HTML 从数 MB 降到百 KB 级，
+#      同时避免同一张图在「新品清单 / 全部情报」两份 DOM 里各存一份 base64；
+#   ② 缩略图从「开灯箱放大」改成「直接跳原微博」—— 大图既然不随仓库发布，
+#      就由原博承担看大图的职责，页面也不再输出 data-gallery。
+PUBLISH = [False]
+
 
 def img_variant(url, seg):
     """把图床 URL 换成指定尺寸档：orj360 缩略图 / orj960 预览大图。"""
@@ -1477,8 +1490,15 @@ def _img_name(url):
 
 
 def thumb_src(url):
-    """缩略图：本地已下载则内嵌 base64（HTML 单文件也永远有图），否则回退外链。"""
-    p = os.path.join(MEDIA_DIR, "thumb", _img_name(url))
+    """缩略图地址。
+
+    默认：本地已下载则内嵌 base64（HTML 单文件也永远有图），否则回退图床外链。
+    发布模式（PUBLISH）：走外链 media/thumb/<name>，缩略图作为独立文件随页面一起发布。
+    """
+    name = _img_name(url)
+    if PUBLISH[0]:
+        return f"{MEDIA_REL}/thumb/{name}"
+    p = os.path.join(MEDIA_DIR, "thumb", name)
     if os.path.exists(p):
         try:
             with open(p, "rb") as f:
@@ -1508,11 +1528,33 @@ def render_thumbs(it, e, url):
         title = e("summary")[:22]
     cap = " · ".join(filter(None, [e("blogger"), title]))
 
+    tre = " tre" if (it.get("image_source") or "") == "retweeted" else ""
+
+    if PUBLISH[0]:
+        # 发布模式：不输出 data-gallery（大图不随仓库发布），缩略图点开直接跳原微博
+        out = ['<div class="thumbs">']
+        for i, u in enumerate(imgs[:MAX_THUMBS]):
+            more = (f'<span class="more">+{len(imgs) - MAX_THUMBS}</span>'
+                    if i == MAX_THUMBS - 1 and len(imgs) > MAX_THUMBS else "")
+            inner = (f'<img src="{htmllib.escape(thumb_src(u), quote=True)}" alt=""'
+                     f' loading="lazy"'
+                     f" onerror=\"this.closest('.thumb').style.display='none'\">{more}")
+            if url:
+                out.append(
+                    f'<a class="thumb{tre}" href="{htmllib.escape(url, quote=True)}"'
+                    f' target="_blank" rel="noopener noreferrer"'
+                    f' aria-label="打开原微博查看第 {i + 1} 张配图（共 {len(imgs)} 张）"'
+                    f' title="点开原微博看大图（共 {len(imgs)} 张）">{inner}</a>'
+                )
+            else:
+                out.append(f'<span class="thumb{tre}" style="cursor:default">{inner}</span>')
+        out.append('</div>')
+        return "".join(out)
+
     # 图集存最终可用地址（本地相对路径优先），供放大预览直接使用
     gal = htmllib.escape(json.dumps([view_src(u) for u in imgs], ensure_ascii=False),
                          quote=True)
     href = f' data-href="{htmllib.escape(url, quote=True)}"' if url else ""
-    tre = " tre" if (it.get("image_source") or "") == "retweeted" else ""
 
     out = ['<div class="thumbs"']
     out.append(f' data-gallery="{gal}"')
@@ -1672,6 +1714,9 @@ def main():
     ap.add_argument("--no-first-seen", action="store_true",
                     help="关闭历史比对：不标「本日新出现」，页面也不出现未读组件")
     ap.add_argument("--validate-only", action="store_true")
+    ap.add_argument("--publish", action="store_true",
+                    help="发布模式：缩略图外链 media/thumb/，点缩略图跳原微博（原图不入库）")
+    ap.add_argument("--media-rel", help="HTML 引用配图的相对路径前缀（默认 media）")
     args = ap.parse_args()
 
     global MEDIA_DIR, MEDIA_REL, DATA_DIR
@@ -1679,7 +1724,10 @@ def main():
         MEDIA_DIR = args.media_dir
     if args.data_dir:
         DATA_DIR = args.data_dir
+    if args.media_rel:
+        MEDIA_REL = args.media_rel
     FIRST_SEEN_OFF[0] = bool(args.no_first_seen)
+    PUBLISH[0] = bool(args.publish)
 
     if not os.path.exists(args.input):
         print(f"❌ 找不到输入文件：{args.input}")
@@ -1714,10 +1762,16 @@ def main():
             print("⚠️ 没有情报条目，跳过 HTML 输出")
         else:
             out = args.html_out or os.path.join(OUTPUT_DIR, f"手办情报-{date}.html")
-            # 配图相对路径按 HTML 实际落地位置算，避免 HTML 换目录后图全丢
-            MEDIA_REL = os.path.relpath(MEDIA_DIR,
-                                        os.path.dirname(os.path.abspath(out))
-                                        ).replace("\\", "/")
+            if args.media_rel:
+                # 调用方显式指定了引用前缀：发布模式下缩略图会被 publish_daily.py
+                # 复制到发布仓同级的 media/thumb/，不能按本地 media 目录反推，
+                # 否则会写出 ../MyE-C-skill/... 这种在发布站上必然 404 的路径。
+                MEDIA_REL = args.media_rel
+            else:
+                # 配图相对路径按 HTML 实际落地位置算，避免 HTML 换目录后图全丢
+                MEDIA_REL = os.path.relpath(MEDIA_DIR,
+                                            os.path.dirname(os.path.abspath(out))
+                                            ).replace("\\", "/")
             with open(out, "w", encoding="utf-8") as f:
                 f.write(render_html(data, items, date))
             written.append(out)

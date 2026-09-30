@@ -115,11 +115,29 @@ const ok = (cond, label, extra) => {
   const readCards = await page.locator('.card.read').count();
   ok(readCards >= 2, '两份 DOM 副本同步变已读（应为偶数）', '已读卡=' + readCards);
 
-  const before = await page.textContent('#count');
+  // 「只看未读」不能只断言「计数变了」—— 曾因 match() 只判 .read、漏判 data-first，
+  // 筛完列表里仍赖着 9 张旧闻卡，而 #count 照样在变，弱断言照样通过。改成直接数可见卡。
+  const visStats = () => page.evaluate(() => {
+    const g = document.querySelector('.group-new');
+    if (!g) return { shown: 0, stale: 0 };
+    const vis = (c) => {
+      for (let n = c; n && n !== document.body; n = n.parentElement)
+        if (getComputedStyle(n).display === 'none') return false;
+      return true;
+    };
+    const cs = [].slice.call(g.querySelectorAll('.card')).filter(vis);
+    return { shown: cs.length, stale: cs.filter((c) => c.dataset.first !== '1').length };
+  });
+
+  const v0 = await visStats();
   await page.click('#un-toggle');
-  await page.waitForTimeout(400);
-  const after = await page.textContent('#count');
-  ok(before !== after, '「只看未读」筛选生效', before + ' → ' + after);
+  await page.waitForTimeout(500);
+  const v1 = await visStats();
+  const pF = await probeOf();
+  ok(v1.shown < v0.shown, '「只看未读」确实收窄了列表', `${v0.shown} → ${v1.shown} 张`);
+  ok(v1.stale === 0, '「只看未读」下没有残留的旧闻卡', `残留 ${v1.stale} 张`);
+  ok(v1.shown > 0 && v1.shown <= pF.unread,
+     '筛出的卡片数与未读数一致', `可见 ${v1.shown} ≤ 未读 ${pF.unread}`);
   await page.click('#un-toggle');
   await page.waitForTimeout(300);
 
