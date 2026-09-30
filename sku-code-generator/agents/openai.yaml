@@ -1,4 +1,4 @@
 interface:
   display_name: "SKU编码生成"
-  short_description: "速记符自动补全 + 台账防重的 SKU 编码生成器，支持批量表格"
-  default_prompt: "使用 $SKU编码生成 帮我给这批商品生成 SKU 编码。"
+  short_description: "Ctrl+B 热键出号（20260930-00001）+ 速记符补全 + 台账防重，支持批量表格"
+  default_prompt: "使用 $SKU编码生成 帮我给这批商品生成 SKU 编码（也可以直接按 Ctrl+B 出号）。"
