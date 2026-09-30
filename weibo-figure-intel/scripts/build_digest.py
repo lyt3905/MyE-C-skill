@@ -139,6 +139,162 @@ def new_reason(it):
     return ""
 
 
+# --------------------------------------------------------------------------- 新增 / 未读
+# 「新品清单」回答的是「这条是不是产品本体」（is_new），跟下面的「本日新出现」不是一回事：
+#   is_new   = 这条情报属于新品 / 开订 / 发售 / 再版（产品视角，与日期无关）
+#   _first   = 这款产品在**此前的简报存档里从未出现过**（增量视角，与历史有关）
+# 简报默认视图是新品清单，所以主人每天看到的都是「新品」，无法区分哪几条是今天才冒出来的。
+# 用历史 intel-*.json 建索引，标出首次出现的条目，再交给页面做「未读」管理。
+
+DATA_DIR = os.path.join(SKILL_DIR, "data")
+
+# --no-first-seen 时置位：关闭历史比对（页面上就没有未读组件了）
+FIRST_SEEN_OFF = [False]
+
+_INTEL_NAME = re.compile(r"^intel-(\d{4}-\d{2}-\d{2})\.json$")
+
+# 型号 token：跨天识别「同一款产品」，比 brand|角色 文本键可靠得多——
+# 文本每天写法都不同（「MPG-27 双履带&发条」/「MPG27 双履带&发条国行预定」），
+# 型号编号是稳的。两种形态都收：带连字符的（MPG-27 / DK-88W / DW-E58B）
+# 和纯字母+数字的（MPG27 / SS109 / WF2026）。
+_SPEC_TOKEN_PAT = re.compile(
+    r"\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+){1,3}\b"      # MPG-27 / DK-88W / DW-E58B
+    r"|\b[A-Z]{2,6}\d{2,4}[A-Z]?\b"               # MPG27 / SS109 / WF2026
+)
+
+# 出现频次过高的 token 没有区分度（SS86 是产品线名、WF2026 是展会名，几百条里都有），
+# 拿它判定「同一款」会把所有新品都误判成旧闻。超过这个文档频次就只当噪声丢掉。
+TOKEN_MAX_DF = 4
+
+
+def _ukey(it):
+    """条目在「未读」体系里的稳定键。
+
+    优先用与同款合并一致的 brand|角色 键，这样「同一款产品的多条微博」在页面上
+    是同一张卡、只需读一次；没有厂商的散条（合并时走 _solo）用微博 post_id 兜底，
+    最后退回 url 尾段。键必须跨天稳定，否则已读记录会错位。
+    """
+    k = make_key(it.get("brand"), it.get("character"), it.get("line"))
+    if k:
+        return k
+    pid = str(it.get("post_id") or "").strip()
+    if pid:
+        return "p:" + pid
+    u = str(it.get("url") or "").strip()
+    if u:
+        return "u:" + u.rstrip("/").split("/")[-1]
+    return None
+
+
+def _spec_tokens(it):
+    """抽取该条目里的型号编号（大写、去连字符），用于跨天识别同一款产品。
+
+    必须去连字符：同一条 MPG-27，有人写「MPG-27」有人写「MPG27」，
+    不减掉就变成两个身份，同一款产品会被天天当成新品。
+    """
+    blob = " ".join(str(it.get(k) or "") for k in
+                    ("brand", "character", "line", "summary",
+                     "price", "release_date", "channel")).upper()
+    toks = set()
+    for m in _SPEC_TOKEN_PAT.finditer(blob):
+        t = m.group(0).replace("-", "")
+        if any(ch.isdigit() for ch in t):
+            toks.add(t)
+    return toks
+
+
+# 文本相似用的归一化：去掉空格与各类分隔符，只留主体字符
+_NORM_STRIP = re.compile(r"[\s·・/\\,&+（）()\[\]【】〈〉<>\-—_:：.。\"'“”‘’|~]+")
+
+
+def _norm_text(s):
+    return _NORM_STRIP.sub("", str(s or "").lower())
+
+
+def _text_axis(it):
+    """返回 (品牌归一, 角色归一)：型号 token 之外的兜底相似轴。
+
+    「布鲁可·传奇版甲斗王」和「布鲁可·传奇版 甲斗王 骑士形态」型号里都没有编号，
+    token 轴失效，但同品牌下角色名互相包含，能认出是同一款。
+    """
+    b = _norm_text(it.get("brand"))
+    c = _norm_text(it.get("character") or it.get("line"))
+    return (b, c) if b and c else (None, None)
+
+
+def load_history(data_dir=None, before_date=None):
+    """扫描历史简报存档，建四张索引：合并键 / post_id / 型号 token / 品牌→角色名。
+
+    只吃标准 intel-YYYY-MM-DD.json（跳过 .bak、_spec 等中间产物），单文件损坏就跳过，
+    不让它拖垮整轮构建。18 天存档约 500 条，开销可忽略。
+    """
+    d = data_dir or DATA_DIR
+    keys, pids, df, by_brand = set(), set(), {}, {}
+    if not os.path.isdir(d):
+        return {"keys": keys, "pids": pids, "tokens": set(), "brands": by_brand}
+    for name in sorted(os.listdir(d)):
+        m = _INTEL_NAME.match(name)
+        if not m or (before_date and m.group(1) >= before_date):  # ISO 日期串可直接比大小
+            continue
+        try:
+            with open(os.path.join(d, name), "r", encoding="utf-8") as f:
+                day = json.load(f)
+        except Exception:
+            continue
+        for it in (day.get("items") or []):
+            if not isinstance(it, dict):
+                continue
+            k = _ukey(it)
+            if k:
+                keys.add(k)
+            pid = str(it.get("post_id") or "").strip()
+            if pid:
+                pids.add(pid)
+            for t in _spec_tokens(it):
+                df[t] = df.get(t, 0) + 1
+            bn, cn = _text_axis(it)
+            if bn:
+                by_brand.setdefault(bn, set()).add(cn)
+    return {"keys": keys, "pids": pids,
+            "tokens": {t for t, c in df.items() if c <= TOKEN_MAX_DF},
+            "brands": by_brand}
+
+
+def _seen_before(it, hist):
+    """该条目此前是否报道过。命中任意一条就算旧闻：
+    ① 合并键完全一致 ② 同一条微博 ③ 共享有区分度的型号编号
+    ④ 同品牌且角色名互相包含（对付「传奇版甲斗王」/「传奇版 甲斗王 骑士形态」这类写法）
+    """
+    k = it.get("_ukey")
+    if k and k in hist["keys"]:
+        return True
+    pid = str(it.get("post_id") or "").strip()
+    if pid and pid in hist["pids"]:
+        return True
+    if _spec_tokens(it) & hist["tokens"]:
+        return True
+    bn, cn = _text_axis(it)
+    if bn and len(cn) >= 3:
+        for hc in hist["brands"].get(bn, ()):
+            if len(hc) >= 3 and (cn in hc or hc in cn):
+                return True
+    return False
+
+
+def mark_first_seen(items, date, data_dir=None, enabled=True):
+    """给每条情报挂上 _ukey / _first（本日新出现）。返回新出现的条数。"""
+    empty = {"keys": set(), "pids": set(), "tokens": set(), "brands": {}}
+    hist = load_history(data_dir, date) if enabled else empty
+    n = 0
+    for it in items:
+        it["_ukey"] = _ukey(it)
+        # 没有稳定键（无厂商又无 post_id/url）的条目没法跟踪已读，就不参与未读体系
+        it["_first"] = bool(it["_ukey"]) and not _seen_before(it, hist)
+        if it["_first"]:
+            n += 1
+    return n
+
+
 # 纯新品清单的展示列（脱离情报分类，按内容组织）
 NEW_COLUMNS = ["#", "厂商", "产品 / 角色", "作品 & 产品线", "参考价",
                "发售 / 开订", "看点", "来源"]
@@ -296,9 +452,12 @@ def build(data):
     items = dedupe_items(items)
 
     date = data.get("date") or datetime.now(CST).strftime("%Y-%m-%d")
+    # 本日新出现：相对此前所有简报存档（判定必须在 dedupe 之后，按合并后的卡算键）
+    mark_first_seen(items, date, enabled=not FIRST_SEEN_OFF[0])
 
     high = [i for i in items if i["_rel"] == "高"]
     new_items = [i for i in items if is_new(i)]
+    first_items = [i for i in items if i.get("_first")]
     groups = {}
     for it in items:
         groups.setdefault(it["_type"], []).append(it)
@@ -313,6 +472,8 @@ def build(data):
     meta.append(f"共提取 **{len(items)}** 条情报")
     if new_items:
         meta.append(f"其中新品清单 **{len(new_items)}** 条")
+    if first_items:
+        meta.append(f"本日新出现 **{len(first_items)}** 条（🆕 标记，相对历史简报）")
     if high:
         meta.append(f"其中 **{len(high)}** 条与选品高度相关")
     if data.get("generated_at"):
@@ -364,7 +525,7 @@ def build(data):
                 src += f"<br/>另有 {len(it['also_sources'])} 条报道"
             out.append("| " + " | ".join([
                 str(n),
-                cell(it.get("brand")),
+                ("🆕 " if it.get("_first") else "") + cell(it.get("brand")),
                 cell(subject),
                 cell(works),
                 cell(it.get("price")),
@@ -654,7 +815,38 @@ body.lb-lock{overflow:hidden}
   .count{margin-left:0;width:100%}
   .card{padding:13px 14px 14px}
 }
+/* 未读 / 已读：本日新出现的条目读到即自动标记已读 */
+.unreadbar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;
+  margin:0 0 16px;padding:10px 13px;border-radius:11px;
+  border:1px solid #cfdffb;background:linear-gradient(180deg,#f4f8ff,#edf3ff)}
+.unreadbar.done{border-color:#cfe9d8;background:linear-gradient(180deg,#f3fbf6,#ecf8f1)}
+.unreadbar .ub-t{font-size:13.5px;color:var(--ink2)}
+.unreadbar .ub-t b{font-size:15.5px;color:var(--accent);font-weight:700}
+.unreadbar.done .ub-t b{color:#1a7a45}
+.unreadbar .sp{flex:1 1 auto}
+.unreadbar .ub-hint{flex:1 1 100%;font-size:12px;color:var(--ink3);
+  margin-top:-1px;line-height:1.5}
+.ubtn{border:1px solid #c3d6f8;background:#fff;color:var(--accent);
+  border-radius:8px;padding:5px 12px;font-size:12.5px;font-family:inherit;
+  font-weight:600;cursor:pointer;transition:.12s;white-space:nowrap}
+.ubtn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.ubtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.ubtn.ghost{color:var(--ink2);border-color:var(--line);font-weight:400}
+.ubtn.ghost:hover{color:var(--ink);border-color:#c9d2de;background:#fff}
+/* 未读徽章：出现在卡片头部行首，读到后由 JS 换成绿色「✓ 已读」 */
+.nbadge{font-size:11.5px;font-weight:700;letter-spacing:.2px;padding:2px 9px;
+  border-radius:6px;background:var(--accent);color:#fff}
+.nbadge.read{background:#e6f3ea;color:#1a7a45;font-weight:600}
+.card.read{box-shadow:inset 3px 0 0 0 #cfe9d8}
+.card.read:hover{box-shadow:inset 3px 0 0 0 #cfe9d8,0 2px 10px rgba(20,30,50,.06)}
+#probe{display:none}
+@media(max-width:640px){
+  .unreadbar .ub-t{flex:1 1 100%}
+  .unreadbar .sp{display:none}
+  .ubtn{flex:1 1 auto;text-align:center}
+}
 @media print{
+  .unreadbar{display:none}
   .top{position:static}.controls{display:none}
   body{background:#fff}.card{break-inside:avoid;box-shadow:none}
 }
@@ -670,7 +862,7 @@ HTML_JS = r"""
   var viewBtns  = [].slice.call(document.querySelectorAll('[data-view]'));
   var out = document.getElementById('count');
   var empty = document.getElementById('empty');
-  var state = {type:'全部', rel:'全部', view:'new'};
+  var state = {type:'全部', rel:'全部', view:'new', unread:false};
 
   function match(c){
     // 两个视图各渲染一份 DOM：新品清单容器里的卡片只属于新品视图，
@@ -680,6 +872,8 @@ HTML_JS = r"""
     // 新品视图下是纯清单、无分类，类型筛选只在「全部情报」视图生效
     if (state.type !== '全部' && c.dataset.type !== state.type) return false;
     if (state.rel === '高' && c.dataset.rel !== '高') return false;
+    // 「只看未读」由未读模块拨动 state.unread；已读与否写在卡片的 .read 类上
+    if (state.unread && c.classList.contains('read')) return false;
     var t = (q.value || '').trim().toLowerCase();
     if (t && (c.dataset.search || '').indexOf(t) === -1) return false;
     return true;
@@ -767,6 +961,8 @@ HTML_JS = r"""
   // 暴露给总览页（build_index.py）：它要在筛选链上再叠一层「按日期过滤」，
   // 直接把 apply 包一层即可，不必复制这段逻辑。
   window.__apply = apply;
+  // 暴露 state 给未读模块：「只看未读」要挂进同一条筛选链，否则两边各算一遍、计数会打架
+  window.__state = state;
 })();
 
 /* 配图放大预览：点缩略图弹出，同一条情报的全部配图可左右翻 */
@@ -893,6 +1089,183 @@ HTML_JS = r"""
     x0 = null;
   }, {passive:true});
 })();
+
+/* 未读 / 已读：本日新出现的条目，读到即自动标记已读
+ *
+ * 状态存在 localStorage —— 同一浏览器里不同日期的简报文件、不同进程共享（已实测），
+ * 所以「今天读过的」明天再看不会重新提示。
+ *
+ * ⚠️ 局限：file:// 直接打开 与 内置预览面板（127.0.0.1 随机端口）的 origin 不同，
+ * 状态不互通。换了打开方式/浏览器后，点「导出已读回执」把 read-log.json 放进
+ * data/ 目录，构建时会烘焙进页面（window.__READ_BAKED）续上。
+ */
+(function(){
+  var bar = document.getElementById('unreadbar');
+  if (!bar) return;                    // 总览页没有这个组件，自动跳过
+  var LS_KEY  = 'wfir:read:v1';
+  var DWELL   = 2000;                  // 卡片在视口里稳定停留多久算「读过」(ms)
+  var MAXKEEP = 3000;                  // 本地最多保留多少条已读键
+  var PROBE   = /[?&]probe=1/.test(location.search);
+
+  var cards   = [].slice.call(document.querySelectorAll('.card[data-first="1"]'));
+  if (!cards.length) return;
+  var box     = document.getElementById('un-read');
+  var totalEl = document.getElementById('un-total');
+  var pill    = document.getElementById('un-pill');
+  var hint    = document.getElementById('un-hint');
+  var probe   = document.getElementById('probe');
+  var toggle  = document.getElementById('un-toggle');
+  var allBtn  = document.getElementById('un-all');
+  var expBtn  = document.getElementById('un-export');
+  var ustate  = {onlyUnread:false};
+
+  function load(){
+    var m = {};
+    try { m = JSON.parse(localStorage.getItem(LS_KEY) || '{}') || {}; }
+    catch (e) { m = {}; }
+    var baked = window.__READ_BAKED;
+    if (baked && baked.keys){
+      for (var k in baked.keys){ if (!(k in m)) m[k] = baked.keys[k]; }
+    }
+    return m;
+  }
+  var read = load();
+  var byKey = {};
+
+  function save(){
+    try {
+      var ks = Object.keys(read);
+      if (ks.length > MAXKEEP){
+        ks.sort(function(a, b){ return (read[a] || 0) - (read[b] || 0); });
+        ks.slice(0, ks.length - MAXKEEP).forEach(function(k){ delete read[k]; });
+      }
+      localStorage.setItem(LS_KEY, JSON.stringify(read));
+    } catch (e) {}
+  }
+  function paintCard(c, on){
+    if (!c) return;
+    c.classList.toggle('read', !!on);
+    var b = c.querySelector('.nbadge');
+    if (b){
+      b.classList.toggle('read', !!on);
+      b.textContent = on ? '✓ 已读' : '🆕 未读';
+    }
+  }
+  function counts(){
+    var n = 0, seen = 0, mark = {};
+    for (var i = 0; i < cards.length; i++){
+      var k = cards[i].dataset.ukey;
+      if (k && mark[k]) continue;     // 同一张卡在页面上有两份 DOM，只数一次
+      if (k) mark[k] = 1;
+      seen++;
+      if (!(k && read[k])) n++;
+    }
+    return {unread:n, total:seen};
+  }
+  function paint(){
+    var c = counts();
+    if (box) box.textContent = c.unread;
+    if (pill) pill.textContent = c.unread;
+    if (totalEl) totalEl.textContent = c.total;
+    bar.classList.toggle('done', c.unread === 0);
+    if (hint){
+      hint.textContent = c.unread
+        ? ('共 ' + c.total + ' 件本日新出现，读到即自动标记已读'
+           + (ustate.onlyUnread ? '（当前只看未读，已暂停自动标记）' : ''))
+        : ('✅ ' + c.total + ' 件本日新出现的情报已全部读完');
+    }
+    if (PROBE && probe){
+      probe.textContent = 'R::未读=' + c.unread + '/首现=' + c.total
+        + ' 已读键=' + Object.keys(read).length
+        + ' hidden=' + document.hidden;
+    }
+  }
+  function mark(k){
+    if (!k || read[k]) return;
+    read[k] = Math.round(Date.now() / 1000);
+    (byKey[k] || []).forEach(function(c){ paintCard(c, true); });
+    save(); paint();
+  }
+  function syncFilter(){
+    if (window.__state) window.__state.unread = ustate.onlyUnread;
+    if (window.__apply) window.__apply();
+  }
+
+  cards.forEach(function(c){
+    var k = c.dataset.ukey;
+    if (!k) return;
+    (byKey[k] = byKey[k] || []).push(c);
+    if (read[k]) paintCard(c, true);
+  });
+  // 以「去重后的键」为扫描单位。同一张卡在页面上有两份 DOM（新品清单一份、
+  // 全部情报一份），隐藏的那份 getBoundingClientRect 全为 0；若按元素逐个判可见性，
+  // 隐藏副本会把可见副本刚设好的计时器清零，停留时间永远累计不起来。
+  var keys = Object.keys(byKey);
+
+  // 读到即算读过：每 1 秒用几何位置扫一遍，卡片在视口里稳定停留 DWELL 毫秒后
+  // 自动标记已读。不用 IntersectionObserver 有两个实测原因：
+  //   ① 无头浏览器（自检环境）从不派发 IO 回调，功能无法回归验证；
+  //   ② 本地 file:// 在部分环境下滚动事件/合成帧不完整，IO 依赖它们。
+  // 几何判定只依赖布局，最不挑环境，延迟最多 1 秒。
+  var since = {};      // ukey -> 首次进入视口的时刻
+  function sweep(){
+    if (ustate.onlyUnread || document.hidden) return;
+    var now = Date.now(), vh = window.innerHeight;
+    for (var i = 0; i < keys.length; i++){
+      var k = keys[i];
+      if (read[k]) continue;
+      // 只要任一 DOM 副本确实可见（高度非 0 且落在视口安全区内）就算「在看着」
+      var vis = false, arr = byKey[k];
+      for (var j = 0; j < arr.length; j++){
+        var r = arr[j].getBoundingClientRect();
+        if (r.height > 0 && r.top < vh - 160 && r.bottom > 120){ vis = true; break; }
+      }
+      if (!vis){ since[k] = 0; continue; }
+      if (!since[k]) since[k] = now;
+      else if (now - since[k] >= DWELL) mark(k);
+    }
+  }
+  setInterval(sweep, 1000);
+  setTimeout(sweep, 400);
+
+  // 点标题 / 点「打开原博」= 明确要读，立刻标记，不必等停留
+  document.addEventListener('click', function(e){
+    var a = e.target.closest ? e.target.closest('.card h3 a, a.src') : null;
+    if (!a) return;
+    var c = a.closest('.card');
+    if (c) mark(c.dataset.ukey);
+  });
+
+  if (toggle) toggle.addEventListener('click', function(){
+    ustate.onlyUnread = !ustate.onlyUnread;
+    toggle.classList.toggle('on', ustate.onlyUnread);
+    toggle.textContent = ustate.onlyUnread ? '显示全部' : '只看未读';
+    syncFilter(); paint();
+  });
+  if (allBtn) allBtn.addEventListener('click', function(){
+    cards.forEach(function(c){
+      var k = c.dataset.ukey;
+      if (k) read[k] = Math.round(Date.now() / 1000);
+    });
+    save();
+    cards.forEach(function(c){ paintCard(c, true); });
+    paint(); syncFilter();
+  });
+  if (expBtn) expBtn.addEventListener('click', function(){
+    var blob = new Blob([JSON.stringify({
+      version: 1, exported_at: new Date().toISOString(), keys: read
+    }, null, 2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'read-log.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  });
+
+  paint();
+  syncFilter();
+})();
 """
 
 HTML_TPL = """<!DOCTYPE html>
@@ -919,6 +1292,7 @@ HTML_TPL = """<!DOCTYPE html>
   </div>
 </header>
 <main class="wrap">
+  __UNREADBAR__
   <div id="groups">__SECTIONS__</div>
   <div class="empty" id="empty" style="display:none">没有匹配的情报，换个关键词或筛选条件试试。</div>
   <div class="legend">__LEGEND__　·　点击右栏缩略图可放大看原图，点标题或按钮可跳转原博（需登录微博）。</div>
@@ -936,6 +1310,8 @@ HTML_TPL = """<!DOCTYPE html>
      referrerpolicy="no-referrer">查看原图 ↗</a>
 </div>
 
+<div id="probe"></div>
+<script>__BAKED__</script>
 <script>__JS__</script>
 </body>
 </html>
@@ -953,6 +1329,9 @@ def render_html(data, items, date):
     high_n = sum(1 for it in items if it["_rel"] == "高")
     new_items = [it for it in items if is_new(it)]
     new_n = len(new_items)
+    # 本日新出现（相对历史简报）：卡片上的「🆕 未读」与顶部未读条都基于它。
+    # 与 new_n 不同 —— 一款老产品今天开订，不算新出现但算新品清单。
+    first_n = len([it for it in items if it.get("_first")])
 
     chips = ['<button class="chip on" data-type-chip="全部">全部</button>']
     for t in ordered_types:
@@ -974,7 +1353,7 @@ def render_html(data, items, date):
                         if x["_type"] in NEW_KIND_ORDER else 99)
     if new_sorted:
         inner = "\n".join(
-            render_card(it, idx=i) for i, it in enumerate(new_sorted, 1)
+            render_card(it, idx=i, unread=True) for i, it in enumerate(new_sorted, 1)
         )
         sections.append(
             '<section class="group group-new" data-group="__new__">'
@@ -988,7 +1367,7 @@ def render_html(data, items, date):
     # ② 全部情报：按类型分组（切到「全部情报」视图才显示）
     for t in ordered_types:
         inner = "\n".join(
-            render_card(it)
+            render_card(it, unread=True)
             for it in sorted(groups[t], key=lambda x: RELEVANCE_ORDER.get(x["_rel"], 3))
         )
         badge = TYPE_CLASS.get(t, "t-other")
@@ -1010,6 +1389,45 @@ def render_html(data, items, date):
     if data.get("generated_at"):
         stats.append(f'生成于 {htmllib.escape(str(data["generated_at"]))}')
 
+    # 未读胶囊放在 sticky 顶栏最前：滚到哪儿都看得见未读数往下掉
+    stats_html = "".join(f"<span>{s}</span>" for s in stats)
+    if first_n:
+        stats_html = (
+            '<span id="un-pill-wrap" style="background:#eaf1fe;border-color:#c9d8f5;'
+            'color:#2f6fed">📬 未读 <b id="un-pill">' + str(first_n) + "</b></span>"
+        ) + stats_html
+
+    # 未读操作条：只在有「本日新出现」条目时出现（没有就不渲染，JS 模块随之自动停用）
+    unreadbar = ""
+    if first_n:
+        unreadbar = (
+            '<div class="unreadbar" id="unreadbar">'
+            '<span class="ub-t">📬 本日新出现 <b id="un-total">' + str(first_n) +
+            '</b> 件 · 未读 <b id="un-read">' + str(first_n) + '</b> 条</span>'
+            '<span class="sp"></span>'
+            '<button class="ubtn" id="un-toggle" type="button">只看未读</button>'
+            '<button class="ubtn ghost" id="un-all" type="button">全部标为已读</button>'
+            '<button class="ubtn ghost" id="un-export" type="button" '
+            'title="导出已读回执 JSON；放进 data/read-log.json 后，'
+            '换浏览器或换打开方式也能接着算未读">导出已读回执</button>'
+            '<span class="ub-hint" id="un-hint"></span>'
+            "</div>"
+        )
+
+    # 烘焙已读回执（可选）：data/read-log.json 存在就把其中已读的键注入页面
+    baked = ""
+    p_baked = os.path.join(DATA_DIR, "read-log.json")
+    if os.path.exists(p_baked):
+        try:
+            with open(p_baked, "r", encoding="utf-8") as f:
+                rl = json.load(f)
+            keys = rl.get("keys") if isinstance(rl, dict) else None
+            if keys:
+                baked = "window.__READ_BAKED=" + json.dumps(
+                    {"keys": keys}, ensure_ascii=False, separators=(",", ":")) + ";"
+        except Exception:
+            baked = ""
+
     subtitle = htmllib.escape(data.get("source_note") or "微博关注列表情报采集")
 
     # 视图提示：页面加载即处于「新品清单」，需把 body 标记与提示同步置位
@@ -1026,7 +1444,9 @@ def render_html(data, items, date):
             .replace("__TITLE__", f"手办情报 · {date}")
             .replace("__H1__", f"手办 / 可动人偶情报　<span style=\"font-size:15px;color:#8b95a3;font-weight:400\">{htmllib.escape(date)}</span>")
             .replace("__SUBTITLE__", subtitle)
-            .replace("__STATS__", "".join(f"<span>{s}</span>" for s in stats))
+            .replace("__STATS__", stats_html)
+            .replace("__UNREADBAR__", unreadbar)
+            .replace("__BAKED__", baked)
             .replace("__VIEWS__", "".join(views))
             .replace("__TYPECHIPS__", "".join(chips))
             .replace("__RELCHIPS__", "".join(rel_chips))
@@ -1113,13 +1533,17 @@ def render_thumbs(it, e, url):
     return "".join(out)
 
 
-def render_card(it, idx=None, allow_new_in_main=False):
+def render_card(it, idx=None, allow_new_in_main=False, unread=False):
     """渲染一张情报卡。
 
     allow_new_in_main：默认 False。单日简报里新品清单与分类分组各渲染一份 DOM，
     靠 .group-new 容器区分归属（JS 的 match() 依赖这一点），所以分类分组里的卡片
     不能再带 isnew 归属标记。总览页的「按天浏览」视图只有一份 DOM、不参与新品归属
     判定，传 True 让新品标记正常显示即可。
+
+    unread：默认 False。只有单日简报传 True —— 给卡片挂上 data-ukey / data-first，
+    并在头部加「🆕 未读」标记，交给未读模块做自动已读。总览页（build_index）复用
+    本函数但不传该参数，因此不会带上未读组件，也不会被未读模块接管。
     """
     t, rel = it["_type"], it["_rel"]
     e = lambda k: htmllib.escape(str(it.get(k) or "").strip())
@@ -1168,6 +1592,12 @@ def render_card(it, idx=None, allow_new_in_main=False):
              f' data-isnew="{"1" if is_new_it else "0"}"']
     if it_days:
         parts.append(f' data-days="{htmllib.escape(it_days, quote=True)}"')
+    # 未读体系：data-ukey 是稳定主题键，data-first 标记「本日新出现」。
+    # 两个视图各渲染一份 DOM，两份共用同一个 ukey，读到一次两边同时变已读。
+    if unread and it.get("_ukey"):
+        parts.append(f' data-ukey="{htmllib.escape(str(it["_ukey"]), quote=True)}"')
+        if it.get("_first"):
+            parts.append(' data-first="1"')
     parts.append(f' data-search="{htmllib.escape(search, quote=True)}">')
     if allow_new_in_main:
         # 供单页总览的「按天浏览」视图使用
@@ -1177,6 +1607,9 @@ def render_card(it, idx=None, allow_new_in_main=False):
         parts.append(f'<span class="idx">{idx}</span>')
     # 第一行：类型 / 相关度 / 时间
     parts.append('<div class="head">')
+    if unread and it.get("_first"):
+        # 未读标记放最前：一屏里第一眼要看到「这条是今天新的」
+        parts.append('<span class="nbadge">🆕 未读</span>')
     parts.append(f'<span class="badge {TYPE_CLASS.get(t, "t-other")}">{htmllib.escape(t)}</span>')
     for k in (it.get("also_kinds") or []):
         parts.append(f'<span class="badge {TYPE_CLASS.get(k, "t-other")}"'
@@ -1235,12 +1668,18 @@ def main():
     ap.add_argument("--format", choices=["md", "html", "both"], default="both",
                     help="输出格式，默认 both（Markdown + HTML）")
     ap.add_argument("--media-dir", help="本地配图目录（默认 output/media）")
+    ap.add_argument("--data-dir", help="情报存档目录（默认 data/，用于判定本日新出现）")
+    ap.add_argument("--no-first-seen", action="store_true",
+                    help="关闭历史比对：不标「本日新出现」，页面也不出现未读组件")
     ap.add_argument("--validate-only", action="store_true")
     args = ap.parse_args()
 
-    global MEDIA_DIR, MEDIA_REL
+    global MEDIA_DIR, MEDIA_REL, DATA_DIR
     if args.media_dir:
         MEDIA_DIR = args.media_dir
+    if args.data_dir:
+        DATA_DIR = args.data_dir
+    FIRST_SEEN_OFF[0] = bool(args.no_first_seen)
 
     if not os.path.exists(args.input):
         print(f"❌ 找不到输入文件：{args.input}")

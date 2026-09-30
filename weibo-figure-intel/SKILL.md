@@ -9,9 +9,12 @@ description: |
   each record's product photos, and renders a digest whose DEFAULT view is a flat
   new-product list (新品清单) — one numbered row per product, decoupled from intel-type
   grouping, with same-product reports merged — plus a toggle back to the full
-  type-grouped view. Output comes as both Markdown and an HTML file with inline image
-  thumbnails, a click-to-zoom lightbox gallery, search / filter controls, and clickable
-  links back to the original Weibo posts.
+  type-grouped view. Since it runs daily, it also tracks what is NEW: entries whose product
+  never appeared in any earlier digest get a 🆕 未读 marker plus a sticky unread counter, and
+  the marker flips to ✓ 已读 automatically once the reader has actually viewed the card, so
+  the next run only surfaces what hasn't been seen yet. Output comes as both Markdown and an
+  HTML file with inline image thumbnails, a click-to-zoom lightbox gallery, search / filter
+  controls, and clickable links back to the original Weibo posts.
   Triggered when the user asks for 手办情报 / 可动人偶情报 / figure news, says things like
   "看看今天有什么手办情报", "微博上有没有新开订的手办", "抓一下我关注的手办号",
   "collect figure news from Weibo", or wants to tune the intel keyword lexicon.
@@ -336,8 +339,15 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 第一项**展示给用户——它在内置浏览器面板里可直接预览，点卡片底部按钮即跳转原博。
 若用户明确只要某一种格式，用 `--format md|html|both` 控制。
 
-> 💡 首次生成或改动过渲染层（`build_digest.py`）后，**先按下面「本地验证」一节截图自检**，
-> 确认缩略图、放大预览、筛选都正常再交付。
+两个可选开关：
+
+| 开关 | 作用 |
+|---|---|
+| `--data-dir <目录>` | 指定情报存档目录（默认 `data/`），用于判定「本日新出现」 |
+| `--no-first-seen` | 关闭历史比对：不标新出现，页面也不出现未读组件 |
+
+> 💡 首次生成或改动过渲染层（`build_digest.py`）后，**先按下面「本地验证」一节自检**，
+> 确认缩略图、放大预览、筛选、未读标记都正常再交付。
 
 ### 第 5.5 步：刷新总览页（跨天单页）
 
@@ -524,6 +534,62 @@ New-Item -ItemType Junction -Path "<目标目录>\media" -Target "$SKILL\output\
 实测效果：布鲁可擎天柱 Ver.EVO 由 4 条微博合成 1 张卡（「另有 3 条报道」），
 千值练大师级攻略王由 2 条合成 1 张。
 
+## 新增 / 未读（`mark_first_seen()`）
+
+⚠️ **别把「新品」和「新增」搞混，这是两个独立口径：**
+
+| 概念 | 字段 | 含义 | 用途 |
+|---|---|---|---|
+| 新品 | `is_new()` | 这条情报属于新品 / 开订 / 发售 / 再版（**与日期无关**） | 默认视图「🆕 新品清单」 |
+| 本日新出现 | `_first` | 这款产品**在此前所有简报存档里都没出现过**（**与历史有关**） | 卡片上的「🆕 未读」+ 顶部未读条 |
+| 已读 | localStorage | 用户在浏览器里实际看过了 | 读到即自动标记，未读数往下掉 |
+
+一款老产品今天开订 → 算新品清单，但**不算**新出现；一条全新的展会限定 → 两者都算。
+
+### 「本日新出现」怎么判：四条路，命中任意一条就算旧闻
+
+历史索引来自 `data/intel-????-??-??.json`（严格只吃这个命名，跳过 `.bak` / `_spec`），
+只取**早于当天**的存档。判定逐条走：
+
+| # | 判据 | 举例 |
+|---|---|---|
+| ① | 合并键完全一致（`brand\|character`） | 「MegaHouse\|阿斯拉达01 赛道模式」 |
+| ② | 同一条微博（`post_id`） | 同帖被不同账号转发 |
+| ③ | 共享**有区分度**的型号编号 | `MPG-27` ≡ `MPG27` → 都是 `MPG27` |
+| ④ | 同品牌 + 角色名互相包含（≥3 字） | 「传奇版 甲斗王 骑士形态」⊃「传奇版甲斗王」 |
+
+**③ 是主力，也是踩过坑的地方**，三个必须保留的设计：
+
+- **去连字符归一化**：`MPG-27` / `MPG27` / `DK-88W` / `DW-E58B` 每天写法都在变，
+  不减掉连字符就成了两个身份，同一款产品天天被当成新品（实测：不减 → 38 条里标 36 条新；
+  减掉 → 29 条，逐条核对全部正确）
+- **文档频次过滤** `TOKEN_MAX_DF = 4`：`SS86`（产品线名）、`WF2026`（展会名）这类
+  token 几百条里都有，拿来判「同一款」会把所有新品都误判成旧闻，超频次直接丢掉
+- **必须含数字**：光靠连字符会误收 `PRE-ORDER` 这类英文词
+
+**调优入口**：`_SPEC_TOKEN_PAT` / `TOKEN_MAX_DF` / `_text_axis()`，都在 `build_digest.py`
+的 `# ---- 新增 / 未读` 区块。改完重跑单日简报即可（纯渲染层，秒级），无需重抓微博。
+
+### 页面行为（`build_digest.py` 前端）
+
+- 有「本日新出现」条目时才渲染未读组件；一条都没有 → 整个组件不渲染，JS 模块自动停用
+- 卡片头部最前加 `🆕 未读`；读到后原地换成绿色 `✓ 已读`，卡片左侧出现淡绿内阴影
+- 顶栏统计区最前是 **📬 未读 N** 胶囊（吸顶常驻，滚到哪儿都看得见未读数往下掉）
+- 操作条三个按钮：`只看未读`（「只看未读」期间**暂停自动标记**，否则卡片一标已读就消失、
+  下面的顶上来又被标读，会把整个列表连锁清空）、`全部标为已读`、`导出已读回执`
+- **自动已读靠每秒一次的几何扫描**（`sweep()`）：卡片在视口安全区内稳定停留
+  `DWELL = 2000ms` 后写入 localStorage（`wfir:read:v1`），最多保留 3000 条键。
+  点标题 / 点「打开原博」立即标记，不必等停留
+- ⚠️ **同一张卡在页面上有两份 DOM**（新品清单一份、全部情报一份），共用同一个 `ukey`。
+  扫描必须**按去重键**判可见性（任一副本可见即可），不能按元素逐个判——
+  隐藏副本 `getBoundingClientRect()` 全为 0，会把可见副本刚设好的停留计时器清零，
+  导致自动已读**永不触发**（2026-09-30 踩过，结构上看完全正常）
+
+### 跨天续接
+
+`data/read-log.json`（可选，不入库）存在时会被烘焙进页面（`window.__READ_BAKED`）。
+换浏览器 / 换打开方式后已读状态不通用，点「导出已读回执」拿到该文件放进 `data/` 即可续上。
+
 ## 调整词库
 
 `lexicon.json` 结构：
@@ -648,6 +714,33 @@ open('_dbg.html','w',encoding='utf-8').write(s.replace('</body>','<script>window
 
 验证完删掉 `_lb.html` / `_all.html` / `_preview.html` / `_dbg*.html`。
 
+### 3.5 交互功能自检：必须用真浏览器（`scripts/check_ui.js`）
+
+⚠️ **无头 Edge 验不了交互。** 2026-09-30 实测：`--headless=new` 下
+`IntersectionObserver` **一次回调都不派发**、`getBoundingClientRect()` **全为 0**（不做 layout）、
+连 `window.scrollTo()` 都不触发 scroll 事件。所以第 2、3 节那些 `--dump-dom` 手段
+**只能验结构与计数，验不了「读到即已读」这类交互**——当天就是它把「自动已读永不触发」
+的 bug 放了过去，改用真浏览器才暴露。
+
+用 Playwright 驱动本地已缓存的 Chromium 真跑一遍：
+
+```bash
+NODE_PATH="<node 工作区>/node_modules" node "$SKILL/scripts/check_ui.js"
+# 也可指定文件：node scripts/check_ui.js --html output/手办情报-YYYY-MM-DD.html
+```
+
+它会依次断言：未读探针可读 → 首屏停留即自动已读 → 未读计数下降 → 两份 DOM 同步变已读 →
+「只看未读」筛选生效 → 刷新后已读保留 → 「全部标为已读」清零 → 徽章文案只有两态 →
+页面无 JS 异常；再确认总览页不出现未读组件、计数正常。
+**退出码 0 = 全过，1 = 有项没过**，可直接串进流程。
+
+- 找不到 `playwright-core` 时以退出码 **2 跳过**（不算失败），此时只能退回收第 2、3 节。
+- playwright-core 只认自己那一版浏览器，版本号差一位就报 `Executable doesn't exist`；
+  脚本会自动去 `ms-playwright` 缓存目录里挑一个可用的完整版 Chromium。
+- 任何时候都能看页面状态：URL 加 `?probe=1`（如 `demo.html?probe=1`），
+  页面会把 `R::未读=N/首现=M 已读键=K` 写进隐藏的 `#probe`，供 `--dump-dom` 或脚本读取；
+  正常打开时不输出任何东西。
+
 ### 4. 收尾
 
 - **若起过 HTTP 服务**：用 `TaskStop` 停，不要用外部 `Stop-Process` kill。外部 kill 会让
@@ -724,7 +817,22 @@ open('_dbg.html','w',encoding='utf-8').write(s.replace('</body>','<script>window
     不必"修正"。回连核实的办法：`GET https://weibo.com/ajax/statuses/show?id=<mblogid>`，
     响应里的 `idstr` / `mblogid` / `user.screen_name` 三者对齐即可确认 URL 无误。
 
-11. 仅供个人自用，不要把采集结果对外分发。
+11. **未读状态存在浏览器 localStorage，换「打开方式」会失忆**（2026-09-30 实测）。
+    已读记录键 `wfir:read:v1` 存在浏览器 Profile 里：`file://` 直开的本地文件**之间、
+    跨进程共享且持久**（实测写入后两个全新进程都能读到），但以下情况不通用：
+
+    | 打开方式 | origin | 已读状态 |
+    |---|---|---|
+    | 双击 HTML（`file://`） | `file://` | ✅ 持久，跨天跨文件共享 |
+    | 内置预览面板（`http://127.0.0.1:<随机端口>`） | 每次端口都不同 | ❌ 视为新 origin，读不到 |
+    | 换浏览器 / 换机器 | 不同 Profile | ❌ |
+
+    兜底：页面「导出已读回执」→ 拿到 `read-log.json` → 放进 `data/` →
+    构建时烘焙进页面（`window.__READ_BAKED`），任何打开方式都能续上。
+    **自动化里不要去读浏览器的 localStorage**（Edge 运行中独占锁 Profile，且 127+ 用
+    App-Bound Encryption，读不出来）——这也正是回执走「页面导出 + 落文件」的原因。
+
+12. 仅供个人自用，不要把采集结果对外分发。
 
 ## 安全与凭据
 
