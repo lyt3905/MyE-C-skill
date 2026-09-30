@@ -8,3 +8,6 @@ __pycache__/
 weibo-figure-intel/scripts/wb_cookie.json
 weibo-figure-intel/data/
 weibo-figure-intel/output/
+
+# sku-code-generator: SKU 台账属于本地业务数据，不入库
+sku-code-generator/data/
