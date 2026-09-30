@@ -2,12 +2,21 @@
 # -*- coding: utf-8 -*-
 """编号热键出号器 —— 按 Ctrl+B 自动把下一个编号粘贴到光标处。
 
-默认：纯流水号（装上就能用，不需要任何设置）
-    ├─ 按一下 Ctrl+B → 出下一个流水号 0001 → 0002 → 0003 → … → 自动粘贴
+默认：日期流水号（装上就能用，不需要任何设置）
+    ├─ 按一下 Ctrl+B → 20260930-00001 → 20260930-00002 → … → 自动粘贴
+    ├─ 前缀默认是当天日期，隔天自动换成新日期、序号重新从 1 开始
     ├─ 序号记在 data/hotkey_state.json，关掉重开接着往下走，不会重号
     └─ 不写台账，只管出号
 
-可选：SKU 编码模式（需要带前缀时才用）
+改编号长相（前缀 / 连接词 / 位数）—— 设一次就一直记住
+    python sku_hotkey.py --prefix "{date}"        # 20260930-00001（默认）
+    python sku_hotkey.py --prefix "MTS"           # MTS-00001
+    python sku_hotkey.py --prefix "MTS-{date}"    # MTS-20260930-00001
+    python sku_hotkey.py --prefix ""              # 00001（不要前缀）
+    python sku_hotkey.py --sep "_" --width 3      # 换连接词与补零位数
+    python sku_hotkey.py --from 1200              # 把下一个编号设为 1200
+
+可选：SKU 编码模式（要带店铺/品类/系列/颜色时）
     ├─ python sku_hotkey.py --set "mts tf ss86 r" 切过去，出 MTS-TF-SS86-0001-RD
     ├─ 剪贴板里放着速记符时，按 Ctrl+Shift+B 也能切
     └─ 这个模式下才写台账，和命令行模式共用流水号，不会撞号
@@ -15,8 +24,6 @@
 用法
     启动热键：  python sku_hotkey.py       （或双击 start_hotkey.bat）
     查看状态：  python sku_hotkey.py --status
-    指定起点：  python sku_hotkey.py --plain --from 1200
-    切 SKU ：  python sku_hotkey.py --set "mts tf ss86 r"
     停止：      python sku_hotkey.py --stop
 
 只依赖标准库（ctypes 直调 user32/kernel32），管理版 Python 即可运行。
@@ -33,6 +40,7 @@ import re
 import sys
 import time
 from ctypes import wintypes
+from datetime import datetime, timedelta
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -281,10 +289,22 @@ def parse_spec(cfg: core.Config, text: str):
 
 # ---------------------------------------------------------------- 状态
 
+def migrate_state(st: dict) -> dict:
+    """老版本 state（纯数字流水号 0001/0002…）迁移到「日期-序号」结构。
+
+    编号长相都变了，旧的计数没有参考价值，直接作废，避免 --status 报出
+    「已出 10 个」却一个都没出过的怪数。幂等：出过一次号后 seq 存在，就不再动。
+    """
+    if "seq" not in st and "next" in st:
+        st.pop("next", None)
+        st["count"] = 0
+    return st
+
+
 def load_state() -> dict:
     if STATE_FILE.exists():
         try:
-            return json.loads(STATE_FILE.read_text(encoding="utf-8"))
+            return migrate_state(json.loads(STATE_FILE.read_text(encoding="utf-8")))
         except Exception:
             pass
     return {}
@@ -354,16 +374,65 @@ def next_sku(cfg: core.Config, ledger: core.Ledger, state: dict, commit: bool = 
     return sku, None
 
 
-# ---------------------------------------------------------------- 纯流水号模式
+# ---------------------------------------------------------------- 流水号模式（默认）
 
-def next_plain(cfg: core.Config, state: dict) -> str:
-    """纯流水号：0001 → 0002 → 0003。不带前缀，不写台账，只管出号。"""
-    n = int(state.get("next", 1) or 1)
-    if n < 1:
-        n = 1
-    state["next"] = n + 1
+DEFAULT_PREFIX = "{date}"        # 默认前缀：当天日期 YYYYMMDD
+DEFAULT_SEP = "-"                # 前缀与序号之间的连接词
+DEFAULT_WIDTH = 5                # 序号补零位数
+
+
+def render_prefix(state: dict, now=None) -> str:
+    """把前缀模板渲染成实际文本。
+
+    占位符：{date}=YYYYMMDD、{yy}、{mm}、{dd}。
+    前缀写成空串表示「不要前缀」，此时只出流水号。
+    """
+    tmpl = state.get("prefix")
+    if tmpl is None:
+        tmpl = DEFAULT_PREFIX
+    if not tmpl:
+        return ""
+    d = now or datetime.now()
+    return (str(tmpl)
+            .replace("{date}", d.strftime("%Y%m%d"))
+            .replace("{yy}", d.strftime("%y"))
+            .replace("{mm}", d.strftime("%m"))
+            .replace("{dd}", d.strftime("%d")))
+
+
+def compose(prefix: str, sep: str, n: int, width: int) -> str:
+    """拼出最终编号：前缀 + 连接词 + 序号。前缀为空时只留序号。"""
+    body = str(n).zfill(width) if width > 0 else str(n)
+    return (prefix + sep + body) if prefix else body
+
+
+def describe_plain(state: dict, now=None) -> str:
+    """一句话描述当前编号长相（给 banner / --status 用）。"""
+    prefix = render_prefix(state, now)
+    width = int(state.get("width", DEFAULT_WIDTH))
+    sep = str(state.get("sep", DEFAULT_SEP))
+    w = f"{width} 位补零" if width > 0 else "不补零"
+    if not prefix:
+        return f"无前缀 · {w}"
+    return f"前缀「{prefix}」+ 连接词「{sep}」+ {w}"
+
+
+def next_plain(cfg: core.Config, state: dict, now=None) -> str:
+    """日期流水号：20260930-00001 → 20260930-00002 → 20260930-00003。
+
+    计数器按「渲染后的前缀」分组存放，所以：
+      · 前缀带日期 → 隔天 key 变了，序号自动从 1 重新开始；
+      · 前缀固定（如 MTS）→ 只有一个 key，序号一直连续递增。
+    """
+    prefix = render_prefix(state, now)
+    width = int(state.get("width", DEFAULT_WIDTH))
+    sep = str(state.get("sep", DEFAULT_SEP))
+
+    seq = state.setdefault("seq", {})
+    n = int(seq.get(prefix, 0) or 0) + 1
+    seq[prefix] = n
     state["count"] = int(state.get("count", 0)) + 1
-    return str(n).zfill(int(cfg.width))
+    return compose(prefix, sep, n, width)
 
 
 def mode_of(state: dict) -> str:
@@ -394,11 +463,11 @@ class HotkeyDaemon:
 
     def banner(self):
         print("=" * 70)
-        print("  SKU 出号器")
+        print("  编号热键出号器")
         print("=" * 70)
         if mode_of(self.state) == "plain":
-            nxt = str(int(self.state.get("next", 1) or 1)).zfill(int(self.cfg.width))
-            print(f"  模式     纯流水号，下一个 {nxt}")
+            print(f"  模式     流水号 · {describe_plain(self.state)}")
+            print(f"  下一个   {sku_preview(self.cfg, self.ledger, self.state)}")
         else:
             print("  模式     SKU 编码")
             print(f"  当前规格 {describe(self.state['spec'])}")
@@ -534,13 +603,47 @@ def probe(cfg, ledger):
         ok = False
         print(f"  [FAIL] INPUT 结构体大小 {ctypes.sizeof(INPUT)}，预期 {expect}，Ctrl+V 会注入失败")
 
-    st_plain = {"next": 1}
-    got_plain = [next_plain(cfg, st_plain) for _ in range(3)]
-    if got_plain == ["0001", "0002", "0003"]:
-        print("  [OK]   纯流水号自增：0001 → 0002 → 0003")
+    day1 = datetime(2026, 9, 30, 10, 0, 0)
+
+    st_plain = {}
+    got_plain = [next_plain(cfg, st_plain, now=day1) for _ in range(3)]
+    if got_plain == ["20260930-00001", "20260930-00002", "20260930-00003"]:
+        print("  [OK]   日期流水号自增：20260930-00001 → 00002 → 00003")
     else:
         ok = False
-        print(f"  [FAIL] 纯流水号自增异常：{got_plain}")
+        print(f"  [FAIL] 日期流水号自增异常：{got_plain}")
+
+    st_day2 = {"seq": {"20260930": 3}}
+    got_day2 = [next_plain(cfg, st_day2, now=day1 + timedelta(days=1)) for _ in range(2)]
+    if got_day2 == ["20261001-00001", "20261001-00002"]:
+        print("  [OK]   跨天自动换日期、序号重新从 1 开始（20260930…→20261001-00001）")
+    else:
+        ok = False
+        print(f"  [FAIL] 跨天行为异常：{got_day2}")
+
+    st_custom = {"prefix": "MTS", "sep": "_", "width": 4}
+    got_custom = [next_plain(cfg, st_custom, now=day1) for _ in range(2)]
+    if got_custom == ["MTS_0001", "MTS_0002"]:
+        print("  [OK]   自定义前缀/连接词/位数：MTS_0001 → MTS_0002")
+    else:
+        ok = False
+        print(f"  [FAIL] 自定义前缀异常：{got_custom}")
+
+    st_noprefix = {"prefix": "", "width": 3}
+    got_np = [next_plain(cfg, st_noprefix, now=day1) for _ in range(2)]
+    if got_np == ["001", "002"]:
+        print("  [OK]   不要前缀时只出流水号：001 → 002")
+    else:
+        ok = False
+        print(f"  [FAIL] 无前缀模式异常：{got_np}")
+
+    st_tpl = {"prefix": "MTS-{yy}{mm}{dd}"}
+    got_tpl = next_plain(cfg, st_tpl, now=day1)
+    if got_tpl == "MTS-260930-00001":
+        print("  [OK]   前缀占位符渲染：MTS-{yy}{mm}{dd} → MTS-260930-00001")
+    else:
+        ok = False
+        print(f"  [FAIL] 占位符渲染异常：{got_tpl}")
 
     if mode_of({}) == "plain" and mode_of({"mode": "sku", "spec": {"store": "MTS"}}) == "sku":
         print("  [OK]   模式判定：默认纯流水号，--set 后为 SKU 模式")
@@ -574,9 +677,14 @@ def main():
     ap = argparse.ArgumentParser(prog="sku_hotkey.py",
                                  description="按 Ctrl+B 自动粘贴下一个编号（默认纯流水号，装上即用）")
     ap.add_argument("--plain", action="store_true",
-                    help="切到纯流水号模式（默认就是这个，0001→0002→…，不记台账）")
+                    help="切到流水号模式（默认就是这个，不记台账）")
+    ap.add_argument("--prefix", metavar="模板",
+                    help='前缀模板："{date}"=当天日期（默认）、"MTS"、"MTS-{date}"；传 "" 表示不要前缀')
+    ap.add_argument("--sep", metavar="连接词", help='前缀与序号之间的连接词（默认 "-"）')
+    ap.add_argument("--width", type=int, metavar="位数",
+                    help="序号补零位数（默认 5；0 = 不补零）")
     ap.add_argument("--from", dest="from_", type=int, metavar="N",
-                    help="配合 --plain：把下一个编号设为 N")
+                    help="把下一个编号设为 N（只影响当前前缀）")
     ap.add_argument("--set", metavar="速记符",
                     help='切到 SKU 编码模式并设规格，如 --set "mts tf ss86 r"')
     ap.add_argument("--status", action="store_true", help="查看当前模式与下一个编号")
@@ -612,16 +720,29 @@ def main():
     if args.probe:
         sys.exit(probe(cfg, ledger))
 
-    if args.plain:
+    if (args.plain or args.prefix is not None or args.from_ is not None
+            or args.sep is not None or args.width is not None):
         st = load_state()
-        st["mode"] = "plain"
-        st.setdefault("next", 1)
+        # --plain / --prefix / --from 都会切到流水号模式；单独改 --sep / --width 不动模式
+        if args.plain or args.prefix is not None or args.from_ is not None:
+            st["mode"] = "plain"
+        if args.prefix is not None:
+            st["prefix"] = args.prefix            # 允许空串 = 不要前缀
+        else:
+            st.setdefault("prefix", DEFAULT_PREFIX)
+        if args.sep is not None:
+            st["sep"] = args.sep
+        if args.width is not None:
+            if args.width < 0:
+                core.die("--width 不能是负数（0 表示不补零）。")
+            st["width"] = args.width
         if args.from_ is not None:
             if args.from_ < 1:
                 core.die("--from 需要是不小于 1 的整数。")
-            st["next"] = args.from_
+            st.setdefault("seq", {})[render_prefix(st)] = args.from_ - 1
         save_state(st)
-        print(f"已切到纯流水号模式，下一个编号 {sku_preview(cfg, ledger, st)}")
+        print(f"已设为流水号模式 · {describe_plain(st)}")
+        print(f"下一个编号 {sku_preview(cfg, ledger, st)}")
         return
 
     if args.set:
@@ -641,9 +762,17 @@ def main():
     if args.status:
         st = load_state()
         if mode_of(st) == "plain":
-            print(f"模式       纯流水号（{int(cfg.width)} 位，不记台账）")
+            prefix = render_prefix(st)
+            seq = st.get("seq", {})
+            print(f"模式       流水号（{describe_plain(st)}，不记台账）")
             print(f"已出号     {st.get('count', 0)} 个")
+            if prefix:
+                used = seq.get(prefix, 0)
+                print(f"当前前缀   {prefix}" + (f"（已出到第 {used} 个）" if used else "（还没出过号）"))
             print(f"下一个编号 {sku_preview(cfg, ledger, st)}")
+            others = sorted(k for k in seq if k != prefix)
+            if others:
+                print("历史前缀   " + "、".join(f"{k}→{seq[k]}" for k in others[-6:]))
         else:
             print("模式       SKU 编码")
             print(f"当前规格   {describe(st['spec'])}")

@@ -13,9 +13,11 @@ from __future__ import annotations
 import csv
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timedelta
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -145,9 +147,35 @@ def main():
     got2 = [hk.next_sku(hcfg, hledger, st2)[0] for _ in range(2)]
     check("无变体规格每次都是新流水号",
           got2 == ["MTS-TF-SS86-0001", "MTS-TF-SS86-0002"], str(got2))
+    day1 = datetime(2026, 9, 30, 10, 0, 0)
     st3 = {}
     got3 = [hk.next_code(hcfg, hledger, st3)[0] for _ in range(3)]
-    check("默认模式出纯流水号 0001→0002→0003", got3 == ["0001", "0002", "0003"], str(got3))
+    check("默认模式出「日期-序号」（前缀随当天日期）",
+          all(re.fullmatch(r"\d{8}-\d{5}", c) for c in got3)
+          and got3[0] == hk.compose(hk.render_prefix({}), "-", 1, 5)
+          and [c.rsplit("-", 1)[1] for c in got3] == ["00001", "00002", "00003"], str(got3))
+
+    # 12.4 日期前缀：隔天换日期、序号重新从 1 开始（用固定时间避免跨零点假失败）
+    std = {}
+    d1 = [hk.next_plain(hcfg, std, now=day1) for _ in range(3)]
+    d2 = [hk.next_plain(hcfg, std, now=day1 + timedelta(days=1)) for _ in range(2)]
+    check("隔天自动换日期、序号归 1",
+          d1 == ["20260930-00001", "20260930-00002", "20260930-00003"]
+          and d2 == ["20261001-00001", "20261001-00002"], f"{d1} / {d2}")
+
+    # 12.5 固定前缀连续递增；连接词与位数可改；空前缀只出流水号
+    stf = {"prefix": "MTS", "sep": "_", "width": 4}
+    gf = [hk.next_plain(hcfg, stf, now=day1) for _ in range(2)]
+    check("自定义前缀/连接词/位数", gf == ["MTS_0001", "MTS_0002"], str(gf))
+    snp = {"prefix": "", "width": 3}
+    gnp = [hk.next_plain(hcfg, snp, now=day1) for _ in range(2)]
+    check("前缀留空时只出流水号", gnp == ["001", "002"], str(gnp))
+    stp = {"prefix": "MTS-{yy}{mm}{dd}"}
+    check("前缀占位符 {yy}{mm}{dd}",
+          hk.next_plain(hcfg, stp, now=day1) == "MTS-260930-00001",
+          hk.next_plain(hcfg, {"prefix": "MTS-{yy}{mm}{dd}"}, now=day1))
+    check("--from 把下一个编号设为 N（不改已出的历史）",
+          hk.compose("", "", 1200, 5) == "01200", "compose 基本拼接")
 
     st4 = {"mode": "sku", "base": None, "queue_index": 0}
     sku4, err4 = hk.next_code(hcfg, hledger, st4)

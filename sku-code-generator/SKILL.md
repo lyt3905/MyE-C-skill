@@ -9,10 +9,13 @@ description: |
   CSV/TSV/XLSX product tables. Series and variant dictionaries live in a JSON file so new
   lines can be added without touching code.
   ALSO ships a resident Windows global-hotkey mode, which is the default daily workflow and
-  needs NO setup at all: launch it and press Ctrl+B — a plain 4-digit serial (0001, 0002,
-  0003, ...) is pasted straight at the cursor, incrementing on every press, and the counter
-  survives restarts. Optionally switch to full SKU-code mode with `--set "mts tf ss86 r"` to
-  emit prefixed codes (MTS-TF-SS86-0001-RD); Ctrl+Shift+B switches mode from the clipboard.
+  needs NO setup at all: launch it and press Ctrl+B — a date-based serial (20260930-00001,
+  20260930-00002, ...) is pasted straight at the cursor, incrementing on every press; the
+  counter survives restarts and the date prefix rolls over to a fresh 1 each new day. The
+  prefix / separator / zero-padding are configurable (`--prefix "{date}"|"MTS"|"MTS-{date}"|""`,
+  `--sep "-"`, `--width 5`, `--from N`). Optionally switch to full SKU-code mode with
+  `--set "mts tf ss86 r"` to emit store-category-series-colour codes (MTS-TF-SS86-0001-RD);
+  Ctrl+Shift+B switches mode from the clipboard.
   Triggered when the user asks for SKU 编码 / SKU 生成 / 生成货号 / 编码规则 / 批量生成 SKU /
   "给这批商品编个号" / "SKU 代号" / 热键出号 / Ctrl+B 自动粘贴 / "按一下就来一个编号" /
   "每次按一下自增" / wants to add a new series or colour to the SKU dictionary /
@@ -85,15 +88,30 @@ S="C:/Users/shana/.workbuddy/skills/sku-code-generator/scripts/sku_gen.py"
 **不开终端、不打命令、不需要任何设置**：双击 `scripts/start_hotkey.bat` 让它常驻，
 之后按一下 Ctrl+B，下一个编号直接粘在光标处。
 
-### 默认：纯流水号（主人确认的口径）
+### 默认：日期流水号（主人确认的口径）
 
 ```
-0001 → 0002 → 0003 → …
+20260930-00001 → 20260930-00002 → 20260930-00003 → …
 ```
 
-- 不带任何前缀、不写台账，只管出号 —— 最省事
-- 序号记在 `data/hotkey_state.json`，关掉重开接着往下走，不会重号
-- 想从指定号开始：`--plain --from 1200`
+- 默认前缀 = **当天日期**（`{date}`），连接词 `-`，序号 5 位补零
+- **隔天自动换日期、序号重新从 1 开始**：第二天第一个号是 `20261001-00001`
+- 序号记在 `data/hotkey_state.json`（按前缀分组），关掉重开接着往下走，不会重号
+- 不写台账，只管出号 —— 最省事
+
+### 改编号长相（设一次就一直记住）
+
+| 命令 | 出号长相 |
+|---|---|
+| `--prefix "{date}"` | `20260930-00001`（默认） |
+| `--prefix "MTS"` | `MTS-00001` |
+| `--prefix "MTS-{date}"` | `MTS-20260930-00001` |
+| `--prefix ""` | `00001`（不要前缀） |
+| `--sep "_"` | 换连接词：`20260930_00001` |
+| `--width 3` | 换补零位数：`20260930-001`（`--width 0` = 不补零） |
+| `--from 1200` | 把下一个号设为 `20260930-01200`（只影响当前前缀） |
+
+前缀模板里可用的占位符：`{date}`=YYYYMMDD、`{yy}`、`{mm}`、`{dd}`。
 
 ### 可选：SKU 编码模式（需要带前缀时才用）
 
@@ -105,15 +123,16 @@ Ctrl+Shift+B    → 把剪贴板里的速记符设为新规格（复制「jcs r�
 ```bash
 S_HK="C:/Users/shana/.workbuddy/skills/sku-code-generator/scripts/sku_hotkey.py"
 
-"$PY" "$S_HK"                          # 启动（默认纯流水号，什么都不用设）
-"$PY" "$S_HK" --status                 # 当前模式 + 下一个编号（只算不写）
-"$PY" "$S_HK" --plain --from 1200      # 切纯流水号，并把下一个号设为 1200
+"$PY" "$S_HK"                          # 启动（默认日期流水号，什么都不用设）
+"$PY" "$S_HK" --status                 # 当前前缀 + 下一个编号（只算不写）
+"$PY" "$S_HK" --prefix "MTS" --width 4 # 改前缀与位数（立即生效）
+"$PY" "$S_HK" --plain --from 1200      # 切流水号模式，并把下一个号设为 1200
 "$PY" "$S_HK" --set "mts tf ss86 r"    # 切到 SKU 编码模式
 "$PY" "$S_HK" --stop                   # 停止热键程序
 "$PY" "$S_HK" --probe                  # 环境自检（热键/剪贴板/按键注入/解析）
 ```
 
-> ⚠️ `--set` / `--plain` / `--from` 改完**立即生效，不用重启常驻程序**。
+> ⚠️ `--set` / `--plain` / `--prefix` / `--sep` / `--width` / `--from` 改完**立即生效，不用重启常驻程序**。
 > 这是个修过的真坑：守护进程原先只在启动时读一次状态文件，外面改了不生效，
 > 而且按一次 Ctrl+B 还会把内存里的旧值写回文件、把刚做的设置覆盖掉。
 > `selftest.py` 第 13 节有专项回归，别改回「只读一次」。
@@ -126,7 +145,7 @@ SKU 模式的出号规则：
 | `ss86 r`（单变体） | 0001-RD → 0002-RD → 0003-RD |
 | `ss86 r,b`（多变体） | 0001-RD → 0001-BL → 0002-RD → 0002-BL（同款先出齐颜色） |
 
-- SKU 模式每次出号**都写进同一份台账**，和命令行模式共用流水号，绝不会撞号；纯流水号模式不写台账
+- SKU 模式每次出号**都写进同一份台账**，和命令行模式共用流水号，绝不会撞号；流水号模式不写台账
 - 日志窗口留着能看见每次出了什么号；不想要日志就加 `--quiet`
 - 只复制不粘贴（比如手动 Ctrl+V）加 `--copy-only`
 - 开机自启：`Win+R` → `shell:startup` → 把 `start_hotkey.bat` 的**快捷方式**放进去
@@ -134,7 +153,7 @@ SKU 模式的出号规则：
 ### 怎么验证热键真的能用（改完代码后）
 
 改完 `sku_hotkey.py` 一定要跑 `--probe`（校验 Ctrl+B 可注册、剪贴板中文往返、`INPUT` 结构体布局 40 字节、
-规格解析与非规格拒绝、纯流水号自增、模式判定）。想验证整条链路（真热键 → 出号 → 剪贴板），做法是：
+规格解析与非规格拒绝、日期流水号自增与跨天归 1、前缀占位符、模式判定）。想验证整条链路（真热键 → 出号 → 剪贴板），做法是：
 **用 `SendInput` 注入真实的 Ctrl+B**，而不是只调函数 —— 注入的按键同样会触发 `RegisterHotKey`
 （已实测通过）。测的时候一定加 `--copy-only`，否则测试编号会被粘到当前前台窗口里。
 读剪贴板的时机要注意：注入后至少等 0.6s 再读，否则可能读到大写之前的空剪贴板。
@@ -224,7 +243,7 @@ sku-code-generator/
 ├── scripts/selftest.py         # 冒烟自测
 └── data/                       # 本地数据（已 gitignore）
     ├── sku_ledger.json         #   台账（仅 SKU 编码模式使用）
-    ├── hotkey_state.json       #   当前模式 + 纯流水号计数器
+    ├── hotkey_state.json       #   当前模式 + 前缀模板 + 按前缀分组的计数器
     └── hotkey.pid              #   运行中的热键进程
 ```
 
@@ -244,3 +263,5 @@ sku-code-generator/
 | 常驻程序读一次状态就不管了 | 外面 `--set` 改了规格，按 Ctrl+B 还是老号，还会把旧值写回文件覆盖设置 | 常驻进程必须**每次按键前重读** state 与台账（`HotkeyDaemon.refresh()` + `Ledger.reload()`）。`selftest.py` 第 13 节有回归 |
 | pid 文件残留 | 进程被强杀后 `hotkey.pid` 还在，`--status` 会误报「运行中」 | 用 `OpenProcess` 探活（`daemon_running()`），并顺手清理残留 pid |
 | `OpenProcess` 未声明签名 | 64 位下句柄被默认 `restype` 截成 32 位，`CloseHandle` 失效 | 已显式声明 `argtypes`/`restype`，新加 Win32 调用时照做 |
+| 自己写脚本注入按键测试 | `ctypes` 的 `INPUT` union 里只放 `KEYBDINPUT` 时 `sizeof(INPUT)` = 32，`SendInput` **静默返回 0** | union 必须含最大成员 `MOUSEINPUT`（32 字节），64 位下 `sizeof(INPUT)` = 40；`--probe` 专门校验这一项 |
+| 编号格式换代后旧计数残留 | 老 state 的 `next`/`count` 被新结构继承，`--status` 报出「已出 10 个」却一个都没出过 | `load_state()` 里 `migrate_state()`：发现旧 `next` 且无 `seq` 就作废旧计数（幂等） |
