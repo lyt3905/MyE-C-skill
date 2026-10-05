@@ -157,15 +157,38 @@ def inject_nav(html, date, repo_dir=None):
     return html[:i] + bar + html[i:]
 
 
+_BD = [None]
+
+
+def _build_digest_module():
+    """按文件路径加载 build_digest（不依赖 sys.path），用于复用它的合并口径。"""
+    if _BD[0] is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("build_digest", BUILD_DIGEST)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _BD[0] = mod
+    return _BD[0]
+
+
 def _day_stat(date):
-    """某期简报的情报条数（读本地 intel JSON；读不到就返回 None）。"""
+    """某期简报的条数 —— 走 build_digest 的合并口径，与日页上「共 N 条情报」一致。
+
+    直接数 `intel-*.json` 的 items 会得到**原始微博条数**（同款产品的多条报道
+    尚未合并），比日页显示的数字大，归档页与日页对不上会被当成 bug。
+    """
     p = os.path.join(DATA_DIR, f"intel-{date}.json")
     if not os.path.exists(p):
         return None
     try:
         with open(p, "r", encoding="utf-8") as f:
             d = json.load(f)
-        return len(d.get("items") or [])
+        bd = _build_digest_module()
+        items = [dict(it) for it in (d.get("items") or [])]
+        for it in items:
+            it["_type"] = bd.norm_type(it.get("intel_type"))
+            it["_rel"] = (it.get("relevance") or "").strip()
+        return len(bd.dedupe_items(items))
     except Exception:
         return None
 
