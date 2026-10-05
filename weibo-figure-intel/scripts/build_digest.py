@@ -622,6 +622,33 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
   padding:3px 11px;font-size:12.5px;color:var(--ink2)}
 .stat span b{color:var(--ink);font-weight:600}
 
+/* 日期时间线：读完一天直接翻到前一天 / 后一天 */
+.daynav{display:flex;flex-wrap:wrap;align-items:center;gap:7px;
+  margin:0 0 13px;padding-bottom:11px;border-bottom:1px dashed var(--line)}
+.dn-btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink2);border-radius:8px;padding:4px 10px;
+  font-size:12.5px;white-space:nowrap;cursor:pointer;transition:.12s}
+.dn-btn:hover{border-color:var(--accent);color:var(--accent);
+  background:var(--accent-soft);text-decoration:none}
+.dn-btn .dn-ar{font-size:14px;line-height:1;opacity:.75}
+.dn-btn .dn-w{color:var(--ink3);font-size:11.5px}
+.dn-btn.off{opacity:.45;cursor:not-allowed;background:var(--bg)}
+.dn-btn.off:hover{border-color:var(--line);color:var(--ink2);background:var(--bg)}
+.dn-sel{border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  border-radius:8px;padding:4px 8px;font-size:12.5px;font-family:inherit;
+  cursor:pointer;max-width:200px}
+.dn-sel:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+.dn-pos{font-size:12px;color:var(--ink3);white-space:nowrap}
+.dn-idx{margin-left:auto;font-size:12.5px;white-space:nowrap}
+.dn-hint{font-size:11.5px;color:var(--ink3);white-space:nowrap;opacity:.85}
+/* 页脚翻页条：长页面读完在底部，就地翻到相邻一期 */
+.dayfoot{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
+  gap:9px;margin:14px 0 0;padding:18px 0 6px;border-top:1px solid var(--line)}
+.dayfoot .df-t{font-size:12.5px;color:var(--ink3)}
+.dayfoot .dn-btn{padding:7px 15px;font-size:13px}
+.dn-btn.dn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.dn-btn.dn-primary:hover{background:#2560d8;border-color:#2560d8;color:#fff}
+
 /* 控件 */
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;
   margin-top:14px;padding-bottom:12px}
@@ -844,9 +871,16 @@ body.lb-lock{overflow:hidden}
   .unreadbar .ub-t{flex:1 1 100%}
   .unreadbar .sp{display:none}
   .ubtn{flex:1 1 auto;text-align:center}
+  /* 窄屏：星期与键盘提示先让位，保证上一期 / 下一期两个按钮不换行 */
+  .dn-btn .dn-w{display:none}
+  .dn-hint{display:none}
+  .dn-idx{margin-left:0}
+  .dn-sel{max-width:150px}
 }
 @media print{
   .unreadbar{display:none}
+  .daynav{display:none}
+  .dayfoot{display:none}
   .top{position:static}.controls{display:none}
   body{background:#fff}.card{break-inside:avoid;box-shadow:none}
 }
@@ -1271,7 +1305,154 @@ HTML_JS = r"""
   paint();
   syncFilter();
 })();
+
+/* 日期时间线：读完一天直接翻到相邻一天（下拉任选 / 键盘 [ ]） */
+(function(){
+  var nav = document.getElementById('daynav');
+  if (!nav) return;
+  var prev = nav.getAttribute('data-prev') || '';
+  var next = nav.getAttribute('data-next') || '';
+  var sel  = document.getElementById('dn-sel');
+  if (sel) sel.addEventListener('change', function(){
+    if (sel.value) location.href = sel.value;
+  });
+  document.addEventListener('keydown', function(e){
+    // 放大预览开着时把键盘让给它（它用 ←/→ 翻图）
+    if (document.body.classList.contains('lb-lock')) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var a = document.activeElement, tag = a ? a.tagName : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (e.key === '['){ if (!prev) return; e.preventDefault(); location.href = prev; }
+    if (e.key === ']'){ if (!next) return; e.preventDefault(); location.href = next; }
+  });
+})();
 """
+
+# ---- 日期时间线：每日简报顶部加上「上一期 / 下一期 + 任选日期」----------------
+# 读者读完一天的情报后，不必回总览页再点一次，直接在页内翻到相邻一天。
+# 日期从源目录扫描得到（本地产物 output/ 或发布仓都可），所以某天没出简报
+# （比如断采）时不会被算进去，翻页永远落在真实存在的一天上。
+_DAY_SRC_NAME = re.compile(r"^(?:intel-)?(\d{4}-\d{2}-\d{2})(?:\.json|\.html|\.md)$")
+_WEEK_CN = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+
+DAYNAV_ON = [True]                             # --no-daynav 可关
+DAY_LINK = ["手办情报-{date}.html"]             # 日页链接模板，{date} 会被替换
+DAY_INDEX = ["手办情报-总览.html"]              # 归档 / 总览页
+DAY_INDEX_LABEL = ["全部日期 →"]
+DAY_SOURCE = [None]                            # None ⇒ 用 DATA_DIR
+
+
+def day_label(date):
+    """('10-05', '周一')"""
+    try:
+        d = datetime.strptime(date, "%Y-%m-%d")
+        return date[5:], _WEEK_CN[d.weekday()]
+    except ValueError:
+        return date, ""
+
+
+def scan_days(source_dir=None):
+    """列出源目录里已有简报的日期，升序。"""
+    src = source_dir or DAY_SOURCE[0] or DATA_DIR
+    days = set()
+    if src and os.path.isdir(src):
+        for n in os.listdir(src):
+            m = _DAY_SRC_NAME.match(n)
+            if m:
+                days.add(m.group(1))
+    return sorted(days)
+
+
+def render_daynav(date, source_dir=None):
+    """顶部日期时间线条。只有一天时退化成「第 1/1 期 + 归档入口」。"""
+    if not DAYNAV_ON[0]:
+        return ""
+    days = scan_days(source_dir)
+    if date not in days:
+        days = sorted(days + [date])
+    i = days.index(date)
+    prev_d = days[i - 1] if i > 0 else None
+    next_d = days[i + 1] if i + 1 < len(days) else None
+
+    def href(d):
+        return htmllib.escape(DAY_LINK[0].replace("{date}", d), quote=True)
+
+    def step(d, arrow, side):
+        mmdd, wk = day_label(d)
+        pos = "prev" if side == "prev" else "next"
+        inner = (f'<span class="dn-ar">{arrow}</span>'
+                 f'<span class="dn-t">{mmdd}</span>'
+                 f'<span class="dn-w">{wk}</span>') if side == "prev" else (
+                f'<span class="dn-t">{mmdd}</span>'
+                f'<span class="dn-w">{wk}</span>'
+                f'<span class="dn-ar">{arrow}</span>')
+        return (f'<a class="dn-btn" href="{href(d)}" rel="{pos}" '
+                f'title="{"上一期" if pos == "prev" else "下一期"} {d}（{wk}）">'
+                f'{inner}</a>')
+
+    parts = ['<nav class="daynav" id="daynav" aria-label="日期时间线"',
+             f' data-prev="{href(prev_d) if prev_d else ""}"',
+             f' data-next="{href(next_d) if next_d else ""}">']
+    parts.append(step(prev_d, "‹", "prev") if prev_d else
+                 '<span class="dn-btn off" title="已是最早一期">'
+                 '<span class="dn-ar">‹</span><span class="dn-t">最早</span></span>')
+
+    opts = []
+    for k, d in enumerate(days):
+        _, wk = day_label(d)
+        sel = " selected" if d == date else ""
+        opts.append(f'<option value="{href(d)}"{sel}>{d}（{wk}）</option>')
+    parts.append(f'<select class="dn-sel" id="dn-sel" aria-label="跳转到指定日期">'
+                 f'{"".join(opts)}</select>')
+    parts.append(step(next_d, "›", "next") if next_d else
+                 '<span class="dn-btn off" title="已是最新一期">'
+                 '<span class="dn-t">最新</span><span class="dn-ar">›</span></span>')
+
+    parts.append(f'<span class="dn-pos">第 {i + 1} / {len(days)} 期</span>')
+    if DAY_INDEX[0]:
+        parts.append(f'<a class="dn-idx" href="{htmllib.escape(DAY_INDEX[0], quote=True)}">'
+                     f'{htmllib.escape(DAY_INDEX_LABEL[0])}</a>')
+    parts.append('<span class="dn-hint">键盘 [ ] 翻日期</span>')
+    parts.append('</nav>')
+    return "".join(parts)
+
+
+def render_dayfoot(date, source_dir=None):
+    """页脚再给一份翻页：长页面读完人在底部，不必回头去找顶栏那条。
+
+    与顶栏共用同一份日期清单与链接模板，所以两边永远指向同一期。
+    只有一期（或关了时间线）时不渲染。
+    """
+    if not DAYNAV_ON[0]:
+        return ""
+    days = scan_days(source_dir)
+    if date not in days:
+        days = sorted(days + [date])
+    if len(days) < 2:
+        return ""
+    i = days.index(date)
+    prev_d = days[i - 1] if i > 0 else None
+    next_d = days[i + 1] if i + 1 < len(days) else None
+
+    def href(d):
+        return htmllib.escape(DAY_LINK[0].replace("{date}", d), quote=True)
+
+    out = ['<div class="dayfoot" id="dayfoot">',
+           f'<span class="df-t">第 {i + 1} / {len(days)} 期读完</span>']
+    if prev_d:
+        out.append(f'<a class="dn-btn" href="{href(prev_d)}" rel="prev">'
+                   f'<span class="dn-ar">‹</span>上一期 {day_label(prev_d)[0]}</a>')
+    if next_d:
+        out.append(f'<a class="dn-btn dn-primary" href="{href(next_d)}" rel="next">'
+                   f'下一期 {day_label(next_d)[0]}<span class="dn-ar">›</span></a>')
+    else:
+        out.append('<span class="dn-btn off">已是最新一期</span>')
+    if DAY_INDEX[0]:
+        out.append(f'<a class="dn-btn" href="{htmllib.escape(DAY_INDEX[0], quote=True)}">'
+                   f'全部日期</a>')
+    out.append('</div>')
+    return "".join(out)
+
 
 HTML_TPL = """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -1284,6 +1465,7 @@ HTML_TPL = """<!DOCTYPE html>
 <body>
 <header class="top">
   <div class="wrap inner">
+    __DAYNAV__
     <h1>__H1__</h1>
     <div class="sub">__SUBTITLE__</div>
     <div class="stat">__STATS__</div>
@@ -1301,6 +1483,7 @@ HTML_TPL = """<!DOCTYPE html>
   <div id="groups">__SECTIONS__</div>
   <div class="empty" id="empty" style="display:none">没有匹配的情报，换个关键词或筛选条件试试。</div>
   <div class="legend">__LEGEND__　·　点击右栏缩略图可放大看原图，点标题或按钮可跳转原博（需登录微博）。</div>
+  __DAYFOOT__
 </main>
 
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="配图放大预览">
@@ -1435,6 +1618,10 @@ def render_html(data, items, date):
 
     subtitle = htmllib.escape(data.get("source_note") or "微博关注列表情报采集")
 
+    # 顶部日期时间线：让读者读完一天后原地翻到相邻一天
+    daynav = render_daynav(date)
+    dayfoot = render_dayfoot(date)
+
     # 视图提示：页面加载即处于「新品清单」，需把 body 标记与提示同步置位
     legend = ('<span data-only-view="new">当前为 <b>新品清单</b>：'
               '只列微博里出现的新品与它们的开订 / 发售 / 再版动向，'
@@ -1449,6 +1636,8 @@ def render_html(data, items, date):
             .replace("__TITLE__", f"手办情报 · {date}")
             .replace("__H1__", f"手办 / 可动人偶情报　<span style=\"font-size:15px;color:#8b95a3;font-weight:400\">{htmllib.escape(date)}</span>")
             .replace("__SUBTITLE__", subtitle)
+            .replace("__DAYNAV__", daynav)
+            .replace("__DAYFOOT__", dayfoot)
             .replace("__STATS__", stats_html)
             .replace("__UNREADBAR__", unreadbar)
             .replace("__BAKED__", baked)
@@ -1717,6 +1906,18 @@ def main():
     ap.add_argument("--publish", action="store_true",
                     help="发布模式：缩略图外链 media/thumb/，点缩略图跳原微博（原图不入库）")
     ap.add_argument("--media-rel", help="HTML 引用配图的相对路径前缀（默认 media）")
+    ap.add_argument("--no-daynav", action="store_true",
+                    help="不渲染顶部日期时间线（上一期 / 下一期 / 任选日期）")
+    ap.add_argument("--day-link", default=None,
+                    help="日页链接模板，{date} 占位（默认 手办情报-{date}.html；"
+                         "发布站传 {date}.html）")
+    ap.add_argument("--day-index", default=None,
+                    help="时间线右侧的归档 / 总览页链接（传空字符串可隐藏）")
+    ap.add_argument("--day-index-label", default=None,
+                    help="归档 / 总览页链接的显示文字（默认 全部日期 →）")
+    ap.add_argument("--day-source",
+                    help="扫描可用日期的目录（默认 data/；发布站传发布仓目录，"
+                         "按实际已发布的 HTML 算，避免翻到不存在的页）")
     args = ap.parse_args()
 
     global MEDIA_DIR, MEDIA_REL, DATA_DIR
@@ -1728,6 +1929,15 @@ def main():
         MEDIA_REL = args.media_rel
     FIRST_SEEN_OFF[0] = bool(args.no_first_seen)
     PUBLISH[0] = bool(args.publish)
+    DAYNAV_ON[0] = not args.no_daynav
+    if args.day_link:
+        DAY_LINK[0] = args.day_link
+    if args.day_index is not None:
+        DAY_INDEX[0] = args.day_index
+    if args.day_index_label:
+        DAY_INDEX_LABEL[0] = args.day_index_label
+    if args.day_source:
+        DAY_SOURCE[0] = args.day_source
 
     if not os.path.exists(args.input):
         print(f"❌ 找不到输入文件：{args.input}")
