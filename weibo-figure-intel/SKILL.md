@@ -91,9 +91,12 @@ agent_created: true
    > - 已验证的旁路全部无效：所有**未被锁定**的 profile（Edge Guest / Profile 2–4、Chrome Default）
    >   里都没有任何 `host_key like '%weibo%'` 的 cookie，主人的微博登录只存在于被锁的
    >   Edge `Default` 与 `Profile 1` 中。
-   > - 判定是「SUB 过期」还是「Domain 取错」从外部无法区分：用
-   >   `GET https://weibo.com/ajax/side/hotSearch`（免登录、应返回 `ok=1`）确认站点可达，
-   >   再对比 `friendships/friends` 返回 `ok=-100`，即可锁定为**凭据问题而非网络问题**。
+   > - 判定是「SUB 过期」还是「Domain 取错」从外部无法区分。**免登录对照端点用
+   >   `GET https://weibo.com/ajax/profile/info`（带普通 Chrome UA + `Referer: https://weibo.com/`）**：
+   >   返回 **HTTP 200 + `ok:-100`** 说明接口可达、只是没登录 → 定性为**凭据问题而非网络问题**；
+   >   若连 200 都拿不到（超时 / 5xx）才是网络问题。
+   >   ⚠️ 不要再拿 `ajax/side/hotSearch` 当「站点可达」的判据 —— 2026-10-05 实测它带 UA 也返回
+   >   **`HTTP 403`**，会被误读成网络故障，白排查一轮（它以前返回 `ok=1`，属于端点自身策略变化）。
    >
    > **结论：读浏览器 cookie 库是死路，但 CDP 是活路 —— 见下方「自动取 SUB（CDP 方案）」。**
 
@@ -117,6 +120,14 @@ agent_created: true
    ```
 
    #### ⚠️ 前提：**必须用独立 user-data-dir，不能复用日常 Edge 的默认 profile**
+
+   > **先做一次引导检查（省时间，别跳过）**：CDP 路径不是开箱即用的，得先有那个独立 profile。
+   > ```bash
+   > ls -d "C:/Users/shana/EdgeWeibo"   # 不存在 → CDP 必然不可用，不要再 probe 第二遍
+   > ```
+   > 2026-10-05 实测：该目录**不存在**（主人从未创建过），因此 `probe` 报 `WinError 10061`
+   > 拒绝连接是**预期结果**，不是脚本坏了。此时唯一可走的是手工 F12 抄 SUB，
+   > 应当**立即收尾报告并明确请主人创建一次该 profile**（无人值守场景尤其不要在此空转）。
 
    2026-10-05 实测（Edge 154）钉死的两条硬约束，**照下面这条命令做才有效**：
 
@@ -207,6 +218,9 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 > 定时任务场景下，此时应当**立即收尾并明确报告**（Cookie 已失效 + 重取步骤 + 本地已缓存多少条微博），
 > 不要反复重试刷接口。历史进度可用 `weibo_fetch.py stats` 查看（已见微博 / 已扫描账号数），
 > 重取 Cookie 后增量机制会自动接上，不会丢数据。
+>
+> 报告时**一并给出「CDP 自动续期通道是否已就绪」**（`ls -d "C:/Users/shana/EdgeWeibo"` 有 / 无），
+> 这样主人两条路一次看清：要么临时抄一次 SUB，要么把独立 profile 建起来一劳永逸。
 
 ### 第 2 步：采集（首次需先拉关注列表）
 
