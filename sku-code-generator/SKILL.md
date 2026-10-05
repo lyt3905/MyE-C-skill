@@ -330,3 +330,4 @@ sku-code-generator/
 | 托盘留"幽灵图标" | 程序退了图标还在，鼠标划过才消失 | 退出路径必须 `Shell_NotifyIconW(NIM_DELETE)`（`TrayIcon.destroy()`）。`--stop` 走窗口 `WM_CLOSE` 优雅退出，不强杀进程 |
 | windowed exe 的 `--probe`/`--status` 结果看不到 | 控制台是临时附加的，窗口一关输出就没了 | 自检结果同时写 `data/probe.log`，`--status` 顺手记一条进 `hotkey.log` |
 | 验证脚本自己写剪贴板 | 出号正常但读回旧值，像是剪贴板内容"回退" | 跨进程交替读写 `GlobalAlloc` 私有 HGLOBAL 会互相遮挡。验证时**只注入按键不碰剪贴板**，用独立工具（PowerShell `Get-Clipboard`）读 |
+| `--windowed` 的 exe 在 PowerShell 里调用 | `& .\编号出号器.exe --status` 之后 `$LASTEXITCODE` 是**空的**，脚本误判成「启动失败，退出码 」 | GUI 子系统程序 PowerShell 不会同步等待。用 `Start-Process -FilePath <exe> -ArgumentList ... -Wait -PassThru` 取 `$p.ExitCode`；或者干脆看它写的 `data/hotkey.log`（CI 里就同时做了这两件事） |

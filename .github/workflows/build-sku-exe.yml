@@ -66,19 +66,23 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $exe = 'dist/编号出号器.exe'
-          if (-not (Test-Path $exe)) { throw '打包没有产出 exe' }
+          $exe = (Resolve-Path 'dist/编号出号器.exe').Path
           $mb = [math]::Round((Get-Item $exe).Length / 1MB, 1)
           Write-Host "exe 体积：$mb MB"
           if ($mb -lt 4) { throw "exe 体积异常（$mb MB），可能打包不完整" }
 
-          & $exe --status --no-pause
-          if ($LASTEXITCODE -ne 0) { throw "exe 启动失败，退出码 $LASTEXITCODE" }
+          # 这里不能用 & $exe 直接调用：--windowed 打出来的是 GUI 子系统程序，
+          # PowerShell 不会等它结束，$LASTEXITCODE 是空的（踩过：校验步骤误报"启动失败"，
+          # 退而求其次以为 exe 有问题）。必须 Start-Process -Wait -PassThru 才拿得到退出码。
+          $p = Start-Process -FilePath $exe -ArgumentList '--status', '--no-pause' `
+                             -Wait -PassThru -NoNewWindow
+          Write-Host "exe 退出码：$($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { throw "exe 启动失败，退出码 $($p.ExitCode)" }
 
           $log = 'dist/data/hotkey.log'
           if (-not (Test-Path $log)) { throw 'exe 没有写运行时日志，可能没真正跑起来' }
           Write-Host '--- dist/data/hotkey.log ---'
-          Get-Content $log
+          Get-Content $log -Encoding UTF8
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
