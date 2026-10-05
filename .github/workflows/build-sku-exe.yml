@@ -1,0 +1,122 @@
+name: 构建编号出号器 exe
+
+# 触发条件：
+#   · 改动 sku-code-generator/ 下的文件推到 main —— 自动编译并产出可下载的构建产物
+#   · 推 sku-exe-v* 标签 —— 额外发布成 Release 附件（朋友/自己换机器直接下）
+#   · 手动：仓库 Actions 页面点「Run workflow」
+# 注意：tag 推送不受 paths 过滤影响（GitHub 明确不评估 tag 推送的路径过滤器），
+#       所以打标签一定会走一遍打包 + 发布。
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'sku-code-generator/**'
+      - '.github/workflows/build-sku-exe.yml'
+    tags:
+      - 'sku-exe-v*'
+  pull_request:
+    paths:
+      - 'sku-code-generator/**'
+  workflow_dispatch:
+
+# 发布 Release 需要写权限
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Windows 打包
+    # exe 必须在 Windows 上打（PyInstaller 不做交叉编译），用最接近用户环境的 runner
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # 运行期零第三方依赖（纯 ctypes），PyInstaller 只是打包工具
+      - name: 安装 PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pyinstaller>=6.11"
+
+      # 打包前先跑逻辑回归：编号分配、防重、跨天归 1、前缀模板、守护进程重读磁盘
+      - name: 逻辑自检（39 项）
+        working-directory: sku-code-generator
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python scripts/selftest.py
+
+      - name: 打包 exe
+        working-directory: sku-code-generator
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python scripts/build_exe.py
+
+      # 只检查"文件存在"是不够的：最怕打出来的东西一启动就崩。
+      # 这里真跑一次 --status，并确认它写了运行日志 —— 能证明 exe 真的跑起来了。
+      - name: 校验产物能启动
+        working-directory: sku-code-generator
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = 'dist/编号出号器.exe'
+          if (-not (Test-Path $exe)) { throw '打包没有产出 exe' }
+          $mb = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+          Write-Host "exe 体积：$mb MB"
+          if ($mb -lt 4) { throw "exe 体积异常（$mb MB），可能打包不完整" }
+
+          & $exe --status --no-pause
+          if ($LASTEXITCODE -ne 0) { throw "exe 启动失败，退出码 $LASTEXITCODE" }
+
+          $log = 'dist/data/hotkey.log'
+          if (-not (Test-Path $log)) { throw 'exe 没有写运行时日志，可能没真正跑起来' }
+          Write-Host '--- dist/data/hotkey.log ---'
+          Get-Content $log
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: sku-exe-windows-x64
+          path: |
+            sku-code-generator/dist/编号出号器.exe
+            sku-code-generator/dist/使用说明.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 发布 Release（仅 sku-exe-v* 标签）
+        if: startsWith(github.ref, 'refs/tags/sku-exe-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 编号出号器 ${{ github.ref_name }}
+          files: |
+            sku-code-generator/dist/编号出号器.exe
+            sku-code-generator/dist/使用说明.txt
+          body: |
+            ## 编号出号器 ${{ github.ref_name }}
+
+            单文件 Windows 程序，双击即缩进右下角托盘，**按 Ctrl+B 自动粘贴下一个编号**。
+
+            1. 下载 `编号出号器.exe`，放到任意文件夹（第一次运行会在旁边生成 `data/` 存序号）
+            2. 双击运行，右下角出现托盘图标
+            3. 在任何输入框里按 `Ctrl+B` —— 编号直接粘在光标处，按一次加一
+            4. 关掉重开、重启电脑都接着上次的序号走，不会重号
+
+            托盘图标：双击 = 出号并粘贴；右键 = 菜单（查看状态 / 打开数据目录 / 退出）。
+
+            改编号长相（在命令行里跑一次就永久记住）：
+
+            ```bat
+            编号出号器.exe --prefix "MTS-{date}"   :: MTS-20261005-00001
+            编号出号器.exe --sep "_" --width 3     :: 20261005_001
+            编号出号器.exe --status                :: 看当前设置和下一个编号
+            编号出号器.exe --stop                  :: 停止托盘程序
+            ```
+
+            换机器时把 exe 和它旁边的 `data/` 文件夹一起拷走即可。

@@ -178,6 +178,18 @@ PYX="C:/Users/shana/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
 带这类参数运行时程序会自动附一个控制台显示结果，跑完停住等回车；脚本调用时加 `--no-pause`。
 `data/` 落在 exe 同目录（不可写时自动回退到用户目录），只读资源走 PyInstaller 的 `_MEIPASS`。
 
+**不想在本地装 PyInstaller？让 GitHub 帮你编译。** 工作流 `.github/workflows/build-sku-exe.yml`：
+
+| 触发方式 | 行为 |
+|---|---|
+| 推 `sku-code-generator/**` 的改动到 `main` | 自动跑「自测 → 打包 → 启动校验」，产物存成 artifact（保留 30 天） |
+| 推 `sku-exe-v*` 标签 | 额外自动发 Release，把 exe 挂成附件（换机器直接下） |
+| Actions 页面点 *Run workflow* | 手动跑一次 |
+
+> tag 推送不受 `paths` 过滤影响（GitHub 不评估 tag 推送的路径过滤器），所以打标签一定会完整走一遍。
+> 校验步骤不只检查文件存在，而是真跑一次 `--status` 并确认它写了 `data/hotkey.log` ——
+> 否则「打出来的 exe 一启动就崩」这种问题会漏到用户手里。
+
 ### 怎么验证热键真的能用（改完代码后）
 
 改完 `sku_hotkey.py` 一定要跑 `--probe`（校验 Ctrl+B 可注册、剪贴板中文往返、`INPUT` 结构体布局 40 字节、
