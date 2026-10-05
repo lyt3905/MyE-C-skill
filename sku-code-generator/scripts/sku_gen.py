@@ -39,10 +39,65 @@ from pathlib import Path
 
 # ---------------------------------------------------------------- 路径与常量
 
+# 两种运行方式要分开处理：
+#   · 源码运行（python xxx.py）：脚本在 scripts/ 下，数据在上一级
+#   · exe 运行（PyInstaller onefile）：__file__ 指向临时解包目录 _MEIPASS，
+#     而那个目录**程序一退出就被删掉**。所以台账、序号、pid、日志这些可写数据
+#     必须落在 exe 自己所在的目录，否则每次重启都会从 00001 重新开始。
+# 只读资源（字典兜底副本）才放在 _MEIPASS 里。
+FROZEN = bool(getattr(sys, "frozen", False))
+
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parent
-DEFAULT_CONFIG = ROOT_DIR / "config" / "sku_config.json"
-DEFAULT_LEDGER = ROOT_DIR / "data" / "sku_ledger.json"
+
+if FROZEN:
+    APP_DIR = Path(sys.executable).resolve().parent          # 可写数据：exe 旁边
+    RES_DIR = Path(getattr(sys, "_MEIPASS", str(APP_DIR)))   # 只读资源：解包目录
+else:
+    APP_DIR = SCRIPT_DIR.parent
+    RES_DIR = APP_DIR
+
+ROOT_DIR = APP_DIR            # 旧引用兼容（sku_hotkey.py 用它拼 data 路径）
+
+
+def _pick_data_dir() -> Path:
+    """挑一个真正能写的目录放数据（台账 / 序号 / pid / 日志）。
+
+    正常就是程序旁边的 data/。但如果 exe 被放进 Program Files 这种只读位置，
+    写盘会失败；更糟的是 UAC 虚拟化可能让它"看起来写成功了"，实际落进
+    VirtualStore —— 表现就是「重启后序号莫名回到 1」。所以这里做一次真实写入探测，
+    不行就退到用户目录（%LOCALAPPDATA%\\SKUHotkey\\data）。
+    """
+    candidates = [APP_DIR / "data"]
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        candidates.append(Path(local) / "SKUHotkey" / "data")
+    for cand in candidates:
+        try:
+            cand.mkdir(parents=True, exist_ok=True)
+            probe = cand / ".write_probe"
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink()
+            return cand
+        except Exception:
+            continue
+    return APP_DIR / "data"      # 都不行就用它，让报错信息指向明确
+
+
+# 只有打包运行时才需要探测；源码运行目录天然可写
+DATA_DIR = _pick_data_dir() if FROZEN else APP_DIR / "data"
+
+
+def _resolve_config() -> Path:
+    """字典文件位置：exe 同目录的 config/ 优先（方便主人直接改字典型号），
+    没有就退回打包进 exe 的那份兜底副本。"""
+    beside = APP_DIR / "config" / "sku_config.json"
+    if beside.exists():
+        return beside
+    return RES_DIR / "config" / "sku_config.json"
+
+
+DEFAULT_CONFIG = _resolve_config()
+DEFAULT_LEDGER = DATA_DIR / "sku_ledger.json"
 VENV_PY = "C:/Users/shana/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
 
 # 批量表格的列名识别（中英文皆可）
@@ -63,8 +118,26 @@ def out(msg: str = "") -> None:
     print(msg, flush=True)
 
 
-def die(msg: str, code: int = 1):
-    out("\n[错误] " + msg)
+def msgbox(text: str, title: str = "提示", flags: int = 0x00000040) -> int:
+    """Windows 弹窗。给「没有控制台、看不到 print」的场景用（打包成托盘 exe）。
+    flags 默认 MB_ICONINFORMATION；0x10=错误 0x30=警告 0x40=信息。非 Windows 退化为打印。"""
+    if os.name != "nt":
+        out(text)
+        return 0
+    try:
+        import ctypes
+        return ctypes.windll.user32.MessageBoxW(None, text, title, flags)
+    except Exception:
+        out(text)
+        return 0
+
+
+def die(msg: str, code: int = 1, tray: bool = False):
+    """致命错误。tray=True（无控制台的托盘模式）时用弹窗告知用户，否则打印到控制台。"""
+    if tray:
+        msgbox(msg, "编号出号器 - 启动失败", 0x00000010)   # MB_ICONERROR
+    else:
+        out("\n[错误] " + msg)
     sys.exit(code)
 
 

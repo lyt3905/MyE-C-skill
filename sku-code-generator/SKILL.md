@@ -16,9 +16,13 @@ description: |
   `--sep "-"`, `--width 5`, `--from N`). Optionally switch to full SKU-code mode with
   `--set "mts tf ss86 r"` to emit store-category-series-colour codes (MTS-TF-SS86-0001-RD);
   Ctrl+Shift+B switches mode from the clipboard.
+  It also packages into a single-file Windows exe (scripts/build_exe.py) that lives in the
+  system tray: launch it and press Ctrl+B anywhere. Tray icon double-click = emit + paste;
+  right-click menu = emit/copy, show status, open data folder, view log, exit.
   Triggered when the user asks for SKU 编码 / SKU 生成 / 生成货号 / 编码规则 / 批量生成 SKU /
   "给这批商品编个号" / "SKU 代号" / 热键出号 / Ctrl+B 自动粘贴 / "按一下就来一个编号" /
-  "每次按一下自增" / wants to add a new series or colour to the SKU dictionary /
+  "每次按一下自增" / 打包成 exe / 托盘 / 右下角 / "做成一个双击就能用的程序" /
+  wants to add a new series or colour to the SKU dictionary /
   or asks what a generated SKU means.
 agent_created: true
 ---
@@ -85,8 +89,8 @@ S="C:/Users/shana/.workbuddy/skills/sku-code-generator/scripts/sku_gen.py"
 
 ## 热键模式（Ctrl+B 自动粘贴）—— 日常就是用这个
 
-**不开终端、不打命令、不需要任何设置**：双击 `scripts/start_hotkey.bat` 让它常驻，
-之后按一下 Ctrl+B，下一个编号直接粘在光标处。
+**不开终端、不打命令、不需要任何设置**：双击 `dist/编号出号器.exe`（打包好的单文件，推荐）
+或 `scripts/start_hotkey.bat` 让它常驻，之后按一下 Ctrl+B，下一个编号直接粘在光标处。
 
 ### 默认：日期流水号（主人确认的口径）
 
@@ -150,13 +154,48 @@ SKU 模式的出号规则：
 - 只复制不粘贴（比如手动 Ctrl+V）加 `--copy-only`
 - 开机自启：`Win+R` → `shell:startup` → 把 `start_hotkey.bat` 的**快捷方式**放进去
 
+### 打包成 exe（双击即用，缩在右下角托盘）
+
+不想开命令行时用这个。产物是**单文件 exe**，双击就缩进托盘，不占屏幕。
+
+```bash
+PYX="C:/Users/shana/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
+"$PYX" scripts/make_icon.py    # 生成 assets/sku_hotkey.ico（已入库，一般不用重跑）
+"$PYX" scripts/build_exe.py    # 打包 → dist/编号出号器.exe（约 7 MB）
+```
+
+产物目录 `dist/`（已 gitignore，随时可重建）：
+
+| 文件 | 说明 |
+|---|---|
+| `编号出号器.exe` | 单文件；图标、字典兜底副本、托盘图标全部内置 |
+| `使用说明.txt` | 给最终用户看的简版说明 |
+| `data/` | 运行时数据（序号、pid、日志），**换机器时整个文件夹拷走** |
+
+托盘操作：**双击图标 = 出号并粘贴**；右键菜单 = 出号复制 / 查看状态 / 打开数据目录 / 查看日志 / 退出。
+
+命令行参数全部照旧可用（`--prefix`、`--set`、`--status`、`--stop`、`--probe`）。
+带这类参数运行时程序会自动附一个控制台显示结果，跑完停住等回车；脚本调用时加 `--no-pause`。
+`data/` 落在 exe 同目录（不可写时自动回退到用户目录），只读资源走 PyInstaller 的 `_MEIPASS`。
+
 ### 怎么验证热键真的能用（改完代码后）
 
 改完 `sku_hotkey.py` 一定要跑 `--probe`（校验 Ctrl+B 可注册、剪贴板中文往返、`INPUT` 结构体布局 40 字节、
-规格解析与非规格拒绝、日期流水号自增与跨天归 1、前缀占位符、模式判定）。想验证整条链路（真热键 → 出号 → 剪贴板），做法是：
-**用 `SendInput` 注入真实的 Ctrl+B**，而不是只调函数 —— 注入的按键同样会触发 `RegisterHotKey`
-（已实测通过）。测的时候一定加 `--copy-only`，否则测试编号会被粘到当前前台窗口里。
-读剪贴板的时机要注意：注入后至少等 0.6s 再读，否则可能读到大写之前的空剪贴板。
+规格解析与非规格拒绝、日期流水号自增与跨天归 1、前缀占位符、模式判定）。自检结果会同时写进 `data/probe.log`
+—— 打包成 windowed exe 后控制台是临时附加上去的，窗口一关就没了，必须落盘才查得到。
+
+想验证整条链路（真热键 → 出号 → 剪贴板），做法是**注入真实的 Ctrl+B**，而不是只调函数 ——
+注入的按键同样会触发 `RegisterHotKey`（已实测通过，实测数据：注入后 **0.25s** 编号就已进剪贴板）。
+三条纪律：
+
+1. 测的时候给常驻进程加 `--copy-only`，否则测试编号会被粘到当前前台窗口里。
+2. **验证脚本自己不要写剪贴板。** 一个进程写的剪贴板数据（`GlobalAlloc` 私有 HGLOBAL）
+   在多个进程反复交替读写时，内容可能"回退"成旧值，看起来像产品 bug，实际是验证脚本的副作用。
+   正确姿势：`scripts/press_only.py` 只注入按键、不碰剪贴板，再用**独立工具**读
+   （PowerShell `Get-Clipboard`）。已实测：出号后连续 5 次读取（跨 2.5s）内容稳定不变。
+3. 端到端走一遍完整清单：启动 → 出号递增 → `--stop` 优雅退出（pid 清理、热键释放）→
+   重启续号（不重号）→ `--set` 切 SKU 模式（对运行中进程即时生效）→ `--status`。
+
 
 ### 1. 交互模式（日常首选）
 
@@ -228,7 +267,7 @@ SKU 模式的出号规则：
 - `serial_scope` 改流水号按什么字段独立计数（默认 `["store","series"]`）
 - `serial_width` 改流水号位数（默认 4）
 - `defaults` 是缺列/回车时的兜底值
-- 改完**跑一遍自测**：`"$PY" scripts/selftest.py`（34 项检查，全在临时目录，不碰正式台账）
+- 改完**跑一遍自测**：`"$PY" scripts/selftest.py`（39 项检查，全在临时目录，不碰正式台账）
 
 ## 文件结构
 
@@ -237,14 +276,23 @@ sku-code-generator/
 ├── SKILL.md
 ├── agents/openai.yaml
 ├── config/sku_config.json      # 字典（进 git）
+├── assets/sku_hotkey.ico       # 程序/托盘图标（进 git，打包输入）
 ├── scripts/sku_gen.py          # 命令行主脚本
-├── scripts/sku_hotkey.py       # 全局热键出号器（Ctrl+B）
-├── scripts/start_hotkey.bat    # 热键启动器（双击即用）
-├── scripts/selftest.py         # 冒烟自测
+├── scripts/sku_hotkey.py       # 全局热键出号器（Ctrl+B，日常就是用这个）
+├── scripts/tray.py             # 系统托盘（纯 ctypes，无第三方依赖）
+├── scripts/make_icon.py        # 生成多尺寸 .ico
+├── scripts/build_exe.py        # PyInstaller 打包 → dist/
+├── scripts/press_only.py       # 端到端验证：只注入 Ctrl+B，不碰剪贴板
+├── scripts/start_hotkey.bat    # 热键启动器（不打包时双击即用）
+├── scripts/selftest.py         # 冒烟自测（39 项）
+├── dist/                       # 打包产物（已 gitignore，可重建）
+├── build/                      # PyInstaller 中间件（已 gitignore）
 └── data/                       # 本地数据（已 gitignore）
     ├── sku_ledger.json         #   台账（仅 SKU 编码模式使用）
     ├── hotkey_state.json       #   当前模式 + 前缀模板 + 按前缀分组的计数器
-    └── hotkey.pid              #   运行中的热键进程
+    ├── hotkey.pid              #   运行中的热键进程
+    ├── hotkey.log              #   运行日志（托盘模式下的唯一排查线索）
+    └── probe.log               #   最近一次 --probe 自检结果
 ```
 
 ## 环境坑（已踩过，别重踩）
@@ -265,3 +313,8 @@ sku-code-generator/
 | `OpenProcess` 未声明签名 | 64 位下句柄被默认 `restype` 截成 32 位，`CloseHandle` 失效 | 已显式声明 `argtypes`/`restype`，新加 Win32 调用时照做 |
 | 自己写脚本注入按键测试 | `ctypes` 的 `INPUT` union 里只放 `KEYBDINPUT` 时 `sizeof(INPUT)` = 32，`SendInput` **静默返回 0** | union 必须含最大成员 `MOUSEINPUT`（32 字节），64 位下 `sizeof(INPUT)` = 40；`--probe` 专门校验这一项 |
 | 编号格式换代后旧计数残留 | 老 state 的 `next`/`count` 被新结构继承，`--status` 报出「已出 10 个」却一个都没出过 | `load_state()` 里 `migrate_state()`：发现旧 `next` 且无 `seq` 就作废旧计数（幂等） |
+| 托盘 exe 启动即秒退（无任何提示） | `--windowed` 打包后没有 stderr，异常等于静默消失 | `wintypes.MSG` 的字段名是 **`hWnd`**，写成 `hwnd` 会抛 `AttributeError` 把消息循环打死 —— 引入托盘时踩过。现用 `install_excepthook()` 把未捕获异常写进 `data/hotkey.log` |
+| 打包只报"退出码 1" | 看不出失败原因 | 九成是 `dist/*.exe` 正被运行中的实例占用（中文进程名用 `tasklist` 过滤不可靠）。`build_exe.py` 先探测占用并提示先 `--stop`，失败时打印 PyInstaller 输出的真实尾部 |
+| 托盘留"幽灵图标" | 程序退了图标还在，鼠标划过才消失 | 退出路径必须 `Shell_NotifyIconW(NIM_DELETE)`（`TrayIcon.destroy()`）。`--stop` 走窗口 `WM_CLOSE` 优雅退出，不强杀进程 |
+| windowed exe 的 `--probe`/`--status` 结果看不到 | 控制台是临时附加的，窗口一关输出就没了 | 自检结果同时写 `data/probe.log`，`--status` 顺手记一条进 `hotkey.log` |
+| 验证脚本自己写剪贴板 | 出号正常但读回旧值，像是剪贴板内容"回退" | 跨进程交替读写 `GlobalAlloc` 私有 HGLOBAL 会互相遮挡。验证时**只注入按键不碰剪贴板**，用独立工具（PowerShell `Get-Clipboard`）读 |
