@@ -15,3 +15,6 @@ sku-code-generator/data/
 # sku-code-generator: PyInstaller 打包产物（体积大，随时可重新生成）
 sku-code-generator/dist/
 sku-code-generator/build/
+
+# sku-code-generator: Release 附件临时目录（ASCII 名副本，上传完即弃）
+sku-code-generator/release/
