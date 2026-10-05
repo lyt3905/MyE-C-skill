@@ -115,6 +115,16 @@ def score_post(post, matchers, weights):
     # 核心词与厂商/产品线同时命中，额外加权（大概率是真情报而非泛泛提到）
     if matched.get("core") and (matched.get("brand") or matched.get("line")):
         score += 2
+
+    # 厂商 + 开订/发售类事件词同时命中，再额外加权。
+    # 理由：抽奖福利几乎必然附带在真实的开订/预售公告里，负分只计一次（-6）仍会
+    # 把「品牌 + 预订」的硬信号压到阈值以下，导致连续多轮误杀需要人工补录
+    # （2026-09-16 DLX 钢铁侠 Mark 1、09-25 好龙谷、09-26 CCSTOYS 真三一、
+    #   09-30 YOLOPARK 吊卡、10-05 CCSTOYS 神隼人 / 幻想造物 幻装斗神）。
+    # 注意：只在 brand 与 event 同时命中时生效——纯「转发抽奖送手办」帖没有
+    # event 词，不受影响，仍会被负分挡住。
+    if matched.get("brand") and matched.get("event"):
+        score += 2
     return score, matched
 
 
@@ -197,6 +207,10 @@ def main():
     ap.add_argument("--threshold", type=int, default=None, help="覆盖词库里的阈值")
     ap.add_argument("--preview", type=int, default=8, help="终端预览条数")
     ap.add_argument("--show-dropped", action="store_true", help="同时打印被丢弃的微博，用于调词库")
+    ap.add_argument("--dropped-limit", type=int, default=0,
+                    help="--show-dropped 时最多打印几条（0=全部，默认）。"
+                         "2026-10-05 修：此前误用 --preview 截断，默认只显示 8 条，"
+                         "人工复查漏报时看不到完整丢弃列表")
     ap.add_argument("--include-whitelist", action="store_true", default=True)
     ap.add_argument("--max-age-days", type=int, default=0,
                     help="丢弃早于 N 天的微博（0=不过滤）。首次全量抓取时建议设 14~30")
@@ -298,8 +312,10 @@ def main():
             print(f"       {(r.get('text') or '')[:90]}")
 
     if dropped and args.show_dropped:
-        print(f"\n--- 被丢弃的 {len(dropped)} 条（用于调词库） ---")
-        for r in dropped[: args.preview]:
+        shown = dropped if args.dropped_limit <= 0 else dropped[: args.dropped_limit]
+        print(f"\n--- 被丢弃的 {len(dropped)} 条（用于调词库，"
+              f"显示 {len(shown)} 条；--dropped-limit N 可限制） ---")
+        for r in shown:
             hits = {k: v for k, v in r["matches"].items() if v}
             why = "无实质命中" if not hits else f"仅命中 {list(hits)}"
             print(f"[{r['score']:>2}分] {r.get('blogger') or r.get('uid')}  {why}")

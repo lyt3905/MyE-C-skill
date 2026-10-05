@@ -189,6 +189,8 @@ PYX="C:/Users/shana/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
 > tag 推送不受 `paths` 过滤影响（GitHub 不评估 tag 推送的路径过滤器），所以打标签一定会完整走一遍。
 > 校验步骤不只检查文件存在，而是真跑一次 `--status` 并确认它写了 `data/hotkey.log` ——
 > 否则「打出来的 exe 一启动就崩」这种问题会漏到用户手里。
+> ⚠️ Release 附件用 **ASCII 名**（`<tag>.exe`）：`softprops/action-gh-release` 解析不了中文文件名，
+> 会把附件退化成 `default.exe` / `default.txt`（已踩）。所以发布前先复制一份 ASCII 名到 `release/` 再上传。
 
 ### 怎么验证热键真的能用（改完代码后）
 
@@ -331,3 +333,4 @@ sku-code-generator/
 | windowed exe 的 `--probe`/`--status` 结果看不到 | 控制台是临时附加的，窗口一关输出就没了 | 自检结果同时写 `data/probe.log`，`--status` 顺手记一条进 `hotkey.log` |
 | 验证脚本自己写剪贴板 | 出号正常但读回旧值，像是剪贴板内容"回退" | 跨进程交替读写 `GlobalAlloc` 私有 HGLOBAL 会互相遮挡。验证时**只注入按键不碰剪贴板**，用独立工具（PowerShell `Get-Clipboard`）读 |
 | `--windowed` 的 exe 在 PowerShell 里调用 | `& .\编号出号器.exe --status` 之后 `$LASTEXITCODE` 是**空的**，脚本误判成「启动失败，退出码 」 | GUI 子系统程序 PowerShell 不会同步等待。用 `Start-Process -FilePath <exe> -ArgumentList ... -Wait -PassThru` 取 `$p.ExitCode`；或者干脆看它写的 `data/hotkey.log`（CI 里就同时做了这两件事） |
+| GitHub Release 附件名变成 `default.exe` | 中文名文件上传后名字丢了 | `softprops/action-gh-release` 处理不了非 ASCII 文件名。先 `Copy-Item` 成 `<tag>.exe` 这类 ASCII 名再上传（`release/` 目录已 gitignore） |
