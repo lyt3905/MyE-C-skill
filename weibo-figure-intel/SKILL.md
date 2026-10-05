@@ -108,7 +108,7 @@ agent_created: true
    |---|---|
    | CDP 能否读到 HttpOnly cookie | ✅ **能**。实测读到 `SUB domain=.weibo.com len=94`、`SRT`、`WBPSESS` 等 9 条 HttpOnly |
    | 是否受 ABE 加密阻碍 | ❌ 不受。CDP 返回的是浏览器解密后的明文值 |
-   | 是否需要人类介入 | **首次需要**：得让 Edge 带调试参数重启一次 |
+   | 是否需要人类介入 | **首次需要**：得先用**独立 user-data-dir** 开一个 Edge 并在里面登录一次微博 |
 
    ```bash
    "$PY" scripts/cdp_get_sub.py probe                      # 探测端口是否可用
@@ -116,16 +116,34 @@ agent_created: true
    "$PY" scripts/cdp_get_sub.py grab  --port 9222 --write  # 抓取 + 写回 wb_cookie.json
    ```
 
-   让 Edge 带上调试端口：
+   #### ⚠️ 前提：**必须用独立 user-data-dir，不能复用日常 Edge 的默认 profile**
+
+   2026-10-05 实测（Edge 154）钉死的两条硬约束，**照下面这条命令做才有效**：
 
    ```bash
-   # ⚠️ 必须先完全退出 Edge，否则新参数会被已有实例忽略、端口不会开
-   "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" --remote-debugging-port=9222
+   # ✅ 正确：独立 profile 目录，首次开出来手动登录一次微博，之后长期可用
+   "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
+     --user-data-dir="C:/Users/shana/EdgeWeibo" --remote-debugging-port=9222
    ```
 
-   > ⚠️ **这仍是「半自动」**：需要对浏览器做一次「关闭 → 带参重启」。
-   > 好处是**不用解密、不用 F12 手抄**；重启后若登录态仍在即可直接抓取。
-   > 若登录态已失效，仍需先在浏览器里重新登录微博一次——**自动取数解决的是「取」，不解决「为什么失效」**。
+   | 做法 | 结果 | 原因 |
+   |---|---|---|
+   | 默认 profile + `--remote-debugging-port` | ❌ **端口根本不开**（`WinError 10061`），进程正常起来但无调试接口 | **Chrome/Edge 136+ 起，出于防 cookie 窃取的考虑，禁止在默认 user-data-dir 上启用远程调试**。看起来像「参数没生效」，实为内核级拒绝——这就是 09-28 记的「默认 profile 不生效」的真实原因 |
+   | 复制默认 profile 到临时目录 + 调试端口 | ❌ **返回 0 条 cookie**（或只有零星非加密的） | 默认 profile 的 cookie **888/888 全部是 ABE `v20` 密文**（`hex(encrypted_value)` 前缀 `7632`）。ABE 密钥绑定原始 user-data-dir 路径，换目录后浏览器自己也解不开，**解密失败的 cookie 被内核直接丢弃**（不是报错，是静默消失） |
+   | 独立 user-data-dir + 调试端口 | ✅ 可用 | 非默认目录不受上述限制，且该 profile 的 cookie 由它自己加密/解密 |
+
+   > ⚠️ **所以「复制 profile 再让浏览器自己解密」这条旁路是彻底死的**——此前只在
+   > 「profile 被独占锁住、复制不出来」这一层失败（09-20），现在即使 Edge 完全没在运行、
+   > 复制顺利成功，也会因 ABE 绑定路径而拿不到任何 cookie。别再试第三次。
+
+   > ⚠️ **CDP 不是「关掉 Edge 重启一次」就能用**：必须落在**独立 profile** 上，且该 profile
+   > 里要有一次人工登录。好处是**登录一次就长期有效**，此后 `grab --write` 全自动续期，
+   > 不用解密、不用 F12 手抄。若该 profile 的登录态也失效了，仍需在里面重新登录微博一次
+   > ——**自动取数解决的是「取」，不解决「为什么失效」**。
+   >
+   > 另外：`--headless=new` 与真实 profile 组合会**以无窗口方式占用默认 profile**，
+   > 若此时主人自己打开 Edge，窗口会挂到这个无头实例上（看不见页面）。**用完要立刻
+   > 按命令行匹配 `remote-debugging-port=9222` 精确终止该实例**，别留着。
 
    **三个已踩的坑（都已在脚本内修掉，别再重蹈）：**
 

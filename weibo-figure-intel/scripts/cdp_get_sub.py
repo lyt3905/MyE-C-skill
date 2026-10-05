@@ -317,8 +317,10 @@ def main():
     if not ok:
         print(f"❌ 端口 {args.port} 上没有调试接口：{info}")
         print()
-        print("需要先用调试端口重启浏览器，例如（会关闭现有 Edge，请先保存标签页）：")
-        print(f'  "{EDGE_PATHS[0]}" --remote-debugging-port={args.port}')
+        print("⚠️ 必须先完全退出 Edge，且**必须用独立 user-data-dir**——")
+        print("   Chrome/Edge 136+ 禁止在默认 profile 上启用远程调试（端口会静默不开）。")
+        print("   首次开出来后在其中手动登录一次微博，之后即可长期自动续期：")
+        print(f'  "{EDGE_PATHS[0]}" --user-data-dir="C:\\Users\\<你>\\EdgeWeibo" --remote-debugging-port={args.port}')
         return 2
 
     print(f"✅ 调试端口可用：{info.get('Browser', info)}")
