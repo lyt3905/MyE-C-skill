@@ -622,8 +622,8 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
   padding:3px 11px;font-size:12.5px;color:var(--ink2)}
 .stat span b{color:var(--ink);font-weight:600}
 
-/* 日期时间线：读完一天直接翻到前一天 / 后一天 */
-.daynav{display:flex;flex-wrap:wrap;align-items:center;gap:7px;
+/* 日期时间线：读完一天直接翻到前一天 / 后一天（按钮 + 日期胶囊同一排） */
+.daynav{display:flex;flex-wrap:nowrap;align-items:center;gap:7px;
   margin:0 0 13px;padding-bottom:11px;border-bottom:1px dashed var(--line)}
 .dn-btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
   background:var(--card);color:var(--ink2);border-radius:8px;padding:4px 10px;
@@ -634,10 +634,18 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
 .dn-btn .dn-w{color:var(--ink3);font-size:11.5px}
 .dn-btn.off{opacity:.45;cursor:not-allowed;background:var(--bg)}
 .dn-btn.off:hover{border-color:var(--line);color:var(--ink2);background:var(--bg)}
-.dn-sel{border:1px solid var(--line);background:var(--bg);color:var(--ink);
-  border-radius:8px;padding:4px 8px;font-size:12.5px;font-family:inherit;
-  cursor:pointer;max-width:200px}
-.dn-sel:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+.dn-strip{display:flex;gap:6px;overflow-x:auto;flex:1 1 0;min-width:0;
+  padding:2px 1px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.dn-strip::-webkit-scrollbar{height:4px}
+.dn-strip::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
+.dn-chip{border:1px solid var(--line);background:var(--bg);color:var(--ink2);
+  border-radius:999px;padding:4px 11px;font-size:12.5px;white-space:nowrap;
+  cursor:pointer;transition:.12s;text-decoration:none;flex:0 0 auto}
+.dn-chip:hover{border-color:var(--accent);color:var(--accent);
+  background:var(--accent-soft);text-decoration:none}
+.dn-chip.on{background:var(--accent);border-color:var(--accent);color:#fff;
+  font-weight:600}
+.dn-chip.on:hover{color:#fff}
 .dn-pos{font-size:12px;color:var(--ink3);white-space:nowrap}
 .dn-idx{margin-left:auto;font-size:12.5px;white-space:nowrap}
 .dn-hint{font-size:11.5px;color:var(--ink3);white-space:nowrap;opacity:.85}
@@ -875,7 +883,7 @@ body.lb-lock{overflow:hidden}
   .dn-btn .dn-w{display:none}
   .dn-hint{display:none}
   .dn-idx{margin-left:0}
-  .dn-sel{max-width:150px}
+  .dn-pos{display:none}
 }
 @media print{
   .unreadbar{display:none}
@@ -1306,16 +1314,19 @@ HTML_JS = r"""
   syncFilter();
 })();
 
-/* 日期时间线：读完一天直接翻到相邻一天（下拉任选 / 键盘 [ ]） */
+/* 日期时间线：读完一天直接翻到相邻一天（点日期胶囊 / 键盘 [ ]） */
 (function(){
   var nav = document.getElementById('daynav');
   if (!nav) return;
   var prev = nav.getAttribute('data-prev') || '';
   var next = nav.getAttribute('data-next') || '';
-  var sel  = document.getElementById('dn-sel');
-  if (sel) sel.addEventListener('change', function(){
-    if (sel.value) location.href = sel.value;
-  });
+  /* 页面打开时把当前日期胶囊滚到条中间（手动设 scrollLeft，避免 scrollIntoView 带动整页滚动） */
+  var cur = nav.querySelector('.dn-chip.on');
+  if (cur && cur.parentElement) {
+    var strip = cur.parentElement;
+    var to = cur.offsetLeft - strip.clientWidth / 2 + cur.offsetWidth / 2;
+    requestAnimationFrame(function(){ strip.scrollLeft = Math.max(to, 0); });
+  }
   document.addEventListener('keydown', function(e){
     // 放大预览开着时把键盘让给它（它用 ←/→ 翻图）
     if (document.body.classList.contains('lb-lock')) return;
@@ -1397,13 +1408,16 @@ def render_daynav(date, source_dir=None):
                  '<span class="dn-btn off" title="已是最早一期">'
                  '<span class="dn-ar">‹</span><span class="dn-t">最早</span></span>')
 
-    opts = []
-    for k, d in enumerate(days):
-        _, wk = day_label(d)
-        sel = " selected" if d == date else ""
-        opts.append(f'<option value="{href(d)}"{sel}>{d}（{wk}）</option>')
-    parts.append(f'<select class="dn-sel" id="dn-sel" aria-label="跳转到指定日期">'
-                 f'{"".join(opts)}</select>')
+    # 日期胶囊条：与翻页按钮同一排，超出宽度横向滑动，当前日期高亮
+    chips = []
+    for d in days:
+        mmdd, wk = day_label(d)
+        cur = " on" if d == date else ""
+        label = f"{mmdd}（今天）" if d == date else mmdd
+        chips.append(f'<a class="dn-chip{cur}" href="{href(d)}" '
+                     f'title="{d}（{wk}）">{label}</a>')
+    parts.append(f'<span class="dn-strip">{"".join(chips)}</span>')
+
     parts.append(step(next_d, "›", "next") if next_d else
                  '<span class="dn-btn off" title="已是最新一期">'
                  '<span class="dn-t">最新</span><span class="dn-ar">›</span></span>')
