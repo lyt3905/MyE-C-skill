@@ -159,6 +159,20 @@ const ok = (cond, label, extra) => {
     document.getElementById('unreadbar').classList.contains('done')), '清零后条带转为完成态');
 
   ok(errs.length === 0, '页面无 JS 异常', errs.slice(0, 2).join(' | '));
+
+  // 顶栏滚动收起：下滚收起、上滚回来（读正文时零遮挡，与总览页同一套手势）
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(250);
+  await page.evaluate(() => window.scrollTo(0, 1400));
+  await page.waitForTimeout(600);
+  ok(await page.evaluate(() =>
+    document.querySelector('header.top').classList.contains('hide')),
+    '下滚后顶栏自动收起');
+  await page.evaluate(() => window.scrollTo(0, 300));
+  await page.waitForTimeout(600);
+  ok(await page.evaluate(() =>
+    !document.querySelector('header.top').classList.contains('hide')),
+    '上滚后顶栏立刻回来');
   await page.close();
 
   // ---------- 总览页：不能被未读模块影响 ----------
