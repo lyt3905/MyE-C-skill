@@ -614,17 +614,29 @@ a:hover{text-decoration:underline}
 /* 顶栏 */
 .top{background:var(--card);border-bottom:1px solid var(--line);
      position:sticky;top:0;z-index:9}
-.top .inner{padding:22px 0 14px}
+.top .inner{padding:12px 0 10px}
 h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
-.sub{color:var(--ink2);font-size:13.5px}
-.stat{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.stat span{background:var(--bg);border:1px solid var(--line);border-radius:999px;
-  padding:3px 11px;font-size:12.5px;color:var(--ink2)}
-.stat span b{color:var(--ink);font-weight:600}
+/* 行 1：标题 + 来源说明 + 未读胶囊 + 核心数字，压成一行 */
+.toprow{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 12px}
+.toprow h1{margin:0;font-size:19px;letter-spacing:.2px;white-space:nowrap}
+.toprow h1 .h1d{font-size:13.5px;color:var(--ink3);font-weight:400}
+.sp{flex:1 1 auto}
+.sub{color:var(--ink3);font-size:12.5px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:38vw}
+.stat{display:flex;flex-wrap:wrap;align-items:center;gap:5px 10px;
+  margin:0;font-size:12.5px;color:var(--ink3)}
+.stat span{color:var(--ink2)}
+.stat span b{color:var(--ink2);font-weight:600}
+.stat .un-pill{background:#eaf1fe;border:1px solid #c9d8f5;color:#2f6fed;
+  border-radius:999px;padding:3px 11px}
+.stat .un-pill b{color:#2f6fed}
+/* 行 2：时间线 + 搜索 + 视图切换，同一排；窄屏自动换行 */
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}
 
-/* 日期时间线：读完一天直接翻到前一天 / 后一天（按钮 + 日期胶囊同一排） */
-.daynav{display:flex;flex-wrap:nowrap;align-items:center;gap:7px;
-  margin:0 0 13px;padding-bottom:11px;border-bottom:1px dashed var(--line)}
+/* 日期时间线：读完一天直接翻到前一天 / 后一天（翻页按钮 + 下拉任选日期，同一排） */
+.daynav{display:flex;flex-wrap:wrap;align-items:center;gap:7px;
+  flex:0 1 auto;min-width:0}
 .dn-btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
   background:var(--card);color:var(--ink2);border-radius:8px;padding:4px 10px;
   font-size:12.5px;white-space:nowrap;cursor:pointer;transition:.12s}
@@ -634,20 +646,12 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
 .dn-btn .dn-w{color:var(--ink3);font-size:11.5px}
 .dn-btn.off{opacity:.45;cursor:not-allowed;background:var(--bg)}
 .dn-btn.off:hover{border-color:var(--line);color:var(--ink2);background:var(--bg)}
-.dn-strip{display:flex;gap:6px;overflow-x:auto;flex:1 1 0;min-width:0;
-  padding:2px 1px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
-.dn-strip::-webkit-scrollbar{height:4px}
-.dn-strip::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
-.dn-chip{border:1px solid var(--line);background:var(--bg);color:var(--ink2);
-  border-radius:999px;padding:4px 11px;font-size:12.5px;white-space:nowrap;
-  cursor:pointer;transition:.12s;text-decoration:none;flex:0 0 auto}
-.dn-chip:hover{border-color:var(--accent);color:var(--accent);
-  background:var(--accent-soft);text-decoration:none}
-.dn-chip.on{background:var(--accent);border-color:var(--accent);color:#fff;
-  font-weight:600}
-.dn-chip.on:hover{color:#fff}
+.dn-sel{border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  border-radius:8px;padding:4px 8px;font-size:12.5px;font-family:inherit;
+  cursor:pointer;max-width:200px}
+.dn-sel:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
 .dn-pos{font-size:12px;color:var(--ink3);white-space:nowrap}
-.dn-idx{margin-left:auto;font-size:12.5px;white-space:nowrap}
+.dn-idx{font-size:12.5px;white-space:nowrap}
 .dn-hint{font-size:11.5px;color:var(--ink3);white-space:nowrap;opacity:.85}
 /* 页脚翻页条：长页面读完在底部，就地翻到相邻一期 */
 .dayfoot{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
@@ -659,9 +663,9 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
 
 /* 控件 */
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;
-  margin-top:14px;padding-bottom:12px}
-#q{flex:1 1 260px;min-width:200px;padding:8px 12px;border:1px solid var(--line);
-  border-radius:8px;font-size:14px;font-family:inherit;background:var(--bg)}
+  flex:1 1 300px;margin-top:0;padding-bottom:0}
+#q{flex:1 1 180px;min-width:150px;padding:7px 12px;border:1px solid var(--line);
+  border-radius:8px;font-size:13.5px;font-family:inherit;background:var(--bg)}
 #q:focus{outline:2px solid var(--accent-soft);border-color:var(--accent);
   background:var(--card)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -671,10 +675,14 @@ h1{margin:0 0 6px;font-size:22px;letter-spacing:.2px}
 .chip:hover{border-color:#c9d2de;color:var(--ink)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .count{color:var(--ink3);font-size:12.5px;margin-left:auto;white-space:nowrap}
+/* 分类 / 相关度筛选条：只在「全部情报」视图出现，不占默认视图的高度 */
+.filterbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}
+.view-new .filterbar{display:none}
 
 /* 视图切换：新品清单 / 全部情报 */
 .view-new .group-all{display:none}
-.views{display:flex;gap:4px;margin-top:14px;background:var(--bg);
+.views{display:flex;gap:4px;margin-top:0;background:var(--bg);
   border:1px solid var(--line);border-radius:11px;padding:4px;width:fit-content}
 .view{border:0;background:transparent;color:var(--ink2);font-family:inherit;
   font-size:13.5px;font-weight:600;padding:7px 16px;border-radius:8px;
@@ -842,6 +850,10 @@ body.lb-lock{overflow:hidden}
     align-items:center;gap:9px;width:100%}
   .side .facts{flex:1 1 100%}
   .side .thumbs{flex:1 1 100%}
+  .toprow .sp{display:none}
+  .stat{flex:1 1 100%}
+  .toolbar{gap:8px}
+  .controls{flex:1 1 100%}
   .views{width:100%}
   .view{flex:1;text-align:center}
 }
@@ -849,6 +861,9 @@ body.lb-lock{overflow:hidden}
   h1{font-size:19px}
   .count{margin-left:0;width:100%}
   .card{padding:13px 14px 14px}
+  .toprow h1{font-size:17px}
+  .sub{max-width:100%}
+  .dn-sel{max-width:130px}
 }
 /* 未读 / 已读：本日新出现的条目读到即自动标记已读 */
 .unreadbar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;
@@ -1314,19 +1329,16 @@ HTML_JS = r"""
   syncFilter();
 })();
 
-/* 日期时间线：读完一天直接翻到相邻一天（点日期胶囊 / 键盘 [ ]） */
+/* 日期时间线：读完一天直接翻到相邻一天（下拉任选 / 键盘 [ ]） */
 (function(){
   var nav = document.getElementById('daynav');
   if (!nav) return;
   var prev = nav.getAttribute('data-prev') || '';
   var next = nav.getAttribute('data-next') || '';
-  /* 页面打开时把当前日期胶囊滚到条中间（手动设 scrollLeft，避免 scrollIntoView 带动整页滚动） */
-  var cur = nav.querySelector('.dn-chip.on');
-  if (cur && cur.parentElement) {
-    var strip = cur.parentElement;
-    var to = cur.offsetLeft - strip.clientWidth / 2 + cur.offsetWidth / 2;
-    requestAnimationFrame(function(){ strip.scrollLeft = Math.max(to, 0); });
-  }
+  var sel  = document.getElementById('dn-sel');
+  if (sel) sel.addEventListener('change', function(){
+    if (sel.value) location.href = sel.value;
+  });
   document.addEventListener('keydown', function(e){
     // 放大预览开着时把键盘让给它（它用 ←/→ 翻图）
     if (document.body.classList.contains('lb-lock')) return;
@@ -1375,7 +1387,10 @@ def scan_days(source_dir=None):
 
 
 def render_daynav(date, source_dir=None):
-    """顶部日期时间线条。只有一天时退化成「第 1/1 期 + 归档入口」。"""
+    """顶部日期时间线条：‹ 上一期 + 日期下拉 + 下一期 › + 第 N/M 期 + 归档入口。
+
+    日期用下拉而不是平铺胶囊 —— 胶囊条要横滑、占满一整行，头部就压不到两行。
+    """
     if not DAYNAV_ON[0]:
         return ""
     days = scan_days(source_dir)
@@ -1408,15 +1423,16 @@ def render_daynav(date, source_dir=None):
                  '<span class="dn-btn off" title="已是最早一期">'
                  '<span class="dn-ar">‹</span><span class="dn-t">最早</span></span>')
 
-    # 日期胶囊条：与翻页按钮同一排，超出宽度横向滑动，当前日期高亮
-    chips = []
+    # 日期下拉：与翻页按钮同一排，一期一个 option，当前期预选中
+    opts = []
     for d in days:
         mmdd, wk = day_label(d)
-        cur = " on" if d == date else ""
-        label = f"{mmdd}（今天）" if d == date else mmdd
-        chips.append(f'<a class="dn-chip{cur}" href="{href(d)}" '
-                     f'title="{d}（{wk}）">{label}</a>')
-    parts.append(f'<span class="dn-strip">{"".join(chips)}</span>')
+        sel = " selected" if d == date else ""
+        label = f"{mmdd} {wk}" + ("（今天）" if d == date else "")
+        opts.append(f'<option value="{href(d)}"{sel}>{label}</option>')
+    parts.append('<select class="dn-sel" id="dn-sel" '
+                 'aria-label="跳转到指定日期" title="选择要看的日期">'
+                 + "".join(opts) + "</select>")
 
     parts.append(step(next_d, "›", "next") if next_d else
                  '<span class="dn-btn off" title="已是最新一期">'
@@ -1479,16 +1495,23 @@ HTML_TPL = """<!DOCTYPE html>
 <body>
 <header class="top">
   <div class="wrap inner">
-    __DAYNAV__
-    <h1>__H1__</h1>
-    <div class="sub">__SUBTITLE__</div>
-    <div class="stat">__STATS__</div>
-    <div class="views" id="views">__VIEWS__</div>
-    <div class="controls">
-      <input id="q" type="search" placeholder="搜索厂商 / 角色 / 产品线 / 摘要…（按 / 聚焦）">
+    <div class="toprow">
+      <h1>__H1__</h1>
+      <span class="sub" title="__SUBTITLE__">__SUBTITLE__</span>
+      <span class="sp"></span>
+      <div class="stat">__STATS__</div>
+    </div>
+    <div class="toolbar">
+      __DAYNAV__
+      <div class="controls">
+        <input id="q" type="search" placeholder="搜索厂商 / 角色 / 产品线 / 摘要…（按 / 聚焦）">
+        <div class="views" id="views">__VIEWS__</div>
+        <span class="count" id="count"></span>
+      </div>
+    </div>
+    <div class="filterbar" id="filterbar">
       <div class="chips" id="typeChips">__TYPECHIPS__</div>
       <div class="chips" id="relChips">__RELCHIPS__</div>
-      <span class="count" id="count"></span>
     </div>
   </div>
 </header>
@@ -1581,22 +1604,23 @@ def render_html(data, items, date):
             f'<div class="grid">{inner}</div></section>'
         )
 
+    # 行 1 右侧只留三个核心数字（类型分布归到「全部情报」视图，生成时间挪到页脚），
+    # 头部因此从 5 排压到 2 排 —— 一屏就能看到正文。
     stats = [f'共 <b>{len(items)}</b> 条情报']
     if new_n:
-        stats.append(f'其中新品清单 <b>{new_n}</b> 条')
+        stats.append(f'新品 <b>{new_n}</b>')
     if high_n:
-        stats.append(f'其中 <b>{high_n}</b> 条高相关')
+        stats.append(f'高相关 <b>{high_n}</b>')
+    stats_html = "".join(f"<span>{s}</span>" for s in stats)
     for t in ordered_types:
-        stats.append(f'{htmllib.escape(t)} <b>{len(groups[t])}</b>')
-    if data.get("generated_at"):
-        stats.append(f'生成于 {htmllib.escape(str(data["generated_at"]))}')
+        stats_html += (f'<span data-only-view="all" hidden>'
+                       f'{htmllib.escape(t)} <b>{len(groups[t])}</b></span>')
 
     # 未读胶囊放在 sticky 顶栏最前：滚到哪儿都看得见未读数往下掉
-    stats_html = "".join(f"<span>{s}</span>" for s in stats)
     if first_n:
         stats_html = (
-            '<span id="un-pill-wrap" style="background:#eaf1fe;border-color:#c9d8f5;'
-            'color:#2f6fed">📬 未读 <b id="un-pill">' + str(first_n) + "</b></span>"
+            '<span class="un-pill">📬 未读 <b id="un-pill">' + str(first_n) +
+            "</b></span>"
         ) + stats_html
 
     # 未读操作条：只在有「本日新出现」条目时出现（没有就不渲染，JS 模块随之自动停用）
@@ -1643,12 +1667,18 @@ def render_html(data, items, date):
               '<span data-only-view="all" hidden>当前为 <b>全部情报</b>：'
               '含实物测评、展会限定等全部类别，按类型分组。</span>'
               '　·　点击右栏缩略图可放大看原图，点标题或按钮可跳转原博（需登录微博）。')
+    # 「生成于」从顶栏挪到页脚：头部省一行，但信息不丢
+    if data.get("generated_at"):
+        legend += f'　·　生成于 {htmllib.escape(str(data["generated_at"]))}'
+
+    mmdd, wk = day_label(date)
+    h1 = f'手办情报　<span class="h1d">· {mmdd} {wk}</span>'
 
     html = (HTML_TPL
             .replace("__CSS__", HTML_CSS)
             .replace("__JS__", HTML_JS)
             .replace("__TITLE__", f"手办情报 · {date}")
-            .replace("__H1__", f"手办 / 可动人偶情报　<span style=\"font-size:15px;color:#8b95a3;font-weight:400\">{htmllib.escape(date)}</span>")
+            .replace("__H1__", h1)
             .replace("__SUBTITLE__", subtitle)
             .replace("__DAYNAV__", daynav)
             .replace("__DAYFOOT__", dayfoot)
