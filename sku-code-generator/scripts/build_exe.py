@@ -103,14 +103,24 @@ def main() -> int:
 3. 托盘图标：双击 = 出号并粘贴；右键 = 菜单（查看下一个 / 打开数据目录 / 退出）
 4. 关掉重开、重启电脑都会接着上次的序号往下走，不会重号
 
+默认编号长相：日期+时分秒 拼 序号，例如 20261006234300-00030
+    · 前缀精确到秒，所以每个编号天然唯一
+    · 序号按「天」分组：同一天内隔多久都接着往上加，隔天才从 1 重新开始
+
 改编号长相（前缀 / 连接词 / 位数），在命令行里跑一次就永久记住：
-    {APP_NAME}.exe --prefix "MTS-{{date}}"      → MTS-20261005-00001
-    {APP_NAME}.exe --prefix "MTS"               → MTS-00001
-    {APP_NAME}.exe --prefix ""                  → 00001（不要前缀）
-    {APP_NAME}.exe --sep "_" --width 3          → 20261005_001
-    {APP_NAME}.exe --from 1200                  → 下一个从 1200 开始
-    {APP_NAME}.exe --status                     → 看当前设置和下一个编号
-    {APP_NAME}.exe --stop                       → 停止托盘程序
+    {APP_NAME}.exe --prefix "{{date}}{{time}}"   → 20261006234300-00001（默认）
+    {APP_NAME}.exe --prefix "{{date}}"           → 20261006-00001（只要日期）
+    {APP_NAME}.exe --prefix "{{date}}-{{time}}"  → 20261006-234300-00001（带分隔）
+    {APP_NAME}.exe --prefix "MTS-{{ts}}"         → MTS-20261006234300-00001
+    {APP_NAME}.exe --prefix "MTS"                → MTS-00001
+    {APP_NAME}.exe --prefix ""                   → 00001（不要前缀）
+    {APP_NAME}.exe --sep "_" --width 3           → 20261006234300_001
+    {APP_NAME}.exe --from 1200                   → 下一个从 1200 开始
+    {APP_NAME}.exe --status                      → 看当前设置和下一个编号
+    {APP_NAME}.exe --stop                        → 停止托盘程序
+
+占位符：{{date}}=年月日、{{time}}=时分秒、{{ts}}=两者连写；
+        {{yy}}{{mm}}{{dd}} / {{hh}}{{mi}}{{ss}} = 各两位（分是 {{mi}}，不是 {{mm}}）。
 
 数据都在本目录的 data\\ 下，换机器时整个文件夹拷走即可。
 """, encoding="utf-8")

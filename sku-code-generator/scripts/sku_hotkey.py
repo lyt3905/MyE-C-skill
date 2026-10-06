@@ -2,16 +2,19 @@
 # -*- coding: utf-8 -*-
 """编号热键出号器 —— 按 Ctrl+B 自动把下一个编号粘贴到光标处。
 
-默认：日期流水号（装上就能用，不需要任何设置）
-    ├─ 按一下 Ctrl+B → 20260930-00001 → 20260930-00002 → … → 自动粘贴
-    ├─ 前缀默认是当天日期，隔天自动换成新日期、序号重新从 1 开始
+默认：日期时间流水号（装上就能用，不需要任何设置）
+    ├─ 按一下 Ctrl+B → 20261006142305-00001 → 20261006142341-00002 → … → 自动粘贴
+    ├─ 前缀默认是「当天日期+时分秒」，隔天自动换成新日期、序号重新从 1 开始
+    ├─ 序号按「天」分组：同一天内隔多久都接着往上加，不会因为跨秒就归 1
     ├─ 序号记在 data/hotkey_state.json，关掉重开接着往下走，不会重号
     └─ 不写台账，只管出号
 
 改编号长相（前缀 / 连接词 / 位数）—— 设一次就一直记住
-    python sku_hotkey.py --prefix "{date}"        # 20260930-00001（默认）
+    python sku_hotkey.py --prefix "{date}{time}"  # 20261006142305-00001（默认）
+    python sku_hotkey.py --prefix "{date}"        # 20261006-00001（只要日期）
+    python sku_hotkey.py --prefix "{date}-{time}" # 20261006-142305-00001（带分隔）
     python sku_hotkey.py --prefix "MTS"           # MTS-00001
-    python sku_hotkey.py --prefix "MTS-{date}"    # MTS-20260930-00001
+    python sku_hotkey.py --prefix "MTS-{ts}"      # MTS-20261006142305-00001
     python sku_hotkey.py --prefix ""              # 00001（不要前缀）
     python sku_hotkey.py --sep "_" --width 3      # 换连接词与补零位数
     python sku_hotkey.py --from 1200              # 把下一个编号设为 1200
@@ -596,15 +599,20 @@ def next_sku(cfg: core.Config, ledger: core.Ledger, state: dict, commit: bool = 
 
 # ---------------------------------------------------------------- 流水号模式（默认）
 
-DEFAULT_PREFIX = "{date}"        # 默认前缀：当天日期 YYYYMMDD
+DEFAULT_PREFIX = "{date}{time}"  # 默认前缀：当天日期 + 时分秒 YYYYMMDDHHMMSS
 DEFAULT_SEP = "-"                # 前缀与序号之间的连接词
 DEFAULT_WIDTH = 5                # 序号补零位数
+
+# 「精确到秒」的占位符 —— 计数器分组时会先把它们剔除（见 group_key）
+TIME_PLACEHOLDERS = ("{ts}", "{time}", "{hh}", "{mi}", "{ss}")
 
 
 def render_prefix(state: dict, now=None) -> str:
     """把前缀模板渲染成实际文本。
 
-    占位符：{date}=YYYYMMDD、{yy}、{mm}、{dd}。
+    占位符：
+      {date}=YYYYMMDD   {time}=HHMMSS   {ts}=YYYYMMDDHHMMSS（等价 {date}{time}）
+      {yy} {mm} {dd} {hh} {mi} {ss} = 各两位（年/月/日/时/分/秒）
     前缀写成空串表示「不要前缀」，此时只出流水号。
     """
     tmpl = state.get("prefix")
@@ -614,10 +622,35 @@ def render_prefix(state: dict, now=None) -> str:
         return ""
     d = now or datetime.now()
     return (str(tmpl)
+            .replace("{ts}", d.strftime("%Y%m%d%H%M%S"))
             .replace("{date}", d.strftime("%Y%m%d"))
+            .replace("{time}", d.strftime("%H%M%S"))
             .replace("{yy}", d.strftime("%y"))
             .replace("{mm}", d.strftime("%m"))
-            .replace("{dd}", d.strftime("%d")))
+            .replace("{dd}", d.strftime("%d"))
+            .replace("{hh}", d.strftime("%H"))
+            .replace("{mi}", d.strftime("%M"))
+            .replace("{ss}", d.strftime("%S")))
+
+
+def group_key(state: dict, now=None) -> str:
+    """计数器分组键：先把模板里「精确到秒」的占位符剔除，再渲染。
+
+    为什么需要它：编号外观精确到秒，意味着同一秒渲染出的前缀只对应一个号，
+    如果直接用「渲染后的完整前缀」当计数器 key，每过一秒就是一个新 key，
+    序号会永远停在 00001 —— 「按一次加一」就废了。
+    剔掉秒级占位符后，key 退回天粒度（默认模板 → `{date}` → `20261006`），
+    于是「编号带秒、序号按天连续」两者兼得：
+        20261006142305-00030 → 20261006142341-00031 → …
+    模板里没有秒级占位符时（如 "MTS"、"{date}"），行为与从前完全一致。
+    """
+    tmpl = state.get("prefix")
+    if tmpl is None:
+        tmpl = DEFAULT_PREFIX
+    coarse = str(tmpl)
+    for ph in TIME_PLACEHOLDERS:
+        coarse = coarse.replace(ph, "")
+    return render_prefix({"prefix": coarse}, now)
 
 
 def compose(prefix: str, sep: str, n: int, width: int) -> str:
@@ -638,19 +671,22 @@ def describe_plain(state: dict, now=None) -> str:
 
 
 def next_plain(cfg: core.Config, state: dict, now=None) -> str:
-    """日期流水号：20260930-00001 → 20260930-00002 → 20260930-00003。
+    """日期时间流水号：20261006-00001 → 20261006-00002 → 20261006-00003。
 
-    计数器按「渲染后的前缀」分组存放，所以：
-      · 前缀带日期 → 隔天 key 变了，序号自动从 1 重新开始；
+    编号外观默认精确到秒（20261006142305-00030），但**计数器按 group_key 分组**，
+    默认就是当天日期，所以：
+      · 同一天内无论隔了几秒，序号都接着往上加（不会每秒归 1）；
+      · 隔天 key 变了，序号自动从 1 重新开始；
       · 前缀固定（如 MTS）→ 只有一个 key，序号一直连续递增。
     """
     prefix = render_prefix(state, now)
+    key = group_key(state, now)
     width = int(state.get("width", DEFAULT_WIDTH))
     sep = str(state.get("sep", DEFAULT_SEP))
 
     seq = state.setdefault("seq", {})
-    n = int(seq.get(prefix, 0) or 0) + 1
-    seq[prefix] = n
+    n = int(seq.get(key, 0) or 0) + 1
+    seq[key] = n
     state["count"] = int(state.get("count", 0)) + 1
     return compose(prefix, sep, n, width)
 
@@ -948,16 +984,25 @@ def probe(cfg, ledger):
 
     st_plain = {}
     got_plain = [next_plain(cfg, st_plain, now=day1) for _ in range(3)]
-    if got_plain == ["20260930-00001", "20260930-00002", "20260930-00003"]:
-        print("  [OK]   日期流水号自增：20260930-00001 → 00002 → 00003")
+    if got_plain == ["20260930100000-00001", "20260930100000-00002", "20260930100000-00003"]:
+        print("  [OK]   默认前缀（日期+时分秒）自增：20260930100000-00001 → 00002 → 00003")
     else:
         ok = False
-        print(f"  [FAIL] 日期流水号自增异常：{got_plain}")
+        print(f"  [FAIL] 默认前缀自增异常：{got_plain}")
+
+    # 关键回归：编号精确到秒，但隔了几秒后序号必须接着往上加，不能每秒归 1
+    st_sec = {}
+    got_sec = [next_plain(cfg, st_sec, now=day1 + timedelta(seconds=3 * i)) for i in range(3)]
+    if got_sec == ["20260930100000-00001", "20260930100003-00002", "20260930100006-00003"]:
+        print("  [OK]   跨秒序号连续（计数器按天分组）：…100000-00001 → …100003-00002 → …100006-00003")
+    else:
+        ok = False
+        print(f"  [FAIL] 跨秒后序号被重置了（分组键算错）：{got_sec}")
 
     st_day2 = {"seq": {"20260930": 3}}
     got_day2 = [next_plain(cfg, st_day2, now=day1 + timedelta(days=1)) for _ in range(2)]
-    if got_day2 == ["20261001-00001", "20261001-00002"]:
-        print("  [OK]   跨天自动换日期、序号重新从 1 开始（20260930…→20261001-00001）")
+    if got_day2 == ["20261001100000-00001", "20261001100000-00002"]:
+        print("  [OK]   跨天自动换日期、序号重新从 1 开始（分组 20260930 → 20261001）")
     else:
         ok = False
         print(f"  [FAIL] 跨天行为异常：{got_day2}")
@@ -985,6 +1030,22 @@ def probe(cfg, ledger):
     else:
         ok = False
         print(f"  [FAIL] 占位符渲染异常：{got_tpl}")
+
+    st_time = {"prefix": "{date}-{time}"}
+    got_time = [next_plain(cfg, st_time, now=day1 + timedelta(seconds=5 * i)) for i in range(2)]
+    if got_time == ["20260930-100000-00001", "20260930-100005-00002"]:
+        print("  [OK]   带分隔的时间占位符 {date}-{time}：20260930-100000-00001 → …100005-00002")
+    else:
+        ok = False
+        print(f"  [FAIL] 时间占位符异常：{got_time}")
+
+    st_mix = {"prefix": "MTS-{ts}"}
+    got_mix = next_plain(cfg, st_mix, now=day1)
+    if got_mix == "MTS-20260930100000-00001":
+        print("  [OK]   完整时间戳占位符：MTS-{{ts}} → MTS-20260930100000-00001")
+    else:
+        ok = False
+        print(f"  [FAIL] 完整时间戳占位符异常：{got_mix}")
 
     if mode_of({}) == "plain" and mode_of({"mode": "sku", "spec": {"store": "MTS"}}) == "sku":
         print("  [OK]   模式判定：默认纯流水号，--set 后为 SKU 模式")
@@ -1026,7 +1087,8 @@ def main():
     ap.add_argument("--plain", action="store_true",
                     help="切到流水号模式（默认就是这个，不记台账）")
     ap.add_argument("--prefix", metavar="模板",
-                    help='前缀模板："{date}"=当天日期（默认）、"MTS"、"MTS-{date}"；传 "" 表示不要前缀')
+                    help='前缀模板："{date}{time}"=日期+时分秒（默认）、"{date}"=只要日期、'
+                         '"MTS"、"MTS-{ts}"；传 "" 表示不要前缀')
     ap.add_argument("--sep", metavar="连接词", help='前缀与序号之间的连接词（默认 "-"）')
     ap.add_argument("--width", type=int, metavar="位数",
                     help="序号补零位数（默认 5；0 = 不补零）")
@@ -1113,7 +1175,7 @@ def main():
         if args.from_ is not None:
             if args.from_ < 1:
                 core.die("--from 需要是不小于 1 的整数。")
-            st.setdefault("seq", {})[render_prefix(st)] = args.from_ - 1
+            st.setdefault("seq", {})[group_key(st)] = args.from_ - 1
         save_state(st)
         print(f"已设为流水号模式 · {describe_plain(st)}")
         print(f"下一个编号 {sku_preview(cfg, ledger, st)}")
@@ -1137,14 +1199,16 @@ def main():
         st = load_state()
         if mode_of(st) == "plain":
             prefix = render_prefix(st)
+            key = group_key(st)
             seq = st.get("seq", {})
             print(f"模式       流水号（{describe_plain(st)}，不记台账）")
             print(f"已出号     {st.get('count', 0)} 个")
             if prefix:
-                used = seq.get(prefix, 0)
-                print(f"当前前缀   {prefix}" + (f"（已出到第 {used} 个）" if used else "（还没出过号）"))
+                used = seq.get(key, 0)
+                tail = f"（分组 {key} 已出到第 {used} 个）" if used else "（还没出过号）"
+                print(f"当前前缀   {prefix}{tail}")
             print(f"下一个编号 {sku_preview(cfg, ledger, st)}")
-            others = sorted(k for k in seq if k != prefix)
+            others = sorted(k for k in seq if k != key)
             if others:
                 print("历史前缀   " + "、".join(f"{k}→{seq[k]}" for k in others[-6:]))
         else:

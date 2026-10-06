@@ -150,8 +150,8 @@ def main():
     day1 = datetime(2026, 9, 30, 10, 0, 0)
     st3 = {}
     got3 = [hk.next_code(hcfg, hledger, st3)[0] for _ in range(3)]
-    check("默认模式出「日期-序号」（前缀随当天日期）",
-          all(re.fullmatch(r"\d{8}-\d{5}", c) for c in got3)
+    check("默认模式出「日期时间-序号」（前缀随当天日期+时分秒）",
+          all(re.fullmatch(r"\d{14}-\d{5}", c) for c in got3)
           and got3[0] == hk.compose(hk.render_prefix({}), "-", 1, 5)
           and [c.rsplit("-", 1)[1] for c in got3] == ["00001", "00002", "00003"], str(got3))
 
@@ -160,8 +160,14 @@ def main():
     d1 = [hk.next_plain(hcfg, std, now=day1) for _ in range(3)]
     d2 = [hk.next_plain(hcfg, std, now=day1 + timedelta(days=1)) for _ in range(2)]
     check("隔天自动换日期、序号归 1",
-          d1 == ["20260930-00001", "20260930-00002", "20260930-00003"]
-          and d2 == ["20261001-00001", "20261001-00002"], f"{d1} / {d2}")
+          d1 == ["20260930100000-00001", "20260930100000-00002", "20260930100000-00003"]
+          and d2 == ["20261001100000-00001", "20261001100000-00002"], f"{d1} / {d2}")
+
+    # 12.4b 编号精确到秒，但跨秒后序号必须继续递增（计数器按天分组，不能每秒归 1）
+    ss = {}
+    ds = [hk.next_plain(hcfg, ss, now=day1 + timedelta(seconds=3 * i)) for i in range(3)]
+    check("跨秒后序号不重置（计数器按天分组）",
+          ds == ["20260930100000-00001", "20260930100003-00002", "20260930100006-00003"], str(ds))
 
     # 12.5 固定前缀连续递增；连接词与位数可改；空前缀只出流水号
     stf = {"prefix": "MTS", "sep": "_", "width": 4}

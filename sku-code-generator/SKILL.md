@@ -9,10 +9,13 @@ description: |
   CSV/TSV/XLSX product tables. Series and variant dictionaries live in a JSON file so new
   lines can be added without touching code.
   ALSO ships a resident Windows global-hotkey mode, which is the default daily workflow and
-  needs NO setup at all: launch it and press Ctrl+B — a date-based serial (20260930-00001,
-  20260930-00002, ...) is pasted straight at the cursor, incrementing on every press; the
-  counter survives restarts and the date prefix rolls over to a fresh 1 each new day. The
-  prefix / separator / zero-padding are configurable (`--prefix "{date}"|"MTS"|"MTS-{date}"|""`,
+  needs NO setup at all: launch it and press Ctrl+B — a timestamped serial
+  (20261006142305-00001, 20261006142341-00002, ...) is pasted straight at the cursor,
+  incrementing on every press. The number is unique down to the second, yet the sequence
+  keeps counting up within the same day (it does NOT reset every second) and rolls over to 1
+  on the next day; the counter survives restarts. The
+  prefix / separator / zero-padding are configurable
+  (`--prefix "{date}{time}"|"{date}"|"MTS"|"MTS-{ts}"|""`,
   `--sep "-"`, `--width 5`, `--from N`). Optionally switch to full SKU-code mode with
   `--set "mts tf ss86 r"` to emit store-category-series-colour codes (MTS-TF-SS86-0001-RD);
   Ctrl+Shift+B switches mode from the clipboard.
@@ -92,30 +95,44 @@ S="C:/Users/shana/.workbuddy/skills/sku-code-generator/scripts/sku_gen.py"
 **不开终端、不打命令、不需要任何设置**：双击 `dist/编号出号器.exe`（打包好的单文件，推荐）
 或 `scripts/start_hotkey.bat` 让它常驻，之后按一下 Ctrl+B，下一个编号直接粘在光标处。
 
-### 默认：日期流水号（主人确认的口径）
+### 默认：日期时间流水号（主人确认的口径）
 
 ```
-20260930-00001 → 20260930-00002 → 20260930-00003 → …
+20261006142305-00001 → 20261006142341-00002 → 20261006150112-00003 → …
 ```
 
-- 默认前缀 = **当天日期**（`{date}`），连接词 `-`，序号 5 位补零
-- **隔天自动换日期、序号重新从 1 开始**：第二天第一个号是 `20261001-00001`
-- 序号记在 `data/hotkey_state.json`（按前缀分组），关掉重开接着往下走，不会重号
+- 默认前缀 = **当天日期 + 时分秒**（`{date}{time}`，即 14 位 `YYYYMMDDHHMMSS`），连接词 `-`，序号 5 位补零
+- **隔天自动换日期、序号重新从 1 开始**：第二天第一个号是 `20261007090133-00001`
+- ⚠️ **计数器按「天」分组，不是按秒** —— 编号外观精确到秒，但同一天内无论隔了几秒，
+  序号都接着往上加（`…142305-00030 → …142341-00031`），不会每秒归 1。
+  实现见 `group_key()`：先把模板里的秒级占位符（`{ts}/{time}/{hh}/{mi}/{ss}`）剔除再当计数器 key。
+  **改代码时别退回按完整前缀分组**，否则序号会永远停在 00001；`selftest.py` 有专项回归。
+- 序号记在 `data/hotkey_state.json`（按分组 key 存放），关掉重开接着往下走，不会重号
 - 不写台账，只管出号 —— 最省事
 
 ### 改编号长相（设一次就一直记住）
 
 | 命令 | 出号长相 |
 |---|---|
-| `--prefix "{date}"` | `20260930-00001`（默认） |
+| `--prefix "{date}{time}"` | `20261006142305-00001`（默认） |
+| `--prefix "{date}"` | `20261006-00001`（只要日期，旧行为） |
+| `--prefix "{date}-{time}"` | `20261006-142305-00001`（带分隔更好读） |
 | `--prefix "MTS"` | `MTS-00001` |
-| `--prefix "MTS-{date}"` | `MTS-20260930-00001` |
+| `--prefix "MTS-{ts}"` | `MTS-20261006142305-00001` |
 | `--prefix ""` | `00001`（不要前缀） |
-| `--sep "_"` | 换连接词：`20260930_00001` |
-| `--width 3` | 换补零位数：`20260930-001`（`--width 0` = 不补零） |
-| `--from 1200` | 把下一个号设为 `20260930-01200`（只影响当前前缀） |
+| `--sep "_"` | 换连接词：`20261006142305_00001` |
+| `--width 3` | 换补零位数：`20261006142305-001`（`--width 0` = 不补零） |
+| `--from 1200` | 把下一个号设为 `20261006142305-01200`（只影响当前分组） |
 
-前缀模板里可用的占位符：`{date}`=YYYYMMDD、`{yy}`、`{mm}`、`{dd}`。
+前缀模板里可用的占位符：
+
+| 占位符 | 含义 | 示例 |
+|---|---|---|
+| `{date}` | 年月日 | `20261006` |
+| `{time}` | 时分秒 | `142305` |
+| `{ts}` | 年月日时分秒（= `{date}{time}`） | `20261006142305` |
+| `{yy}` `{mm}` `{dd}` | 年 / 月 / 日 各两位 | `26` `10` `06` |
+| `{hh}` `{mi}` `{ss}` | 时 / 分 / 秒 各两位（注意分是 `{mi}` 不是 `{mm}`） | `14` `23` `05` |
 
 ### 可选：SKU 编码模式（需要带前缀时才用）
 
@@ -127,7 +144,7 @@ Ctrl+Shift+B    → 把剪贴板里的速记符设为新规格（复制「jcs r�
 ```bash
 S_HK="C:/Users/shana/.workbuddy/skills/sku-code-generator/scripts/sku_hotkey.py"
 
-"$PY" "$S_HK"                          # 启动（默认日期流水号，什么都不用设）
+"$PY" "$S_HK"                          # 启动（默认日期时间流水号，什么都不用设）
 "$PY" "$S_HK" --status                 # 当前前缀 + 下一个编号（只算不写）
 "$PY" "$S_HK" --prefix "MTS" --width 4 # 改前缀与位数（立即生效）
 "$PY" "$S_HK" --plain --from 1200      # 切流水号模式，并把下一个号设为 1200
@@ -195,7 +212,7 @@ PYX="C:/Users/shana/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
 ### 怎么验证热键真的能用（改完代码后）
 
 改完 `sku_hotkey.py` 一定要跑 `--probe`（校验 Ctrl+B 可注册、剪贴板中文往返、`INPUT` 结构体布局 40 字节、
-规格解析与非规格拒绝、日期流水号自增与跨天归 1、前缀占位符、模式判定）。自检结果会同时写进 `data/probe.log`
+规格解析与非规格拒绝、日期时间流水号自增 / 跨秒连续 / 跨天归 1、前缀占位符、模式判定）。自检结果会同时写进 `data/probe.log`
 —— 打包成 windowed exe 后控制台是临时附加上去的，窗口一关就没了，必须落盘才查得到。
 
 想验证整条链路（真热键 → 出号 → 剪贴板），做法是**注入真实的 Ctrl+B**，而不是只调函数 ——
@@ -281,7 +298,7 @@ PYX="C:/Users/shana/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
 - `serial_scope` 改流水号按什么字段独立计数（默认 `["store","series"]`）
 - `serial_width` 改流水号位数（默认 4）
 - `defaults` 是缺列/回车时的兜底值
-- 改完**跑一遍自测**：`"$PY" scripts/selftest.py`（39 项检查，全在临时目录，不碰正式台账）
+- 改完**跑一遍自测**：`"$PY" scripts/selftest.py`（40 项检查，全在临时目录，不碰正式台账）
 
 ## 文件结构
 
@@ -298,7 +315,7 @@ sku-code-generator/
 ├── scripts/build_exe.py        # PyInstaller 打包 → dist/
 ├── scripts/press_only.py       # 端到端验证：只注入 Ctrl+B，不碰剪贴板
 ├── scripts/start_hotkey.bat    # 热键启动器（不打包时双击即用）
-├── scripts/selftest.py         # 冒烟自测（39 项）
+├── scripts/selftest.py         # 冒烟自测（40 项）
 ├── dist/                       # 打包产物（已 gitignore，可重建）
 ├── build/                      # PyInstaller 中间件（已 gitignore）
 └── data/                       # 本地数据（已 gitignore）
