@@ -100,6 +100,7 @@ Ask the user or infer from context. Four scenarios exist:
 4. **scenario_4_po_box** — Address not deliverable (PO Box / 备注「地址不可达」) → Ask buyer for a physical street address, otherwise cancel for a full refund
 5. **scenario_5_repack_delay** — Damage found while packing, replacement being prepared → Notify shipping delay + ask buyer to extend the delivery time (users often hand over a rough口语 draft; polish it into the standard style)
 6. **scenario_6_extend_reminder** — Follow-up nudge when scenario_5 was already sent and the buyer has not extended the delivery time yet → One short, polite repeat request (do NOT re-explain the whole reason)
+7. **scenario_7_new_batch_delay** — Item sold out but restockable: a new batch is still in production → Give the buyer two options: ① keep waiting and extend the delivery time by 30 days (ship earlier if produced earlier), or ② cancel directly on AliExpress for a full refund. (User often hands over the站内信 text they already sent the buyer; polish it into the standard style.)
 
 ### Step 3: Generate the Email
 
@@ -241,6 +242,14 @@ These rules were established through user feedback and must be followed exactly.
 | scenario_4_po_box | `[Platform] Order [Order#]: Address Issue - PO Box Not Deliverable` | 收货地址问题：邮政信箱无法投递 |
 | scenario_5_repack_delay | `[Platform] Order [Order#]: Shipping Delay Notice - Please Extend Delivery Time` | 发货延期通知：请延长收货时间 |
 | scenario_6_extend_reminder | `[Platform] Order [Order#]: Gentle Reminder - Please Extend Delivery Time` | 温馨提醒：请延长收货时间 |
+| scenario_7_new_batch_delay | `[Platform] Order [Order#]: Restocking Notice - Please Extend Delivery Time or Cancel` | 补货中通知：请延长收货时间或取消订单 |
+
+**scenario_7_new_batch_delay style (added 2026-10-09)**: for "sold out but restockable" orders —
+the item itself is fine, a new batch is simply still in production. Same clean style as
+scenario_1/4/5: "Dear Valued Customer," + "Hope you are doing well.", no `<b>`, no discount line.
+Structure: ① 商品已售空、新批次生产中 ② 想要就延长 30 天收货时间（提前生产则提前发）
+③ 不想等可直接取消、全额退款 ④ 联系方式。Use this instead of scenario_1 when the buyer can
+plausibly wait — scenario_1 asks only for cancellation, which loses a sale the seller could keep.
 
 **scenario_6_extend_reminder style (added 2026-09-14)**: the follow-up to scenario_5. Shorter than the
 first mail — one sentence of context ("your replacement is being prepared"), one clear request
