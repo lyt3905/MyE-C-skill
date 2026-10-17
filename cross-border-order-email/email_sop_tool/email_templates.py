@@ -257,8 +257,7 @@ def generate_email(scenario_key: str, order: OrderInfo) -> dict:
         extend_days = getattr(order, "extend_days", 30) or 30
         if getattr(order, "overdue", False):
             stock_line = (
-                "This item is currently out of stock, and the new batch has not been produced "
-                "within the expected time."
+                "This item is a pre-order item, and it has not been shipped within the expected time."
             )
             ship_line = "Once the item is back in stock, we will ship your order immediately."
         else:
@@ -289,7 +288,7 @@ def generate_email(scenario_key: str, order: OrderInfo) -> dict:
             "希望您一切安好。<br><br>"
             f"我们写信是关于您的商品 {product_ref}（订单号 {order_number}）。"
             + (
-                "该商品目前已售空，新批次未能在预计时间内生产出来。<br><br>"
+                "该商品为预售商品，未能在预计时间内出货。<br><br>"
                 if getattr(order, "overdue", False)
                 else "该商品目前已售空，新的批次还在生产中。<br><br>"
             )
