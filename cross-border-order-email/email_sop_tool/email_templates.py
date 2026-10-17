@@ -21,6 +21,11 @@ class OrderInfo:
     order_number: str
     platform: str
     product_name: Optional[str] = None
+    # scenario_7 only: how many days the buyer should extend the delivery time by.
+    extend_days: int = 30
+    # scenario_7 only: True when the new batch missed its expected production date
+    # (wording becomes "has not been produced within the expected time").
+    overdue: bool = False
 
 
 def _subject(platform: str, order_number: str, issue_en: str, issue_cn: str) -> str:
@@ -246,7 +251,22 @@ def generate_email(scenario_key: str, order: OrderInfo) -> dict:
         # ① 还想要就延长 30 天收货时间（生产提前则提前发）② 不想等就直接取消全额退款。
         # （新增 2026-10-09，源于主人给买家发的站内信口径）
         # 风格：Dear Valued Customer + Hope you are doing well，无 <b>、无折扣补偿承诺。
+        # 支持两个可选参数：extend_days（默认 30，可传 60/120 等）、
+        # overdue=True（新批次未按预计时间生产出来时改口径）。
         product_ref = order.product_name or "your item"
+        extend_days = getattr(order, "extend_days", 30) or 30
+        if getattr(order, "overdue", False):
+            stock_line = (
+                "This item is currently out of stock, and the new batch has not been produced "
+                "within the expected time."
+            )
+            ship_line = "Once the item is back in stock, we will ship your order immediately."
+        else:
+            stock_line = "This item is currently out of stock, and a new batch is still in production."
+            ship_line = (
+                "Once the new batch is ready, we will ship your order as soon as possible — "
+                "and if it is produced earlier, we will ship it to you earlier as well."
+            )
         subject = (
             f"{platform} Order {order_number}: "
             "Restocking Notice - Please Extend Delivery Time or Cancel / 补货中通知：请延长收货时间或取消订单"
@@ -255,10 +275,9 @@ def generate_email(scenario_key: str, order: OrderInfo) -> dict:
             "Dear Valued Customer,<br><br>"
             "Hope you are doing well.<br><br>"
             f"We are writing regarding your item {product_ref} (Order No. {order_number}). "
-            "This item is currently out of stock, and a new batch is still in production.<br><br>"
-            "If you would still like this item, please extend the delivery time by 30 days on your order. "
-            "Once the new batch is ready, we will ship your order as soon as possible — and if it is "
-            "produced earlier, we will ship it to you earlier as well.<br><br>"
+            f"{stock_line}<br><br>"
+            f"If you would still like this item, please extend the delivery time by {extend_days} days "
+            f"on your order. {ship_line}<br><br>"
             "If you prefer not to wait, you may cancel this order directly on AliExpress, "
             "and you will be fully refunded.<br><br>"
             "Please feel free to contact us if you have any questions.<br><br>"
@@ -269,10 +288,18 @@ def generate_email(scenario_key: str, order: OrderInfo) -> dict:
             "尊敬的客户：<br><br>"
             "希望您一切安好。<br><br>"
             f"我们写信是关于您的商品 {product_ref}（订单号 {order_number}）。"
-            "该商品目前已售空，新的批次还在生产中。<br><br>"
-            "如果您仍然想要这件商品，请在订单上延长 30 天收货时间。新批次生产完成后，"
-            "我们会尽快为您发货；如果提前生产出来，也会提前为您发出。<br><br>"
-            "如果您不想等待，也可以直接在 AliExpress 上取消此订单，款项将全额退回。<br><br>"
+            + (
+                "该商品目前已售空，新批次未能在预计时间内生产出来。<br><br>"
+                if getattr(order, "overdue", False)
+                else "该商品目前已售空，新的批次还在生产中。<br><br>"
+            )
+            + f"如果您仍然想要这件商品，请在订单上延长 {extend_days} 天收货时间。"
+            + (
+                "产品到货后，我们会第一时间为您发出。<br><br>"
+                if getattr(order, "overdue", False)
+                else "新批次生产完成后，我们会尽快为您发货；如果提前生产出来，也会提前为您发出。<br><br>"
+            )
+            + "如果您不想等待，也可以直接在 AliExpress 上取消此订单，款项将全额退回。<br><br>"
             "如有任何问题，欢迎随时联系我们。<br><br>"
             "此致，<br>"
             "客服团队"

@@ -250,6 +250,9 @@ scenario_1/4/5: "Dear Valued Customer," + "Hope you are doing well.", no `<b>`, 
 Structure: ① 商品已售空、新批次生产中 ② 想要就延长 30 天收货时间（提前生产则提前发）
 ③ 不想等可直接取消、全额退款 ④ 联系方式。Use this instead of scenario_1 when the buyer can
 plausibly wait — scenario_1 asks only for cancellation, which loses a sale the seller could keep.
+Two optional `OrderInfo` fields fine-tune it: `extend_days` (default 30 — pass 60/120 etc. when the
+seller says so) and `overdue=True` (the new batch missed its expected production date → wording becomes
+"has not been produced within the expected time" + "we will ship your order immediately once back in stock").
 
 **scenario_6_extend_reminder style (added 2026-09-14)**: the follow-up to scenario_5. Shorter than the
 first mail — one sentence of context ("your replacement is being prepared"), one clear request
