@@ -92,10 +92,15 @@ def build_matchers(lexicon):
 
 
 def score_post(post, matchers, weights):
+    # 原博作者名也参与打分：转发链里品牌信号常常只在原作者名上
+    # （如模魂工作室 RT @DJSTOYS 的「幽忍参将」亮相帖，正文只写型号不写厂名，
+    #   2026-10-20 因品牌词落空被负分压死，需人工补录）。
+    rt = post.get("retweeted") or {}
     text = " ".join(filter(None, [
         post.get("blogger") or "",
         post.get("text") or "",
-        (post.get("retweeted") or {}).get("text") or "",
+        rt.get("text") or "",
+        rt.get("author") or "",
     ])).lower()
 
     matched = {}
