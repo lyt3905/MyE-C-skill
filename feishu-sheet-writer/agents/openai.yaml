@@ -1,0 +1,4 @@
+interface:
+  display_name: "飞书表格写入"
+  short_description: "用自建应用 API 读写飞书电子表格：写活公式、插截图、整本导入"
+  default_prompt: "使用 $飞书表格写入 把这份内容写进飞书那个表。"
