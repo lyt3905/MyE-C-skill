@@ -60,6 +60,7 @@ node $FS write  <ssToken> 'bfe2ca!A4:H6' --data-file rows.json
 node $FS append <ssToken> 'bfe2ca!A4:H4' --data-file row.json
 node $FS img    <ssToken> 'bfe2ca!I4:I4' shot.png shot.png
 node $FS export <ssToken> --out cur.xlsx                 # 导出成 xlsx（校验样式/图片用）
+python scripts\verify_xlsx_style.py cur.xlsx <工作表名> --rows 3-8   # 导出后查字体/CF/DV/图片/值
 node $FS upload <本地文件> [--name xx] [--parent <folder>]
 node $FS import <本地xlsx> [--name 名字]                  # 上传 + 转成飞书原生电子表格
 node $FS share  <token> <openId> [--type sheet|file]     # 给用户开权限（否则只有应用能看）
@@ -116,7 +117,8 @@ node $FS read <ss> '<sheetId>!A1:M6'  --render FormattedValue   # 看渲染结�
 ### 3. 三层校验（必做，缺一层都可能翻车）
 1. **读回**：`read --render FormattedValue` 确认值/计算结果对；
 2. **公式活性**：把勾选列改 `1` 再改回 `0`，确认派生列跟着变（证明是活公式不是静态值）；
-3. **样式与图片**：`export` 成 xlsx → `openpyxl` 查 `font.strike`/CF/DV/`xl/media` 数量；需要看观感时用 LibreOffice Kit 渲染成 PNG。
+3. **样式与图片**：`export` 成 xlsx → 跑 `scripts/verify_xlsx_style.py`（查 `font.strike`、条件格式、数据验证、内嵌图片数量与锚点、值是否为活公式）；需要看观感时再用 LibreOffice Kit 渲染成 PNG。
+   这一步就是抓出「行 6 残留删除线」和「插图被行高夹扁」的尺子——**飞书 API 读不到样式，只能导出后看**。
 
 ### 4. 插图
 先 `convert("RGB")` → `img <ss> '<sheetId>!I4:I4' a.png a.png` → 读回确认 `embed-image`。
