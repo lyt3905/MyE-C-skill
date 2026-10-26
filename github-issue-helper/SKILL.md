@@ -1,5 +1,5 @@
 ---
-name: 提Issue
+name: github-issue-helper
 description: |
   This skill helps create well-structured GitHub issues from a user's problem description,
   screenshot, or error log. It turns raw descriptions into a professional issue draft

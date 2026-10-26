@@ -1,5 +1,5 @@
 ---
-name: 手办情报
+name: weibo-figure-intel
 description: |
   This skill collects Weibo posts from accounts the user follows and extracts intelligence
   about anime figures (手办) and action figures / articulated dolls (可动人偶) — new product

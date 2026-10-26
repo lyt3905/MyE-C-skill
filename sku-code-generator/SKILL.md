@@ -1,5 +1,5 @@
 ---
-name: SKU编码生成
+name: sku-code-generator
 description: |
   Generates unique, convention-compliant SKU codes for the user's cross-border toy stores
   (Morph Toys Store / Childhood Memories / PureSun). The code format is

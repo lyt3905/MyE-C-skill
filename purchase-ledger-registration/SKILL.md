@@ -1,5 +1,5 @@
 ---
-name: 采购台账登记
+name: purchase-ledger-registration
 description: 跨境电商（62店）采购台账登记。当用户发送微信支付/订单/闲鱼采购截图，要求按「62店8月-采购登记表.xlsx」结构登记采购记录（填自发货采购登记表、运营利润统计表或纠纷订单统计表）时使用。This skill should be used when the user sends payment/order/dispute screenshots and asks to register them into the 62-store August purchase ledger Excel file, extracting fields from images and appending rows per the workbook's schema.
 agent_created: true
 ---
