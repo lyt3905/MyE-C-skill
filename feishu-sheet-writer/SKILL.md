@@ -1,6 +1,6 @@
 ---
 name: feishu-sheet-writer
-description: 用飞书自建应用 API 读写电子表格 / 多维表格：定位 wiki 链接、清空重写、写活公式、插入截图、把本地 xlsx 传成飞书原生表格。当用户给出 feishu.cn 的 wiki / sheets / base 链接并要求往里写内容、改成新结构、补图片，或要求把本地 Excel 上传替换线上文档时使用。This skill should be used when the user wants to read or write a Feishu/Lark spreadsheet or bitable via the Open Platform API — writing rows and live formulas, embedding screenshots, or importing a local workbook as a native Feishu sheet.
+description: 用飞书自建应用 API 读写电子表格 / 多维表格：定位 wiki 链接、清空重写、写活公式、插入截图、把本地 xlsx 传成飞书原生表格；并内置「待办清单登记」高频流程（用户每句诉求自动追加一条待办 + 截图上传）。当用户给出 feishu.cn 的 wiki / sheets / base 链接并要求往里写内容、改成新结构、补图片，或要求把本地 Excel 上传替换线上文档，或说「记一条待办」「这个记下来」「我给你说的每一句话都是一条待办事项」时使用。This skill should be used when the user wants to read or write a Feishu/Lark spreadsheet or bitable via the Open Platform API — writing rows and live formulas, embedding screenshots, importing a local workbook, or logging a todo row into the Feishu todo list.
 agent_created: true
 ---
 
@@ -68,6 +68,14 @@ node $FS tables|fields|list|add|addmany|update ...        # 多维表格（记�
 node $FS raw    <METHOD> <path> --body-file body.json     # 兜底：任意接口
 ```
 
+待办登记专用（同目录 `scripts\append_todo.js`，链路见下文「待办清单登记」）：
+
+```powershell
+$AT = "<skill>\scripts\append_todo.js"
+node $AT --item "待办内容" --priority P1 --note "备注" [--image shot.png] [--template 模板名] [--dry-run]
+node $AT --clear-row 12                                   # 清空整行（自测收尾用）
+```
+
 `read` 的 `--render`：`ToString`（默认，看公式文本）、`FormattedValue`（看计算结果）、`Formula`（看公式原文）、`UnformattedValue`（看原始值，日期是序列号）。
 
 ## 硬坑清单（全部实测踩过）
@@ -99,6 +107,8 @@ node $FS raw    <METHOD> <path> --body-file body.json     # 兜底：任意接�
 11. **同一张图单元格，两种 render 返回**结构不同：`ToString` 给 `[[{"id":7,"type":"embed-image"}]]`（数组），`FormattedValue` 给 `[{"fileToken":...,"type":"embed-image"}]`（对象）。校验代码要两种都认，否则会误判「图没插上」。
 12. **插完图立刻读回可能还是空**（最终一致性延迟），要轮询重试（实测 1~2 次、间隔 1.5s 内到）；别把首次读空当成失败就重复插图，会叠图。
 13. **飞书会把插入的 png 转成 jpeg**（导出 xlsx 后在 `xl/media/` 里看到的都是 `.jpeg`，体积也变小），属正常，不是格式出错。
+14. **每行公式必须按行号重新生成**（`=IF(C12="",…,A12…)`），不能整列复制同一串，否则引用错行；空行靠公式 `=IF(C{r}="","",…)` 自隐藏，别把空行先写成「未完成」。
+15. 写入后 `revision` 会递增（写一格 +1 左右），**不是冲突信号**，不需要做 CAS 处理。
 
 ## 标准流程
 
@@ -130,6 +140,48 @@ node $FS read <ss> '<sheetId>!A1:M6'  --render FormattedValue   # 看渲染结�
 ### 5. 整本替换线上文档
 `import 本地.xlsx` → 得到原生 sheet token + url → `share` 给用户 → （若要挂进知识库）需要知识库编辑权限，否则只能用户自己拖进去。
 
+## 待办清单登记（高频固定任务）
+
+用户口头约定（2026-10-29）：**「我给你说的每一句话都是一条待办事项」** —— 每提一条诉求，就在「刘宇彤-测试」待办清单里**追加一行**，不是只在聊天里答复。
+
+### 该不该入表
+
+| 用户说的话 | 处理 |
+| --- | --- |
+| 提需求、发现问题、定规则、指出要改的地方 | **追加一行**，同时口头答复 |
+| 纯提问（「你写到哪里了」「发我具体地址」） | 先回答；默认不入表（用户要求字面逐句都记时才补） |
+| 同一诉求的后续补充 | 优先**改已有行的 H 备注**，别另开一行刷屏 |
+
+### 行结构与默认值
+
+表头在第 3 行，数据从第 4 行起；找空行看 **C 列**是否为空。
+
+| 列 | 字段 | 写什么 |
+| --- | --- | --- |
+| A | 已完成 | `0` 未完成 / `1` 已完成（复选框语义） |
+| B | 完成情况 | ⚠️ **活公式**：`=IF(C{r}="","",IF(A{r}=0,"未完成","已完成"))` |
+| C | 待办事项 | 一句话说清做什么（祈使句，≤30 字） |
+| D | 优先级 | 默认 `P1`；用户说急 / 影响卖货 / 侵权类 → `P0` |
+| E | 工作/生活 | 默认 `工作` |
+| F | 进度 | 默认 `0` |
+| G | 截止日期 | 默认留空 |
+| H | 备注 | **必写**：用户原话诉求 + 已做什么 + 还差什么 |
+| I | 截图 | 内嵌图片；用户发图就传到同一行的 I 列 |
+| J | 生图模板 | 生图类待办记本次模板名，未知留空 |
+
+### 一条命令追加（推荐）
+
+```powershell
+node scripts\append_todo.js --item "AI 合图记录显示所用模板，支持自动选/手动改" `
+  --priority P1 --note "诉求原文…；已加 J 列表头；还需定义模板清单" `
+  --image .\shot_rgb.png
+```
+
+脚本链路：读表找空行 → 写 A{r}:J{r}（B 列自动生成公式）→ 有图则转 RGB 插 I{r} → 读回校验（含轮询重试）→ 输出 `{ok,row}`。
+其它开关：`--dry-run` 只打印将写入的行；`--clear-row N` 清空整行（自测收尾）；`--no-verify` 跳过读回；`--template` 写 J 列。
+
+追加后回报用户：**第几行 + 关键列内容 + revision**，不要只说「已记录」；插了图必须提醒「缩略图受行高限制，要看清得手动拉行高/列宽」。
+
 ## 已知文档登记
 
 | 文档 | 关键 token |
@@ -137,9 +189,10 @@ node $FS read <ss> '<sheetId>!A1:M6'  --render FormattedValue   # 看渲染结�
 | 「刘宇彤-测试」待办清单（wiki） | wiki node `L2etwfkrkiVc40kURYhcy9kunMd`；obj_type `sheet`；spreadsheet `HUo3sTcWShlZxMtVIkvc7hJ6nrg`；子表「待办事项清单」`bfe2ca`；表内嵌 bitable 工作页 `Rczbgo`（token 不可反查）；知识库 `7648451020569185515` |
 | 该表列结构 | `已完成 / 完成情况 / 待办事项 / 优先级 / 工作·生活 / 进度 / 截止日期 / 备注 / 截图 / 生图模板`（J 列「生图模板」2026-10-29 新增），表头在第 3 行，数据从第 4 行起；B 列是活公式 `=IF(C4="","",IF(A4=0,"未完成","已完成"))` |
 
-> 往这张表登记待办（含截图上传）有专门 skill：`feishu-todo-registration`，它复用本 skill 的 `scripts/feishu.js`。
+> 往这张表登记待办（含截图上传）见上文「待办清单登记」章节，用 `scripts/append_todo.js` 一条命令搞定。
 
 ## 变更记录
 
 - 2026-10-26 首版：从「往飞书表里写待办 + 插图 + 整本导入」一次实战中沉淀。
-- 2026-10-29 补坑 11–13（图片单元格两种 render 形状、插图后读回有延迟需轮询、png 被转 jpeg），登记表补 J 列「生图模板」与 B 列公式，并指向新 skill `feishu-todo-registration`。
+- 2026-10-29 补坑 11–13（图片单元格两种 render 形状、插图后读回有延迟需轮询、png 被转 jpeg），登记表补 J 列「生图模板」与 B 列公式。
+- 2026-10-29 合并：原独立 skill `feishu-todo-registration` 并入本 skill（「待办清单登记」章节 + `scripts/append_todo.js`），同步补坑 14–15（按行号生成公式、revision 递增不代表冲突）。

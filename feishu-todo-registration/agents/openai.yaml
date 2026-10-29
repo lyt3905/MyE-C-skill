@@ -1,4 +1,0 @@
-interface:
-  display_name: "飞书待办登记"
-  short_description: "把用户每句话当一条待办，写进飞书待办清单：活公式、优先级、截图上传全自动"
-  default_prompt: "使用 $飞书待办登记 把我刚说的这件事记成一条待办。"

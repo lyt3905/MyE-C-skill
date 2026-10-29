@@ -2,7 +2,7 @@
 /**
  * append_todo.js — 往飞书「刘宇彤-测试 / 待办事项清单」追加一条待办
  *
- * 复用 feishu-sheet-writer 的 scripts/feishu.js 做鉴权与 API 调用（零依赖）。
+ * 与 feishu.js 同目录，复用它的鉴权与 API 调用（零依赖）。
  *
  * 用法：
  *   node append_todo.js --item "待办内容" [--priority P1] [--category 工作]
@@ -22,7 +22,7 @@ const { spawnSync } = require('child_process');
 
 const DEFAULT_SS = 'HUo3sTcWShlZxMtVIkvc7hJ6nrg';
 const DEFAULT_SHEET = 'bfe2ca';
-const DEFAULT_CLI = path.resolve(__dirname, '..', '..', 'feishu-sheet-writer', 'scripts', 'feishu.js');
+const DEFAULT_CLI = path.resolve(__dirname, 'feishu.js');
 const NOTE_MAX = 2000;
 
 function parseArgs(argv) {
