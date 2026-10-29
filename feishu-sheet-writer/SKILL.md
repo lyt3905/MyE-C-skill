@@ -96,6 +96,9 @@ node $FS raw    <METHOD> <path> --body-file body.json     # 兜底：任意接�
 8. **上传/导入产生的文件属于应用**，用户默认看不到 → 用 `share` 把 `openid` 加成 `full_access`（openid 可从 wiki 节点的 `creator`/`owner` 字段拿到）。
 9. **写数据只动数据区**：保留表头行、合并单元格、公式列、统计行；覆盖前先 `read` 一遍并落盘备份。
 10. **xlsx → 飞书原生表格的保真度很好**（实测）：活公式、条件格式、数据验证下拉、冻结窗格、内嵌图片全部保留。所以复杂格式优先走这条路，不要硬用单元格 API 拼。
+11. **同一张图单元格，两种 render 返回**结构不同：`ToString` 给 `[[{"id":7,"type":"embed-image"}]]`（数组），`FormattedValue` 给 `[{"fileToken":...,"type":"embed-image"}]`（对象）。校验代码要两种都认，否则会误判「图没插上」。
+12. **插完图立刻读回可能还是空**（最终一致性延迟），要轮询重试（实测 1~2 次、间隔 1.5s 内到）；别把首次读空当成失败就重复插图，会叠图。
+13. **飞书会把插入的 png 转成 jpeg**（导出 xlsx 后在 `xl/media/` 里看到的都是 `.jpeg`，体积也变小），属正常，不是格式出错。
 
 ## 标准流程
 
@@ -132,8 +135,11 @@ node $FS read <ss> '<sheetId>!A1:M6'  --render FormattedValue   # 看渲染结�
 | 文档 | 关键 token |
 | --- | --- |
 | 「刘宇彤-测试」待办清单（wiki） | wiki node `L2etwfkrkiVc40kURYhcy9kunMd`；obj_type `sheet`；spreadsheet `HUo3sTcWShlZxMtVIkvc7hJ6nrg`；子表「待办事项清单」`bfe2ca`；表内嵌 bitable 工作页 `Rczbgo`（token 不可反查）；知识库 `7648451020569185515` |
-| 该表列结构 | `已完成 / 完成情况 / 待办事项 / 优先级 / 工作·生活 / 进度 / 截止日期 / 备注 / 截图`，表头在第 3 行，数据从第 4 行起 |
+| 该表列结构 | `已完成 / 完成情况 / 待办事项 / 优先级 / 工作·生活 / 进度 / 截止日期 / 备注 / 截图 / 生图模板`（J 列「生图模板」2026-10-29 新增），表头在第 3 行，数据从第 4 行起；B 列是活公式 `=IF(C4="","",IF(A4=0,"未完成","已完成"))` |
+
+> 往这张表登记待办（含截图上传）有专门 skill：`feishu-todo-registration`，它复用本 skill 的 `scripts/feishu.js`。
 
 ## 变更记录
 
 - 2026-10-26 首版：从「往飞书表里写待办 + 插图 + 整本导入」一次实战中沉淀。
+- 2026-10-29 补坑 11–13（图片单元格两种 render 形状、插图后读回有延迟需轮询、png 被转 jpeg），登记表补 J 列「生图模板」与 B 列公式，并指向新 skill `feishu-todo-registration`。
