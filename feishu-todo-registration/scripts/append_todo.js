@@ -246,8 +246,9 @@ function main() {
     }
   }
 
-  console.log(JSON.stringify({ ok: !!(verified && verified.ok), row, image, verified }, null, 2));
-  if (verified && !verified.ok) process.exitCode = 1;
+  const ok = verified ? !!verified.ok : true;
+  console.log(JSON.stringify({ ok, row, image, verified }, null, 2));
+  if (!ok) process.exitCode = 1;
 }
 
 try {
