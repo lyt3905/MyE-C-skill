@@ -1,6 +1,6 @@
 ---
 name: feishu-sheet-writer
-description: 用飞书自建应用 API 读写电子表格 / 多维表格：定位 wiki 链接、清空重写、写活公式、插入截图、把本地 xlsx 传成飞书原生表格；并内置「待办清单登记」高频流程（用户每句诉求自动追加一条待办 + 截图上传）。当用户给出 feishu.cn 的 wiki / sheets / base 链接并要求往里写内容、改成新结构、补图片，或要求把本地 Excel 上传替换线上文档，或说「记一条待办」「这个记下来」「我给你说的每一句话都是一条待办事项」时使用。This skill should be used when the user wants to read or write a Feishu/Lark spreadsheet or bitable via the Open Platform API — writing rows and live formulas, embedding screenshots, importing a local workbook, or logging a todo row into the Feishu todo list.
+description: 用飞书自建应用 API 读写电子表格 / 多维表格：定位 wiki 链接、清空重写、写活公式、插入截图、把本地 xlsx 传成飞书原生表格；并内置「待办清单登记」高频流程（用户每句诉求自动追加一条待办 + 截图上传）。当用户给出 feishu.cn 的 wiki / sheets / base 链接并要求往里写内容、改成新结构、补图片，或要求把本地 Excel 上传替换线上文档，或说「记一条待办」「这个记下来」「我给你说的每一句话都是一条待办事项」时使用。This skill should be used when the user wants to read or write a Feishu/Lark spreadsheet or bitable via the Open Platform API — writing rows and live formulas, embedding screenshots, importing a local workbook, or logging a todo row into the Feishu todo list. 注意：走「待办登记」时交付物只有表里一行——不调研代码、不建新表/子表、不写方案文档，先问再扩活。
 agent_created: true
 ---
 
@@ -144,6 +144,22 @@ node $FS read <ss> '<sheetId>!A1:M6'  --render FormattedValue   # 看渲染结�
 
 用户口头约定（2026-10-29）：**「我给你说的每一句话都是一条待办事项」** —— 每提一条诉求，就在「刘宇彤-测试」待办清单里**追加一行**，不是只在聊天里答复。
 
+### ⛔ 边界：只登记，不扩活（2026-10-30 被用户当面叫停）
+
+用户原话：**「这个 skill 只需要提交问题到飞书即可，别的不要管」**。这里的产出**就是表里一行**，不是方案、不是清单、不是调研报告。
+
+| 该做 | 不该做（做过被骂） |
+| --- | --- |
+| `append_todo.js` 追加一行 + 读回校验 | 去翻需求对应的代码仓库、读源码、派子代理做调研报告 |
+| 一句话回报「第几行 + 关键列 + 内容」 | 新建工作表 / 子表 / 新文档，改表头、加列、挪数据 |
+| H 备注写「用户原话 + 状态」 | 顺手把方案、模板清单、设计文档写进表里当交付物 |
+| 拿不准先问一句 | 为「验证」去跑别人的仓库测试、改别人的仓库文件 |
+| | 在回复末尾塞没被要求的设计方案和「下一步 A/B/C 选项」 |
+
+- **口径**：用户一条诉求 = 表里一行。诉求**背后的实现工作属于别的 skill / 别的任务**，不属于本 skill。
+- **扩活只在用户明说时**：「顺便把 X 也写进去」「帮我整理成个表」「把结构改成…」才动结构；否则一律只追加一行。
+- **动手前自检一句**：这一步是在「往表里写那一行」，还是在「替用户把活干了」？——是后者，停手，先问。
+
 ### 该不该入表
 
 | 用户说的话 | 处理 |
@@ -196,3 +212,4 @@ node scripts\append_todo.js --item "AI 合图记录显示所用模板，支持�
 - 2026-10-26 首版：从「往飞书表里写待办 + 插图 + 整本导入」一次实战中沉淀。
 - 2026-10-29 补坑 11–13（图片单元格两种 render 形状、插图后读回有延迟需轮询、png 被转 jpeg），登记表补 J 列「生图模板」与 B 列公式。
 - 2026-10-29 合并：原独立 skill `feishu-todo-registration` 并入本 skill（「待办清单登记」章节 + `scripts/append_todo.js`），同步补坑 14–15（按行号生成公式、revision 递增不代表冲突）。
+- 2026-10-30 补「⛔ 边界：只登记，不扩活」：用户交代「写生图模板，要考虑某类别没图的兜底」，本该只追加一行待办，却顺手建了子表、写了模板清单、派子代理读源码、跑仓库测试，被用户当面纠正「这个 skill 只需要提交问题到飞书即可，别的不要管」。教训固化：**本 skill 的交付物只有表里一行**，实现类工作留给别的 skill；先问再扩活。
