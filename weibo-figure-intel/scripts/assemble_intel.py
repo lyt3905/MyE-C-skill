@@ -38,8 +38,9 @@ RELEVANCE = ["高", "中", "低"]
 # 与 references/intel-schema.md 保持一致
 ALLOWED = {
     "post_id", "blogger", "posted_at", "url", "intel_type", "brand", "ip",
-    "character", "line", "scale", "price", "release_date", "channel",
-    "summary", "relevance", "relevance_reason", "also_reposted_by", "tags",
+    "character", "line", "scale", "price", "preorder_date", "release_date",
+    "channel", "summary", "relevance", "relevance_reason",
+    "also_reposted_by", "tags",
 }
 REQUIRED = ["post_id", "intel_type", "summary", "relevance"]
 AUTO = ["blogger", "posted_at", "url"]          # 从 source 自动填充

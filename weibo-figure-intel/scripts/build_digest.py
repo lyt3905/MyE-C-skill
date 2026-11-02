@@ -194,7 +194,8 @@ def _spec_tokens(it):
     """
     blob = " ".join(str(it.get(k) or "") for k in
                     ("brand", "character", "line", "summary",
-                     "price", "release_date", "channel")).upper()
+                     "price", "preorder_date", "release_date",
+                     "channel")).upper()
     toks = set()
     for m in _SPEC_TOKEN_PAT.finditer(blob):
         t = m.group(0).replace("-", "")
@@ -334,7 +335,8 @@ def dedupe_items(items):
 
         # 主条：信息完整度优先（摘要长度 + 关键字段命中数），再比相关度与时间
         def richness(x):
-            facts = sum(1 for k in ("price", "release_date", "channel", "scale")
+            facts = sum(1 for k in ("price", "preorder_date", "release_date",
+                                    "channel", "scale")
                         if (x.get(k) or "").strip())
             return (facts, len(x.get("summary") or ""), -rel_rank(x))
 
@@ -343,8 +345,8 @@ def dedupe_items(items):
         rest = grp_sorted[1:]
 
         for x in rest:
-            for k in ("price", "release_date", "channel", "scale",
-                      "relevance_reason", "character", "ip", "line"):
+            for k in ("price", "preorder_date", "release_date", "channel",
+                      "scale", "relevance_reason", "character", "ip", "line"):
                 if not (main.get(k) or "").strip() and (x.get(k) or "").strip():
                     main[k] = x[k]
             if rel_rank(x) < rel_rank(main):
@@ -395,6 +397,53 @@ def cell(value):
     return s.replace("|", "\\|").replace("\n", " ")
 
 
+def _filled(value):
+    """去空白后非空、且不是占位符才算「有值」。"""
+    s = str(value if value is not None else "").strip()
+    return s if s and s not in ("—", "-", "－", "–", "null", "None", "待定", "未定") else ""
+
+
+def has_price(it):
+    """这条情报是否带价格（💰 标记的依据）。"""
+    return bool(_filled(it.get("price")))
+
+
+def has_preorder(it):
+    """是否带预售 / 开订时间（⏰ 标记的依据）。"""
+    return bool(_filled(it.get("preorder_date")))
+
+
+def when_bits(it):
+    """[(标签, 原文, 图标)] —— 预售/开订时间与发售/出货时间分开，不混为一谈。"""
+    out = []
+    pre = _filled(it.get("preorder_date"))
+    rel = _filled(it.get("release_date"))
+    if pre:
+        out.append(("预售", pre, "⏰"))
+    if rel:
+        out.append(("发售", rel, "📅"))
+    return out
+
+
+def when_plain(it, sep=" · "):
+    """Markdown / 纯文本里的时间串；没有就是空串。"""
+    return sep.join(f"{lb} {v}" for lb, v, _ic in when_bits(it))
+
+
+def when_md(it):
+    """Markdown 表格单元格：多行用 <br/>，没有值渲染 —。"""
+    bits = when_bits(it)
+    if not bits:
+        return "—"
+    return "<br/>".join(f"{ic} {lb} {cell(v)}" for lb, v, ic in bits)
+
+
+def price_md(it):
+    """Markdown 表格里的价格单元格：有价格就带 💰 前缀。"""
+    v = _filled(it.get("price"))
+    return f"💰 {cell(v)}" if v else "—"
+
+
 def validate(data):
     problems = []
     if not isinstance(data, dict):
@@ -435,8 +484,8 @@ def render_group(name, items):
             cell(it.get("brand")),
             cell(subject),
             cell(it.get("line")),
-            cell(it.get("price")),
-            cell(it.get("release_date")),
+            price_md(it),
+            when_md(it),
             cell(it.get("summary")),
             src,
         ]) + " |")
@@ -470,6 +519,15 @@ def build(data):
     if data.get("source_note"):
         meta.append(data["source_note"])
     meta.append(f"共提取 **{len(items)}** 条情报")
+    n_price = sum(1 for it in items if has_price(it))
+    n_pre = sum(1 for it in items if has_preorder(it))
+    n_rel = sum(1 for it in items if _filled(it.get("release_date")))
+    if n_price:
+        meta.append(f"带价格 **{n_price}** 条 💰")
+    if n_pre:
+        meta.append(f"带预售时间 **{n_pre}** 条 ⏰")
+    if n_rel:
+        meta.append(f"带发售时间 **{n_rel}** 条 📅")
     if new_items:
         meta.append(f"其中新品清单 **{len(new_items)}** 条")
     if first_items:
@@ -502,7 +560,7 @@ def build(data):
                 (it.get("line") or "").strip(),
             ])) or "—"
             when = " / ".join(filter(None, [
-                (it.get("release_date") or "").strip(),
+                when_plain(it),
                 (it.get("channel") or "").strip(),
             ])) or "—"
             # 看点：优先相关理由，其余用摘要
@@ -528,7 +586,7 @@ def build(data):
                 ("🆕 " if it.get("_first") else "") + cell(it.get("brand")),
                 cell(subject),
                 cell(works),
-                cell(it.get("price")),
+                price_md(it),
                 cell(when),
                 cell(look),
                 src,
@@ -556,10 +614,14 @@ def build(data):
             if it.get("summary") and head:
                 out.append(f"  - {it['summary']}")
             facts = []
-            for label, key in (("参考价", "price"), ("发售", "release_date"),
-                               ("渠道", "channel"), ("比例", "scale")):
-                if (it.get(key) or "").strip():
-                    facts.append(f"{label} {it[key]}")
+            for label, key, icon in (("参考价", "price", "💰"),
+                                     ("预售", "preorder_date", "⏰"),
+                                     ("发售", "release_date", "📅"),
+                                     ("渠道", "channel", ""),
+                                     ("比例", "scale", "")):
+                if _filled(it.get(key)):
+                    facts.append(f"{icon}{label} {str(it[key]).strip()}" if icon
+                                 else f"{label} {it[key]}")
             if facts:
                 out.append(f"  - {'　'.join(facts)}")
             if reason:
@@ -902,7 +964,15 @@ body.lb-lock{overflow:hidden}
   .dn-idx{margin-left:0}
   .dn-pos{display:none}
 }
+/* 价格 / 时间标记：一眼看出哪些条目带可下单信息 */
+.flag{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;
+      padding:2px 8px;border-radius:999px;line-height:1.5;white-space:nowrap;
+      max-width:46vw;overflow:hidden;text-overflow:ellipsis}
+.f-price{background:#fff4e5;color:#a85700;border:1px solid #ffd8a8}
+.f-pre{background:#eaf6ee;color:#1a7f45;border:1px solid #b7e4c7}
+.f-date{background:#eef2ff;color:#3b4fbf;border:1px solid #c9d4ff}
 @media print{
+  .flag{border-color:#ccc}
   .unreadbar{display:none}
   .daynav{display:none}
   .dayfoot{display:none}
@@ -919,10 +989,11 @@ HTML_JS = r"""
   var groups = [].slice.call(document.querySelectorAll('.group'));
   var typeChips = [].slice.call(document.querySelectorAll('[data-type-chip]'));
   var relChips  = [].slice.call(document.querySelectorAll('[data-rel-chip]'));
+  var flagChips = [].slice.call(document.querySelectorAll('[data-flag-chip]'));
   var viewBtns  = [].slice.call(document.querySelectorAll('[data-view]'));
   var out = document.getElementById('count');
   var empty = document.getElementById('empty');
-  var state = {type:'全部', rel:'全部', view:'new', unread:false};
+  var state = {type:'全部', rel:'全部', flag:'全部', view:'new', unread:false};
 
   function match(c){
     // 两个视图各渲染一份 DOM：新品清单容器里的卡片只属于新品视图，
@@ -932,6 +1003,10 @@ HTML_JS = r"""
     // 新品视图下是纯清单、无分类，类型筛选只在「全部情报」视图生效
     if (state.type !== '全部' && c.dataset.type !== state.type) return false;
     if (state.rel === '高' && c.dataset.rel !== '高') return false;
+    // 标记筛选：价格 / 预售时间 / 发售时间（卡片上的 💰 ⏰ 📅）
+    if (state.flag === '价格' && c.dataset.price !== '1') return false;
+    if (state.flag === '预售' && c.dataset.pre !== '1') return false;
+    if (state.flag === '发售' && c.dataset.date !== '1') return false;
     // 「只看未读」由未读模块拨动 state.unread，只保留「本日新出现」且还没读过的卡。
     // 两个条件都得判：只判 .read 的话，data-first="0" 的旧闻卡既不算未读、也不会被
     // 标上 .read，会永远赖在列表里（实测 27 张未读旁边还挂着 9 张旧闻，筛完数量和
@@ -982,6 +1057,13 @@ HTML_JS = r"""
     b.addEventListener('click', function(){
       state.rel = b.dataset.relChip;
       relChips.forEach(function(x){ x.classList.toggle('on', x === b); });
+      apply();
+    });
+  });
+  flagChips.forEach(function(b){
+    b.addEventListener('click', function(){
+      state.flag = b.dataset.flagChip;
+      flagChips.forEach(function(x){ x.classList.toggle('on', x === b); });
       apply();
     });
   });
@@ -1541,6 +1623,7 @@ HTML_TPL = """<!DOCTYPE html>
     <div class="filterbar" id="filterbar">
       <div class="chips" id="typeChips">__TYPECHIPS__</div>
       <div class="chips" id="relChips">__RELCHIPS__</div>
+      <div class="chips" id="flagChips">__FLAGCHIPS__</div>
     </div>
   </div>
 </header>
@@ -1594,6 +1677,21 @@ def render_html(data, items, date):
     rel_chips = ['<button class="chip on" data-rel-chip="全部">不限相关度</button>']
     if high_n:
         rel_chips.append(f'<button class="chip" data-rel-chip="高">仅高相关 {high_n}</button>')
+
+    # 可下单信息筛选：用户要求「有预售时间的产品」「有价格的产品」能被单独拎出来
+    n_price = sum(1 for it in items if has_price(it))
+    n_pre = sum(1 for it in items if has_preorder(it))
+    n_rel = sum(1 for it in items if _filled(it.get("release_date")))
+    flag_chips = ['<button class="chip on" data-flag-chip="全部">不限标记</button>']
+    if n_price:
+        flag_chips.append(f'<button class="chip" data-flag-chip="价格">'
+                          f'💰 有价格 {n_price}</button>')
+    if n_pre:
+        flag_chips.append(f'<button class="chip" data-flag-chip="预售">'
+                          f'⏰ 有预售时间 {n_pre}</button>')
+    if n_rel:
+        flag_chips.append(f'<button class="chip" data-flag-chip="发售">'
+                          f'📅 有发售时间 {n_rel}</button>')
 
     # 视图切换：默认「新品清单」——用户最关心微博里有哪些新品
     views = [f'<button class="view on" type="button" data-view="new">'
@@ -1717,6 +1815,7 @@ def render_html(data, items, date):
             .replace("__VIEWS__", "".join(views))
             .replace("__TYPECHIPS__", "".join(chips))
             .replace("__RELCHIPS__", "".join(rel_chips))
+            .replace("__FLAGCHIPS__", "".join(flag_chips))
             .replace("__SECTIONS__", "\n".join(sections))
             .replace("__LEGEND__", legend))
     # 默认视图为「新品清单」：body 带上标记，供 CSS / JS 初始状态对齐
@@ -1863,7 +1962,8 @@ def render_card(it, idx=None, allow_new_in_main=False, unread=False):
     title = " · ".join(head_bits) if head_bits else e("summary")
 
     facts = []
-    for label, key in (("参考价", "price"), ("发售", "release_date"),
+    for label, key in (("参考价", "price"), ("预售", "preorder_date"),
+                       ("发售", "release_date"),
                        ("渠道", "channel"), ("比例", "scale")):
         if e(key):
             facts.append(f'<i><b>{label}</b>{e(key)}</i>')
@@ -1883,7 +1983,8 @@ def render_card(it, idx=None, allow_new_in_main=False, unread=False):
 
     search = " ".join(str(it.get(k) or "") for k in
                       ("brand", "ip", "character", "line", "summary", "blogger",
-                       "price", "release_date", "channel", "scale", "intel_type")
+                       "price", "preorder_date", "release_date", "channel",
+                       "scale", "intel_type")
                       ).lower()
 
     is_new_it = is_new(it)
@@ -1893,7 +1994,11 @@ def render_card(it, idx=None, allow_new_in_main=False, unread=False):
     parts = ['<article class="card"',
              f' data-type="{htmllib.escape(t, quote=True)}"',
              f' data-rel="{htmllib.escape(rel, quote=True)}"',
-             f' data-isnew="{"1" if is_new_it else "0"}"']
+             f' data-isnew="{"1" if is_new_it else "0"}"',
+             f' data-price="{"1" if has_price(it) else "0"}"',
+             f' data-pre="{"1" if has_preorder(it) else "0"}"',
+             f' data-date="{"1" if _filled(it.get("release_date")) else "0"}"',
+             f' data-when="{"1" if when_bits(it) else "0"}"']
     if it_days:
         parts.append(f' data-days="{htmllib.escape(it_days, quote=True)}"')
     # 未读体系：data-ukey 是稳定主题键，data-first 标记「本日新出现」。
@@ -1918,6 +2023,13 @@ def render_card(it, idx=None, allow_new_in_main=False, unread=False):
     for k in (it.get("also_kinds") or []):
         parts.append(f'<span class="badge {TYPE_CLASS.get(k, "t-other")}"'
                      f' style="opacity:.62">{htmllib.escape(k)}</span>')
+    # 可下单信息标记：有价格贴 💰，有预售/开订时间贴 ⏰，只有发售时间贴 📅
+    if has_price(it):
+        parts.append(f'<span class="flag f-price" title="本条带价格">💰 {e("price")}</span>')
+    for lb, v, ic in when_bits(it):
+        cls = "f-pre" if lb == "预售" else "f-date"
+        parts.append(f'<span class="flag {cls}" title="本条带{lb}时间">{ic} {lb} '
+                     f'{htmllib.escape(v)}</span>')
     nr = new_reason(it)
     if nr:
         parts.append(f'<span class="rank rank-1">{htmllib.escape(nr)}</span>')
