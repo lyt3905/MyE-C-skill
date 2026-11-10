@@ -2,9 +2,11 @@
 name: cross-border-order-email
 description: |
   This skill handles the full workflow of cross-border e-commerce abnormal order email communication.
-  Triggered when the user sends an order screenshot and asks to notify the buyer about issues
-  (pre-order delay, out of stock, defective items, logistics problems).
-  Provides bilingual email generation with preview confirmation before sending via SMTP.
+  Triggered when the user sends an order screenshot (or pastes order details as text — one order or a
+  batch of 10+) and asks to notify the buyers about issues (pre-order delay, out of stock, wrong item
+  shipped, partial stock by color, defective items, logistics problems).
+  Provides bilingual email generation with preview confirmation before sending via SMTP, plus a batch
+  sender for multi-order runs.
   This skill should be used when the user shares an order screenshot/image with an issue description.
 agent_created: true
 ---
@@ -19,6 +21,7 @@ Handle the end-to-end workflow: screenshot → information extraction → biling
 
 This skill triggers when the user:
 - Sends a screenshot/image of an order (from AliExpress, eBay, etc.)
+- Pastes a text block of order numbers + buyer emails (single order or a batch)
 - Mentions an order issue (pre-order can't ship, out of stock, defect, logistics)
 - Asks to notify a buyer / send an email about an order problem
 
@@ -32,9 +35,12 @@ cp -r <skill_dir>/email_sop_tool <project_root>/email_sop_tool
 
 | File | Purpose |
 |------|---------|
-| `email_sop_tool/email_templates.py` | Template generation (3 scenarios: scenario_1 out-of-stock/pre-order, scenario_2 defect, scenario_3 logistics) |
-| `email_sop_tool/send_email.py` | SMTP sending (smtp.126.com:465 SSL, HTML body) |
-| `email_sop_tool/smtp_config.json` | SMTP config (sender hezhen226102@126.com); `password` holds the SMTP authorization code (or leave empty and supply it via the `SMTP_PASSWORD` env var at send time) |
+| `email_sop_tool/email_templates.py` | Template generation (9 scenarios: scenario_1 out-of-stock/pre-order, scenario_2 defect, scenario_3 logistics, scenario_4_po_box, scenario_5_repack_delay, scenario_6_extend_reminder, scenario_7_new_batch_delay, scenario_8_wrong_item, scenario_9_partial_stock_extend) |
+| `email_sop_tool/send_email.py` | SMTP sending (smtp.qq.com:465 SSL by default, HTML body, optional inline/attachment images) |
+| `email_sop_tool/send_batch.py` | **Batch sender** for the "user pastes 10+ orders at once" workflow: `python send_batch.py orders.json --dry-run` → preview, then run it for real. Supports `--only 1,3`, `--interval 3`, `--start-at N` |
+| `email_sop_tool/orders.example.json` | Example input shape for `send_batch.py` |
+| `email_sop_tool/smtp_config.json` | SMTP config (sender toyssuppor@foxmail.com via QQ SMTP); `password` holds the SMTP authorization code (or leave empty and supply it via the `SMTP_PASSWORD` env var at send time) |
+| `email_sop_tool/smtp_config_126.json` | Fallback config (hezhen226102@126.com via smtp.126.com) — only when the user explicitly asks for the 126 account |
 
 > **Security (optional)**: the QQ Mail authorization code may be stored directly in `smtp_config.json` (`password` field) for convenience, or passed per-send via the `SMTP_PASSWORD` environment variable to avoid persisting the secret. Choose per your own risk tolerance.
 
@@ -50,6 +56,13 @@ Read the image using the Read tool. Extract:
 - **Order amount** (if visible)
 
 If any required field cannot be read from the screenshot, ask the user.
+
+> **Pasted text instead of a screenshot (common since 2026-11)**: when the user pastes order details
+> as text, do not OCR anything — the addresses are already exact. Still put them in a table before
+> sending (see "Batch sending" below), and check internally for **order-number / buyer contradictions**:
+> two different order numbers pasted under one "this order" story (2026-11-02: the站内信 said
+> `8215624520137256` while a second order `8215089702223554` was pasted alongside). Ask which order
+> number to use instead of guessing; the user then answered "only send to 8215624520137256".
 
 ### Step 1b: VERIFY the email address (MANDATORY — do not skip)
 
@@ -92,7 +105,7 @@ If any required field cannot be read from the screenshot, ask the user.
 
 ### Step 2: Determine the Scenario
 
-Ask the user or infer from context. Four scenarios exist:
+Ask the user or infer from context. Nine scenarios exist:
 
 1. **scenario_1** — Pre-order delay / Out of stock → Request cancellation
 2. **scenario_2** — Partial defect / No box → Request to keep (fast ship + cash compensation)
@@ -101,6 +114,8 @@ Ask the user or infer from context. Four scenarios exist:
 5. **scenario_5_repack_delay** — Damage found while packing, replacement being prepared → Notify shipping delay + ask buyer to extend the delivery time (users often hand over a rough口语 draft; polish it into the standard style)
 6. **scenario_6_extend_reminder** — Follow-up nudge when scenario_5 was already sent and the buyer has not extended the delivery time yet → One short, polite repeat request (do NOT re-explain the whole reason)
 7. **scenario_7_new_batch_delay** — Item sold out but restockable: a new batch is still in production → Give the buyer two options: ① keep waiting and extend the delivery time by 30 days (ship earlier if produced earlier), or ② cancel directly on AliExpress for a full refund. (User often hands over the站内信 text they already sent the buyer; polish it into the standard style.)
+8. **scenario_8_wrong_item** — Wrong item shipped (错发商品): warehouse sent the wrong product → two options: ① buyer orders through a *nearly free* link and the correct item is reshipped as a new order, or ② full refund of the current order + buyer reorders through the link. Promise: replacement goes out within N hours (default 3) of the buyer's choice. Optional apology discount (`discount_total` / `discount_base` / `discount_extra`).
+9. **scenario_9_partial_stock_extend** — Partial stock (only some colors/variants can ship now): "您选择的规格目前备货不齐，目前只有 X 可以立即发" → ask the buyer to extend the delivery/acceptance time by N days (often 90), offer switching the unavailable part to the in-stock variant so it ships immediately, and (default on) offer cancel-on-AliExpress-for-full-refund as the last resort.
 
 ### Step 3: Generate the Email
 
@@ -243,6 +258,8 @@ These rules were established through user feedback and must be followed exactly.
 | scenario_5_repack_delay | `[Platform] Order [Order#]: Shipping Delay Notice - Please Extend Delivery Time` | 发货延期通知：请延长收货时间 |
 | scenario_6_extend_reminder | `[Platform] Order [Order#]: Gentle Reminder - Please Extend Delivery Time` | 温馨提醒：请延长收货时间 |
 | scenario_7_new_batch_delay | `[Platform] Order [Order#]: Restocking Notice - Please Extend Delivery Time or Cancel` | 补货中通知：请延长收货时间或取消订单 |
+| scenario_8_wrong_item | `[Platform] Order [Order#]: Wrong Item Shipped - Replacement or Full Refund` | 错发商品：补发或全额退款 |
+| scenario_9_partial_stock_extend | `[Platform] Order [Order#]: Shipping Delay Notice - Please Extend Delivery Time` | 发货延期通知：请延长收货时间 |
 
 **scenario_7_new_batch_delay style (added 2026-10-09)**: for "sold out but restockable" orders —
 the item itself is fine, a new batch is simply still in production. Same clean style as
@@ -276,6 +293,59 @@ line**. Structure: ① 原本已备好 ② 打包时发现损坏 ③ 出于负�
 freehand draft (e.g. "tell you that you some damage" → "some damage was found"), and never copy
 the typo verbatim.
 
+**scenario_8_wrong_item style (added 2026-11-02)**: same clean style as scenario_1/4/5 —
+"Dear Valued Customer," + "Hope you are doing well.", no `<b>`, no step-by-step instructions.
+Structure: ① 仓库发错货、致歉 ② 已在准备补发正确的商品 ③ 两个选项（① 通过近乎免费的链接重新下单，
+我们以新订单形式补发所需的商品型号；② 本单全额退款，买家同样通过链接重新下单）④ 折扣致歉
+⑤ 买家选定后 N 小时内发出补发商品。
+**Discount wording rule (MANDATORY, user feedback 2026-11-02)**: when an extra discount is stacked
+on top of the store's usual discount, always write the total **and** its composition — never just
+"an extra $2". Verified wording the user accepted for $3 usual + $2 extra:
+`As an apology, we will offer you a $5 discount in total — our usual $3 plus an extra $2 — which
+you can use on this new order or on any future purchase from our store.`
+Implement via `OrderInfo(discount_total=5, discount_base=3, discount_extra=2)`; `product_short`
+(e.g. `TW-1124`) keeps the option lines readable instead of repeating the full product name.
+
+**scenario_9_partial_stock_extend style (added 2026-11-04)**: same clean style as scenario_1/4/5 —
+"Dear Valued Customer," + "Hope you are doing well.", no `<b>`, no discount line.
+Structure: ① 该订单无法按原计划发出：您选择的规格目前备货不齐 ② 只有 X 可以立即发出，其他颜色还需时间
+③ 还想要就在订单页面延长 N 天收货/接受时间，备好后第一时间发 ④ 不想等可把无法发货的部分改选为 X，
+立即发出 ⑤（默认带）也可以直接在 AliExpress 取消，全额退款。
+Fields: `extend_days` (90 in the TMNT case), `in_stock_variants` ("blue and purple"),
+`cancel_option` (default True), `product_name_cn` for the Chinese body.
+**Color naming caution (2026-11-04)**: if the color↔character mapping is unverified, write only
+"blue and purple versions" — the user explicitly said "不确定，邮件里只写'蓝/紫'不提角色". Never
+invent "blue = Leonardo, purple = Donatello"; a wrong mapping is a promise you cannot keep.
+Also keep the CN product name in its own field (`product_name_cn`) — do not reuse the English one.
+
+## Batch sending — the user pastes many orders at once (added 2026-11-09)
+
+The user very often pastes a *text block* of 10+ orders (order number, buyer email, variant) instead
+of a screenshot, and asks for the same notice to every buyer. Do NOT hand-send them one at a time in
+separate turns. Workflow:
+
+1. **Parse the paste into a table** and show it to the user for an eyeball check before anything is
+   built: `| # | 订单号 | 买家邮箱 | 规格 |`. Typos in pasted addresses are the user's, not yours —
+   but they still get seen once in a table and are cheap to fix at this point.
+2. **Write a JSON list** (`orders.json`, shape = `email_sop_tool/orders.example.json`) — one record
+   per order, with `scenario` and the scenario-specific fields.
+3. **`python send_batch.py orders.json --dry-run`** → show the user the generated EN+CN for at least
+   the first mail (and any mail whose variant differs), then **wait for an explicit 发送/发**.
+   A batch of 10+ mails is a大动作: the "always preview before sending" rule is NOT waived just
+   because there are many.
+4. **Run it for real** (`--interval 3` default). Report `sent_ok=N failed=M` plus the per-mail list.
+   On partial failure, re-run only the failed ones with `--only i,j` (or `--start-at N`); never blanket
+   re-send the ones that already succeeded.
+5. **"重新发" / resend request**: just re-run the exact same command — same JSON, same bodies, same
+   subjects. Report the count again and warn once that buyers will see the same notice twice
+   (2026-11-09: 12/12 OK, re-sent on request 12/12 OK again).
+6. **"先不发" / 忽略**: keep the drafts/JSON, send nothing, and say clearly that nothing was sent.
+   Anything the user said "忽略" is dead — do not quietly include it in a later batch.
+
+Practical notes: PowerShell has no heredoc (`python - <<'PY'` → ParserError) — write scripts with the
+write tool instead; wrap `sys.stdout` in `io.TextIOWrapper(encoding='utf-8')` when the report contains
+Chinese or the cp936 console prints mojibake; keep 3 s between sends so QQ SMTP does not throttle.
+
 ## SMTP Configuration
 
 Pre-configured, do NOT ask user to re-enter unless sending fails:
@@ -292,3 +362,12 @@ Pre-configured, do NOT ask user to re-enter unless sending fails:
 - HTML `<b>` tags in body_en are intentional for bold rendering in the email
 - After sending, briefly confirm success and remind the user they can send more orders
 - Do NOT skip the confirmation step — always show preview and wait for explicit "发送" before sending
+  (batches included: a 12-mail run is 12 chances to be wrong, so preview first)
+- **Never invent facts in the mail**: no color↔character mapping you were not told, no delivery date,
+  no stock quantity. When the seller's info is vague, keep the sentence vague ("still need more time").
+- **Compensation amounts must be explicit and composable**: state the total, then the parts
+  ("$5 in total — our usual $3 plus an extra $2"). Never leave the buyer (or the seller) guessing.
+- **Product naming**: keep the Chinese name in `product_name_cn` and a short model ref in
+  `product_short`; `product_name` is the English name that goes into the sent body.
+- Keep sent emails short and clean: "Dear Valued Customer," + "Hope you are doing well.", ~6 sentences,
+  no bold, no bullet-step instructions, signature "Best regards,\nCustomer Service Team".

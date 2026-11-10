@@ -9,6 +9,9 @@ Scenarios:
 - scenario_5_repack_delay: Shipping Delay Notice (repacking) / 发货延期通知（重新备货）
 - scenario_6_extend_reminder: Gentle Reminder - Extend Delivery Time / 温馨提醒：请延长收货时间
 - scenario_7_new_batch_delay: Restocking Notice (new batch in production) / 补货中通知（请延长收货时间或取消）
+- scenario_8_wrong_item: Wrong Item Shipped - Replacement or Full Refund / 错发商品：补发或全额退款
+- scenario_9_partial_stock_extend: Partial Stock - Extend Delivery Time or Switch Color /
+  部分规格有货：请延长收货时间或改选现货颜色
 """
 
 from dataclasses import dataclass
@@ -26,6 +29,28 @@ class OrderInfo:
     # scenario_7 only: True when the new batch missed its expected production date
     # (wording becomes "has not been produced within the expected time").
     overdue: bool = False
+
+    # --- scenario_8_wrong_item (错发商品) ---
+    # Chinese product name for body_cn (falls back to product_name).
+    product_name_cn: Optional[str] = None
+    # Short product ref used inside the option lines, e.g. "TW-1124".
+    # Falls back to product_name.
+    product_short: Optional[str] = None
+    # Promise "we will send your replacement within N hours" (default 3).
+    ship_within_hours: int = 3
+    # Optional apology discount, written as "a $<total> discount in total —
+    # our usual $<base> plus an extra $<extra>". 0 = no discount sentence.
+    # RULE (2026-11-02, user feedback): when the extra discount stacks on a base
+    # discount, ALWAYS state the total AND its composition — never just "extra $2".
+    discount_total: int = 0
+    discount_base: int = 0
+    discount_extra: int = 0
+
+    # --- scenario_9_partial_stock_extend (部分规格有货) ---
+    # Which variants can ship immediately, e.g. "blue and purple".
+    in_stock_variants: str = "blue and purple"
+    # Whether to also offer "cancel on AliExpress for a full refund".
+    cancel_option: bool = True
 
 
 def _subject(platform: str, order_number: str, issue_en: str, issue_cn: str) -> str:
@@ -299,6 +324,147 @@ def generate_email(scenario_key: str, order: OrderInfo) -> dict:
                 else "新批次生产完成后，我们会尽快为您发货；如果提前生产出来，也会提前为您发出。<br><br>"
             )
             + "如果您不想等待，也可以直接在 AliExpress 上取消此订单，款项将全额退回。<br><br>"
+            "如有任何问题，欢迎随时联系我们。<br><br>"
+            "此致，<br>"
+            "客服团队"
+        )
+
+    elif scenario_key in ("scenario_8_wrong_item", "scenario_8"):
+        # 错发商品（新增 2026-11-02）：仓库发错货，已在准备补发正确商品 →
+        # 买家二选一：① 通过近乎免费的链接重新下单，我们以新订单形式补发正确商品；
+        # ② 本单全额退款，买家同样通过链接重新下单。确认后 N 小时内发出补发商品。
+        # 风格：Dear Valued Customer + Hope you are doing well，无 <b>。
+        # 折扣口径：额外优惠叠加在原优惠之上时，必须写清「合计多少 = 原本多少 + 额外多少」
+        # （用户 2026-11-02 明确要求：3 美元基础上额外给 2 美元 → 一共写 5 美元）。
+        product_ref = order.product_name or "your item"
+        product_cn = getattr(order, "product_name_cn", None) or product_ref
+        product_short = getattr(order, "product_short", None) or product_ref
+        hours = getattr(order, "ship_within_hours", 3) or 3
+        subject = _subject(
+            platform,
+            order_number,
+            "Wrong Item Shipped - Replacement or Full Refund",
+            "错发商品：补发或全额退款",
+        )
+
+        discount_en = ""
+        discount_cn = ""
+        total = getattr(order, "discount_total", 0) or 0
+        if total:
+            base = getattr(order, "discount_base", 0) or 0
+            extra = getattr(order, "discount_extra", 0) or 0
+            if base and extra:
+                discount_en = (
+                    f"As an apology, we will offer you a ${total} discount in total — "
+                    f"our usual ${base} plus an extra ${extra} — which you can use on this "
+                    "new order or on any future purchase from our store.<br><br>"
+                )
+                discount_cn = (
+                    f"作为致歉，我们一共给您 {total} 美元优惠（原本的 {base} 美元，再加额外 "
+                    f"{extra} 美元），可用于本次新订单或今后在本店的任何购买。<br><br>"
+                )
+            else:
+                discount_en = (
+                    f"As an apology, we will offer you a ${total} discount, which you can use "
+                    "on this new order or on any future purchase from our store.<br><br>"
+                )
+                discount_cn = (
+                    f"作为致歉，我们会给您 {total} 美元优惠，可用于本次新订单或今后在本店的"
+                    "任何购买。<br><br>"
+                )
+
+        body_en = (
+            "Dear Valued Customer,<br><br>"
+            "Hope you are doing well.<br><br>"
+            f"We are writing regarding your order (Order No. {order_number}). "
+            "It appears that our warehouse has sent you the wrong product. We are sorry for "
+            "this mistake, and we are already preparing to reship the correct item to you, "
+            f"which is the {product_ref} you ordered.<br><br>"
+            "Please choose the option that works best for you:<br><br>"
+            f"1. Place an order through a nearly free link, and we will send you the "
+            f"{product_short} you need via a new order.<br>"
+            f"2. We issue you a full refund for Order No. {order_number}, and you can place "
+            "a new order through the link.<br><br>"
+            + discount_en
+            + "Once you let us know which option you prefer, we will send your replacement "
+            f"within {hours} hours.<br><br>"
+            "Please feel free to contact us if you have any questions.<br><br>"
+            "Best regards,<br>"
+            "Customer Service Team"
+        )
+        body_cn = (
+            "尊敬的客户：<br><br>"
+            "希望您一切安好。<br><br>"
+            f"我们写信是关于您的订单（订单号 {order_number}）。我们的仓库似乎给您发错了商品，"
+            f"对此我们深表歉意。我们正在为您准备正确的商品——您订购的 {product_cn}。<br><br>"
+            "请您选择最适合您的方式：<br><br>"
+            f"1. 通过一个几乎免费（低价）的链接下单，我们会以新订单形式把您需要的 "
+            f"{product_short} 发给您。<br>"
+            f"2. 我们为订单号 {order_number} 办理全额退款，您再通过链接重新下单。<br><br>"
+            + discount_cn
+            + f"您确认选择哪一种后，我们会在 {hours} 小时内为您发出补发商品。<br><br>"
+            "如有任何问题，欢迎随时联系我们。<br><br>"
+            "此致，<br>"
+            "客服团队"
+        )
+
+    elif scenario_key in ("scenario_9_partial_stock_extend", "scenario_9"):
+        # 部分规格有货（新增 2026-11-04）：买家所选颜色/规格备货不齐，只有某些颜色可立即发。
+        # 结构：① 该单无法按原计划发出、所选规格备货不齐 ② 只有 X 可立即发，其他要等
+        # ③ 还想要就延长 N 天收货时间 ④ 不想等可改选 X 立即发（或直接取消全额退款）。
+        # 风格：Dear Valued Customer + Hope you are doing well，无 <b>。
+        # 注意（2026-11-04）：颜色与角色名的对应关系不确认时，只写「蓝色和紫色版本」，
+        # 不要自作主张写「蓝=Leonardo、紫=Donatello」——猜错等于给买家错误承诺。
+        product_ref = order.product_name or "your item"
+        product_cn = getattr(order, "product_name_cn", None) or product_ref
+        days = getattr(order, "extend_days", 30) or 30
+        in_stock = getattr(order, "in_stock_variants", "blue and purple") or "blue and purple"
+        in_stock_cn = {"blue and purple": "蓝色和紫色"}.get(in_stock, in_stock)
+        cancel_option = bool(getattr(order, "cancel_option", True))
+        subject = _subject(
+            platform,
+            order_number,
+            "Shipping Delay Notice - Please Extend Delivery Time",
+            "发货延期通知：请延长收货时间",
+        )
+
+        tail_en = ""
+        tail_cn = ""
+        if cancel_option:
+            tail_en = (
+                " Alternatively, you may cancel this order directly on AliExpress, and you "
+                "will be fully refunded."
+            )
+            tail_cn = "或者您可以直接在 AliExpress 上取消此订单，款项将全额退回。"
+
+        body_en = (
+            "Dear Valued Customer,<br><br>"
+            "Hope you are doing well.<br><br>"
+            f"We are writing regarding your item {product_ref} (Order No. {order_number}). "
+            "Unfortunately, this order cannot be shipped as scheduled: the version you "
+            "selected is not fully available at the moment. Currently, only the "
+            f"{in_stock} versions can be shipped to you immediately, while the other colors "
+            "still need more time.<br><br>"
+            "If you still need this order, please extend the delivery / acceptance period "
+            f"by {days} days on the order page, and we will ship your order as soon as the "
+            "item you selected is ready.<br><br>"
+            "If you would rather not wait, you can switch the unavailable item to the "
+            f"{in_stock} version and we will ship it right away — just let us know which one "
+            f"you prefer.{tail_en}<br><br>"
+            "Please feel free to contact us if you have any questions.<br><br>"
+            "Best regards,<br>"
+            "Customer Service Team"
+        )
+        body_cn = (
+            "尊敬的客户：<br><br>"
+            "希望您一切安好。<br><br>"
+            f"我们写信是关于您的商品 {product_cn}（订单号 {order_number}）。"
+            "很抱歉，该订单无法按原计划发出：您选择的规格目前备货不齐。"
+            f"目前只有{in_stock_cn}版本可以立即为您发出，其他颜色还需要更长时间。<br><br>"
+            f"如果您仍然需要这个订单，请在订单页面延长 {days} 天收货 / 接受时间；"
+            "所选商品备好后，我们会第一时间为您发货。<br><br>"
+            f"如果不想等，您也可以把无法发货的部分改选为{in_stock_cn}版本，我们会立即发出——"
+            f"请告诉我们您要哪一种。{tail_cn}<br><br>"
             "如有任何问题，欢迎随时联系我们。<br><br>"
             "此致，<br>"
             "客服团队"
