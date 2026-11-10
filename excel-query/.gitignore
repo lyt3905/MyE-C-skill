@@ -1,0 +1,8 @@
+# 数据文件本身不进 git（体积大、含经营数据）
+data/*
+!data/.gitkeep
+data/_cache/
+# 本机登记表（含绝对路径）
+config/sources.json
+__pycache__/
+*.pyc

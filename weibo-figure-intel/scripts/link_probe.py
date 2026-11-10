@@ -436,6 +436,11 @@ def main():
             print(f"  · [{it['intel_type']}] {it.get('brand') or '-'} | {it['summary'][:110]}")
         if a.merge_into and os.path.exists(a.merge_into):
             spec = json.load(open(a.merge_into, encoding="utf-8"))
+            # 容忍 {date, items:[...]} 包裹形式，统一为数组（assemble_intel 只接受数组）
+            if isinstance(spec, dict):
+                if not isinstance(spec.get("items"), list):
+                    sys.exit("✗ --merge-into 的 spec 必须是 JSON 数组，或含 items 数组的对象")
+                spec = spec["items"]
             by_pid = {}
             for s in spec:
                 by_pid.setdefault(str(s.get("post_id")), []).append(s)
