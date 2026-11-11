@@ -137,6 +137,32 @@ agent_created: true
      --user-data-dir="C:/Users/shana/EdgeWeibo" --remote-debugging-port=9222
    ```
 
+   #### ✅ 一键登录器（推荐，2026-11-11 新增）：`scripts/weibo-cdp-login.ps1` / `.bat`
+
+   > 这是旧版桌面 `weibo-cdp-login.bat` 的 **skill 内置增强版**。旧版只是 `start` 一个 Edge 窗口，
+   > 之后还得手动跑 `grab --write`；新版把「启动窗口 → 探测端口 → 轮询等登录 → 自动 `grab --write`
+   > 写回 `wb_cookie.json` → 清理进程」全串起来了，**双击即可，无需手抄 SUB**。
+
+   ```powershell
+   # 双击 .bat，或命令行：
+   pwsh -File scripts\weibo-cdp-login.ps1              # 开窗口 + 轮询登录 + 自动写回 cookie（默认等 180s）
+   pwsh -File scripts\weibo-cdp-login.ps1 -NoGrab      # 只开窗口，不自动抓（登完自己跑 grab）
+   pwsh -File scripts\weibo-cdp-login.ps1 -ProbeOnly   # 只探测 9222 是否可用，不启动
+   pwsh -File scripts\weibo-cdp-login.ps1 -Stop        # 按命令行精确终止 EdgeWeibo 调试实例（不动日常 Edge）
+   ```
+
+   | 项 | 说明 |
+   |---|---|
+   | profile | 固定 `C:\Users\shana\EdgeWeibo`（`-ProfileDir` 可改），目录不存在会自动建 |
+   | 端口 | 默认 `9222`（`-Port` 可改），只监听 127.0.0.1 |
+   | Python | 自动找 `dsh-next-primary-runtime` 的管理版 python，回退 PATH 的 `python` |
+   | 轮询 | `-WaitSeconds`（默认 180s）内每隔 6s 跑一次 `grab --write`，直到抓到有效 SUB 或超时 |
+   | 清理 | `-Stop` 只杀命令行含该 profile 路径的 msedge，**不影响用户日常 Edge** |
+   | 编码坑 | `.ps1` **必须存成 UTF-8 with BOM**，否则 Windows PowerShell 5.1 按 GBK 解码会把中文串截断、报 `Missing closing '}'`。`.bat` 已用 `-ExecutionPolicy Bypass` 绕过默认执行策略 |
+
+   > 若系统没有 `pwsh`（只有 Windows PowerShell），`.bat` 里已注释回退命令：
+   > `powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0weibo-cdp-login.ps1"`。
+
    | 做法 | 结果 | 原因 |
    |---|---|---|
    | 默认 profile + `--remote-debugging-port` | ❌ **端口根本不开**（`WinError 10061`），进程正常起来但无调试接口 | **Chrome/Edge 136+ 起，出于防 cookie 窃取的考虑，禁止在默认 user-data-dir 上启用远程调试**。看起来像「参数没生效」，实为内核级拒绝——这就是 09-28 记的「默认 profile 不生效」的真实原因 |
@@ -205,6 +231,7 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 | `scripts/publish_daily.py` | **发布到 GitHub Pages**（2026-09-30 新增）：当日 HTML/MD + 页面引用到的缩略图 → 独立 public 仓 `lyt3905/figure-intel`，维护固定入口 `index.html`（永远最新）与 `archive.html`，然后 commit + push。**原图 `media/view/` 一律不发布**。详见「第 5.7 步」 |
 | `scripts/lexicon.json` | 手办情报词库与权重，**主要调优入口** |
 | `scripts/cdp_get_sub.py` | **CDP 自动取 SUB**（2026-09-28 新增）。通过远程调试端口让浏览器交出 HttpOnly 的 `SUB`，绕开 ABE 加密与 profile 锁。子命令 `probe` / `grab`，`--write` 直接写回 `wb_cookie.json`。仅用标准库 |
+| `scripts/weibo-cdp-login.ps1` / `.bat` | **一键登录器**（2026-11-11 新增，旧版桌面 bat 的 skill 内置增强版）。开独立 profile Edge + 调试端口 → 轮询等你登录 → 自动 `grab --write` → 可 `-Stop` 清理。`-NoGrab` / `-ProbeOnly` / `-Port` / `-ProfileDir` / `-WaitSeconds` |
 | `scripts/watchlist.json` | 白名单 / 黑名单账号 UID |
 | `references/intel-schema.md` | 精抽输出的字段定义与判定口径 |
 
@@ -345,6 +372,10 @@ INTEL="$SKILL/data/intel-$(date +%F).json"
 
 ```bash
 # 1) 确保 CDP 在跑（EdgeWeibo 是独立 profile，登录态独立于用户日常 Edge）
+#    【首选】直接用一键登录器：开窗口 → 轮询登录 → 自动写回 cookie（登完按 -Stop 清理）
+pwsh -File scripts\weibo-cdp-login.ps1            # 交互式，等你在窗口里登录
+pwsh -File scripts\weibo-cdp-login.ps1 -Stop      # 用完关掉该调试实例
+#    【无人值守/仅续期】若该 profile 已有有效登录态，也可直接拉起后 grab：
 #    先探测：Invoke-WebRequest http://127.0.0.1:9222/json/version 不通才启动
 #    （cdp_get_sub.py 只有 grab 子命令，没有 launch，别调）
 Start-Process -FilePath "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" `
