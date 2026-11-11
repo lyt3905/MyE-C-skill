@@ -7,13 +7,20 @@
 （历史上「前缀一律 Hot Sale」就是这么漂的；2026-11-07 又发现 `站点接口备忘.md`
 仓库版落后 skill 版 17 行）。
 
-比对清单（7 对）：
+比对清单（14 对）：
     子任务模板-单件商品.md  <-> templates/子任务模板.md
     SOP-商品图片整改.md     <-> references/SOP-商品图片整改.md
     SOP-商品标题重写.md     <-> references/SOP-商品标题重写.md
     站点接口备忘.md         <-> references/站点接口备忘.md
     判例与陷阱.md           <-> references/判例与陷阱.md
     audit_one.py            <-> scripts/audit_one.py
+    site_client.py           <-> scripts/site_client.py
+    product_state.py         <-> scripts/product_state.py
+    token_opt_plan.py        <-> scripts/token_opt_plan.py
+    description_refs.py      <-> scripts/description_refs.py
+    apply_token_plan.py      <-> scripts/apply_token_plan.py
+    render_token_report.py   <-> scripts/render_token_report.py
+    tests/test_token_opt.py  <-> tests/test_token_opt.py
     check_template_sync.py   <-> scripts/check_template_sync.py
 
 用法：
@@ -40,6 +47,13 @@ PAIRS = [
     ('站点接口备忘', '站点接口备忘.md', 'references/站点接口备忘.md'),
     ('判例与陷阱', '判例与陷阱.md', 'references/判例与陷阱.md'),
     ('audit_one', 'audit_one.py', 'scripts/audit_one.py'),
+    ('site_client', 'site_client.py', 'scripts/site_client.py'),
+    ('product_state', 'product_state.py', 'scripts/product_state.py'),
+    ('token_opt_plan', 'token_opt_plan.py', 'scripts/token_opt_plan.py'),
+    ('description_refs', 'description_refs.py', 'scripts/description_refs.py'),
+    ('apply_token_plan', 'apply_token_plan.py', 'scripts/apply_token_plan.py'),
+    ('render_token_report', 'render_token_report.py', 'scripts/render_token_report.py'),
+    ('token_opt_tests', 'tests/test_token_opt.py', 'tests/test_token_opt.py'),
     ('check_template_sync', 'check_template_sync.py', 'scripts/check_template_sync.py'),
 ]
 

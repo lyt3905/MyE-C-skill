@@ -111,7 +111,7 @@ class Site:
     def status(self, pid, value):
         return self.call("/api/admin/products/%s/status" % pid, {"status": value})
 
-    def save(self, pid, images=None, desc=None, extra=None):
+    def save(self, pid, images=None, desc=None, extra=None, *, expected_state_hash=None):
         """等价于控制台「保存」按钮：PUT /api/admin/products/{id}?autoSave=true
         与不带 autoSave 的 PUT 有本质区别（实测 2026-11-07）：
           - 带 autoSave：不改状态、不重新分配图片 id、不插 AI 封面。
@@ -130,6 +130,12 @@ class Site:
         必须是 json.dumps 后的字符串）。brand 缺失时不会被重置。
         """
         p = self.product(pid)
+        if expected_state_hash is not None:
+            from product_state import canonical_state_hash
+            actual_state_hash = canonical_state_hash(p)
+            if actual_state_hash != expected_state_hash:
+                raise RuntimeError("Site.save precondition failed: expected state %s, got %s" %
+                                   (expected_state_hash, actual_state_hash))
         body = {k: p.get(k) for k in ('titleEn', 'titleTranslationZh', 'descriptionJson',
                                       'skus', 'price', 'weight', 'identityJson') if k in p}
         imgs = dict(p.get('images') or {})

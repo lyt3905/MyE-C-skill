@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -29,6 +30,11 @@ STORE_WORDS = ("store", "shop", "toys", "toy store", "模玩", "玩具店", "商
 HASBRO = "200017853"
 BANDAI = "200014695"
 DUPLICATE_DISTANCE = 8
+WORKFLOW_VERSION = "token-opt-v1"
+EVIDENCE_SCHEMA = "image-evidence/v1"
+METRICS_SCHEMA = "token-opt-metrics/v1"
+OCR_EXTRACTOR_FINGERPRINT = "rapidocr-onnxruntime:default|full+top28x2+bottom28x2|score>=0.50|v1"
+EVIDENCE_CACHE = ROOT / ".cache" / "audit_evidence" / "v1"
 
 
 def _json_obj(value: Any) -> dict[str, Any]:
@@ -70,6 +76,29 @@ def _decode(path: Path) -> np.ndarray | None:
         return cv2.imdecode(np.fromfile(str(path), dtype=np.uint8), cv2.IMREAD_COLOR)
     except (OSError, ValueError, cv2.error):
         return None
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _read_json(path: Path) -> dict[str, Any] | None:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else None
+    except (OSError, TypeError, ValueError):
+        return None
+
+
+def _atomic_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temporary, path)
 
 
 def _phash(gray: np.ndarray) -> str:
@@ -238,18 +267,8 @@ def _classify_ocr(items: list[dict[str, Any]], title_text: str = "") -> tuple[st
     return classifier, hits
 
 
-def run_ocr(engine: Any, image: np.ndarray, title_text: str = "") -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
-    h, w = image.shape[:2]
-    crop_h = max(1, int(round(h * 0.28)))
-    top = cv2.resize(image[:crop_h], None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
-    bottom = cv2.resize(image[h - crop_h:], None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
-    passes = [
-        _ocr_items(engine, image, "full"),
-        _ocr_items(engine, top, "top28_x2", inverse_scale=0.5),
-        _ocr_items(engine, bottom, "bottom28_x2", y0=h - crop_h, inverse_scale=0.5),
-    ]
-    # Classify each pass independently.  Otherwise the same real label seen in
-    # full + strip OCR looks like a repeated/tiled watermark to classify().
+def _classify_ocr_passes(passes: list[list[dict[str, Any]]], title_text: str = "") -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+    """Classify cached/raw OCR by pass so repeated strip reads do not look tiled."""
     all_items: list[dict[str, Any]] = []
     hits: list[dict[str, Any]] = []
     classifiers: set[str] = set()
@@ -259,8 +278,6 @@ def run_ocr(engine: Any, image: np.ndarray, title_text: str = "") -> tuple[list[
         all_items.extend(items)
         hits.extend(pass_hits)
 
-    # Keep one compact evidence item when the enlarged strip redetects the same
-    # text at the same location.  Distinct repeated locations remain separate.
     deduped: list[dict[str, Any]] = []
     for hit in hits:
         box = hit["rect"]
@@ -283,6 +300,26 @@ def run_ocr(engine: Any, image: np.ndarray, title_text: str = "") -> tuple[list[
         if not merged:
             deduped.append(hit)
     return all_items, deduped, ",".join(sorted(classifiers))
+
+
+def run_ocr(engine: Any, image: np.ndarray, title_text: str = "") -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+    h, w = image.shape[:2]
+    crop_h = max(1, int(round(h * 0.28)))
+    top = cv2.resize(image[:crop_h], None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+    bottom = cv2.resize(image[h - crop_h:], None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+    passes = [
+        _ocr_items(engine, image, "full"),
+        _ocr_items(engine, top, "top28_x2", inverse_scale=0.5),
+        _ocr_items(engine, bottom, "bottom28_x2", y0=h - crop_h, inverse_scale=0.5),
+    ]
+    return _classify_ocr_passes(passes, title_text=title_text)
+
+
+def classify_cached_ocr(items: list[dict[str, Any]], title_text: str = "") -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+    """Reclassify title-dependent flags without rerunning title-independent OCR."""
+    regions = ("full", "top28_x2", "bottom28_x2")
+    passes = [[item for item in items if item.get("region") == region] for region in regions]
+    return _classify_ocr_passes(passes, title_text=title_text)
 
 
 def title_checks(product: dict[str, Any], shop: int) -> dict[str, Any]:
@@ -389,6 +426,7 @@ def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dic
     # Deliberately lazy: importing this module for tests does not log in to the site.
     from site_client import Site
 
+    audit_started = time.perf_counter()
     site = Site()
     site.call("/api/admin/shops/current", {"shopId": shop}, method="PUT")
     product = site.product(pid)
@@ -398,13 +436,30 @@ def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dic
     imgdir.mkdir(parents=True, exist_ok=True)
     snapshot_path = outdir / "audit_product.json"
     snapshot_path.write_text(json.dumps(product, ensure_ascii=False, indent=2), encoding="utf-8")
+    previous_metrics = _read_json(outdir / "run_metrics.json") or {}
 
     refs = _image_urls(product)
     engine = None
-    if not no_ocr:
-        from rapidocr_onnxruntime import RapidOCR
-        engine = RapidOCR()
 
+    def ocr_engine() -> Any:
+        nonlocal engine
+        if engine is None:
+            from rapidocr_onnxruntime import RapidOCR
+            engine = RapidOCR()
+        return engine
+
+    metrics: dict[str, Any] = {
+        "schema": METRICS_SCHEMA,
+        "workflow_version": WORKFLOW_VERSION,
+        "pid": pid,
+        "shop": shop,
+        "image_occurrences": len(refs),
+        "downloads": {"cache_hits": 0, "network_fetches": 0},
+        "evidence": {"cache_hits": 0, "cache_misses": 0, "writes": 0},
+        "ocr": {"enabled": not no_ocr, "image_executions": 0, "cache_reuses": 0},
+    }
+    if isinstance(previous_metrics.get("executor"), dict):
+        metrics["executor"] = previous_metrics["executor"]
     raw_images: list[dict[str, Any]] = []
     compact_images: list[dict[str, Any]] = []
     anomalies: list[dict[str, Any]] = []
@@ -413,46 +468,95 @@ def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dic
     residual_hits: list[dict[str, Any]] = []
     main_hashes: list[tuple[int, str, str]] = []
     classifiers: set[str] = set()
+    title_context = "%s %s" % (product.get("titleEn") or "", product.get("title") or "")
+    unique_content_hashes: set[str] = set()
 
-    for ordinal, ref in enumerate(refs):
-        digest = hashlib.sha1(ref["url"].encode("utf-8")).hexdigest()[:10]
-        path = imgdir / f"{ref['kind']}_{ref['index']:02d}_{digest}.bin"
+    for ref in refs:
+        url_digest = hashlib.sha1(ref["url"].encode("utf-8")).hexdigest()[:10]
+        path = imgdir / f"{ref['kind']}_{ref['index']:02d}_{url_digest}.bin"
         rec = dict(ref)
         rec["file"] = _relative(path)
         try:
-            if force or not path.exists() or path.stat().st_size == 0:
+            needs_download = force or not path.exists() or path.stat().st_size == 0
+            if needs_download:
                 site.download(ref["url"], str(path))
+                metrics["downloads"]["network_fetches"] += 1
+            else:
+                metrics["downloads"]["cache_hits"] += 1
             rec["bytes"] = path.stat().st_size
-            image = _decode(path)
-            if image is None:
-                raise ValueError("cv2.imdecode returned None")
-            h, w = image.shape[:2]
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            rec.update({"width": int(w), "height": int(h), "short": int(min(w, h)),
-                        "ratio": round(w / h, 4)})
-            borders = border_candidates(gray)
-            residual = residual_stats(gray)
-            rec["borders"] = borders
-            rec["residual"] = residual
-            if ref["kind"] == "main":
-                main_hashes.append((ref["index"], _phash(gray), rec["file"]))
-            if min(w, h) < 800:
-                anomalies.append({"type": "short_side_lt_800", "image": rec["file"],
-                                  "kind": ref["kind"], "index": ref["index"], "value": min(w, h)})
-            if borders:
-                border_hits.append({"image": rec["file"], "kind": ref["kind"],
-                                    "index": ref["index"], "bands": borders})
-            if residual["candidate"]:
-                residual_hits.append({"image": rec["file"], "kind": ref["kind"],
-                                      "index": ref["index"], "stats": residual})
-            if engine is not None:
-                title_context = "%s %s" % (product.get("titleEn") or "", product.get("title") or "")
-                items, hits, classifier = run_ocr(engine, image, title_text=title_context)
+            content_hash = _sha256(path)
+            rec["content_sha256"] = content_hash
+            unique_content_hashes.add(content_hash)
+            cache_path = EVIDENCE_CACHE / content_hash[:2] / f"{content_hash}.json"
+            evidence = _read_json(cache_path)
+            valid_evidence = bool(evidence and evidence.get("schema") == EVIDENCE_SCHEMA
+                                  and evidence.get("sha256") == content_hash)
+            image: np.ndarray | None = None
+            evidence_dirty = False
+            if valid_evidence:
+                metrics["evidence"]["cache_hits"] += 1
+            else:
+                metrics["evidence"]["cache_misses"] += 1
+                image = _decode(path)
+                if image is None:
+                    raise ValueError("cv2.imdecode returned None")
+                h, w = image.shape[:2]
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                evidence = {
+                    "schema": EVIDENCE_SCHEMA,
+                    "sha256": content_hash,
+                    "bytes": rec["bytes"],
+                    "width": int(w),
+                    "height": int(h),
+                    "short": int(min(w, h)),
+                    "ratio": round(w / h, 4),
+                    "phash": _phash(gray),
+                    "borders": border_candidates(gray),
+                    "residual": residual_stats(gray),
+                }
+                evidence_dirty = True
+
+            assert evidence is not None
+            ocr_cache_valid = ("ocr" in evidence and
+                               evidence.get("ocr_fingerprint") == OCR_EXTRACTOR_FINGERPRINT)
+            if not no_ocr and not ocr_cache_valid:
+                if image is None:
+                    image = _decode(path)
+                    if image is None:
+                        raise ValueError("cv2.imdecode returned None")
+                items, hits, classifier = run_ocr(ocr_engine(), image, title_text=title_context)
+                evidence["ocr"] = items
+                evidence["ocr_fingerprint"] = OCR_EXTRACTOR_FINGERPRINT
+                evidence_dirty = True
+                metrics["ocr"]["image_executions"] += 1
+            elif not no_ocr:
+                items, hits, classifier = classify_cached_ocr(evidence.get("ocr") or [], title_text=title_context)
+                metrics["ocr"]["cache_reuses"] += 1
+            else:
+                items, hits, classifier = [], [], "disabled"
+
+            if evidence_dirty:
+                _atomic_json(cache_path, evidence)
+                metrics["evidence"]["writes"] += 1
+
+            rec.update({key: evidence[key] for key in ("width", "height", "short", "ratio", "borders", "residual")})
+            if not no_ocr:
                 classifiers.add(classifier)
                 rec["ocr"] = items
                 for hit in hits:
                     all_hits.append({"image": rec["file"], "kind": ref["kind"],
                                      "index": ref["index"], **hit})
+            if ref["kind"] == "main":
+                main_hashes.append((ref["index"], str(evidence["phash"]), rec["file"]))
+            if rec["short"] < 800:
+                anomalies.append({"type": "short_side_lt_800", "image": rec["file"],
+                                  "kind": ref["kind"], "index": ref["index"], "value": rec["short"]})
+            if rec["borders"]:
+                border_hits.append({"image": rec["file"], "kind": ref["kind"],
+                                    "index": ref["index"], "bands": rec["borders"]})
+            if rec["residual"]["candidate"]:
+                residual_hits.append({"image": rec["file"], "kind": ref["kind"],
+                                      "index": ref["index"], "stats": rec["residual"]})
             compact_images.append({key: rec[key] for key in
                                    ("kind", "index", "source", "file", "width", "height", "short", "ratio")})
         except Exception as exc:  # continue so one bad image does not hide the product audit
@@ -513,6 +617,7 @@ def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dic
     deep = bool(anomalies or all_hits or duplicates or border_hits or residual_hits)
     flags = {
         "schema": "audit-one/v1",
+        "workflow_version": WORKFLOW_VERSION,
         "pid": pid,
         "shop": shop,
         "read_only_product": True,
@@ -542,19 +647,37 @@ def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dic
             "context": _relative(outdir / "audit_context.md"),
             "product_snapshot": _relative(snapshot_path),
             "raw": _relative(outdir / "audit_raw.json"),
+            "metrics": _relative(outdir / "run_metrics.json"),
             "image_dir": _relative(imgdir),
         },
     }
     raw = {
         "schema": "audit-one-raw/v1",
+        "workflow_version": WORKFLOW_VERSION,
         "pid": pid,
         "shop": shop,
         "classifier": sorted(classifiers),
         "images": raw_images,
     }
+    metrics["elapsed_seconds"] = round(time.perf_counter() - audit_started, 3)
+    metrics["unique_content_digests"] = len(unique_content_hashes)
+    metrics["classifier_executions"] = len(raw_images) if not no_ocr else 0
+    metrics["image_errors"] = sum(1 for item in raw_images if item.get("error"))
+    metrics["budget"] = {
+        "full_resolution_views": {"value": None, "limit": 12, "source": "agent_updates_required"},
+        "temporary_scripts": {"value": None, "limit": 1, "source": "agent_updates_required"},
+        "model_requests": {"value": None, "target_max": 45, "source": "external-session-ledger"},
+    }
+    previous_budget = previous_metrics.get("budget", {})
+    if isinstance(previous_budget, dict):
+        for name, row in metrics["budget"].items():
+            old_row = previous_budget.get(name)
+            if isinstance(old_row, dict) and "value" in old_row:
+                row["value"] = old_row["value"]
     (outdir / "audit_raw.json").write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
     flags_path = outdir / "audit_flags.json"
     flags_path.write_text(json.dumps(flags, ensure_ascii=False, indent=2), encoding="utf-8")
+    (outdir / "run_metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
     (outdir / "audit_context.md").write_text(_render_context(flags), encoding="utf-8")
     return flags
 
@@ -568,7 +691,7 @@ def _render_context(flags: dict[str, Any], max_items: int = 12) -> str:
     title = checks["title_identity_brand"]
     lines = [
         f"# 商品 {flags['pid']} 只读预审",
-        f"- 模式：{summary['suggested_mode']}；店铺：{flags['shop']}；状态：{inv.get('status')}",
+        f"- 流程：{flags.get('workflow_version')}；模式：{summary['suggested_mode']}；店铺：{flags['shop']}；状态：{inv.get('status')}",
         f"- 图片：main {counts['main']} / detail {counts['detail']} / sku {counts['sku']}；读取错误 {summary['image_errors']}",
         f"- 命中：OCR {summary['ocr_hit_count']} / 重复 {summary['duplicate_pair_count']} / 边框 {summary['border_candidate_count']} / 残差 {summary['residual_candidate_count']} / 字段异常 {summary['anomaly_count']}",
         f"- 标题：{title.get('length')} 字；前缀={title.get('prefix_ok')}；编号双格式={title.get('dual_format_ok')}",
@@ -593,6 +716,7 @@ def _render_context(flags: dict[str, Any], max_items: int = 12) -> str:
     lines.extend([
         "## 证据路由",
         "- 默认只读本文件；出现问题再读 audit_flags.json；机器明细只在必要时读 audit_raw.json。",
+        "- 资源账本：run_metrics.json；只记录摘要，不把原始日志贴入上下文。",
     ])
     return "\n".join(lines) + "\n"
 
