@@ -1,4 +1,0 @@
-interface:
-  display_name: "跨境评价分析"
-  short_description: "分析海外买家评价并生成自然得体的回复"
-  default_prompt: "使用 $跨境评价分析 分析这条买家评价并生成回复。"
