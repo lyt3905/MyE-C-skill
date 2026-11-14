@@ -1,3 +1,4 @@
+from watermark_fixtures import exhaustive
 import json
 import tempfile
 import unittest
@@ -8,7 +9,7 @@ from policy_engine import evaluate
 
 
 class StorePolicyConsensusTests(unittest.TestCase):
-    def classify(self, first='third_party_store_banner', second='third_party_store_logo',
+    def classify(self, first='third_party_store_banner', second='third_party_store_banner',
                  owners=('Known Toy Store', 'Known Toy Store'), confidence=.95, abstain=False):
         responses = []
         for category, owner in zip((first, second), owners):
@@ -19,9 +20,9 @@ class StorePolicyConsensusTests(unittest.TestCase):
             budget = BudgetManager({'ai_requests': 2})
             client = JudgeClient(budget, root, models=('fake-a', 'fake-b'), retries=0,
                 transport=lambda model, *_: {'choices': [{'message': {'content': json.dumps(
-                    responses[0 if model == 'fake-a' else 1])}}]})
+                    exhaustive(responses[0 if model == 'fake-a' else 1]))}}]})
             try:
-                item = {'id': 'Q23', 'evidence_ids': ['Q23']}
+                item = {'id': 'Q23', 'evidence_ids': ['Q23'], 'dimensions':[800,800]}
                 first_result = client.classify('watermark', item, {})
                 cached = client.classify('watermark', item, {})
                 self.assertEqual(first_result, cached)

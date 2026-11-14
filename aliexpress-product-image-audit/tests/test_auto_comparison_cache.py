@@ -1,3 +1,4 @@
+from watermark_fixtures import exhaustive
 import tempfile
 import unittest
 import hashlib,json
@@ -14,8 +15,8 @@ class ComparisonCacheTests(unittest.TestCase):
             evidence={'id':'W1','local':str(primary),'evidence_ids':['E1'],'extra_images':[{'path':str(source),'sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'image_id':'SOURCE'}]}
             row={'task_type':'watermark','item_id':'W1','confidence':.99,'abstain':False,'evidence_ids':['E1'],'classification':'manufacturer_branding','owner':'factory','location':'bottom'}
             budget=BudgetManager({'ai_requests':10,'full_resolution_images':10})
-            client=JudgeClient(budget,root/'cache',models=('fake',),transport=lambda *args:{'choices':[{'message':{'content':json.dumps(row)}}]})
+            client=JudgeClient(budget,root/'cache',models=('fake_a','fake_b'),transport=lambda *args:{'choices':[{'message':{'content':json.dumps(exhaustive(row))}}]})
             self.assertEqual(client.classify('watermark',evidence,{})['status'],'CLEAN')
             Image.new('RGB',(800,800),'red').save(source)
             self.assertEqual(client.classify('watermark',evidence,{})['status'],'NEEDS_REVIEW')
-            self.assertEqual(client.metrics['requests'],1);budget.close()
+            self.assertEqual(client.metrics['requests'],2);budget.close()

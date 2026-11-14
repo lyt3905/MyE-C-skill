@@ -21,17 +21,17 @@ class UsageSettlementTests(unittest.TestCase):
                 admitted.set()
                 if not failed.wait(5):raise AssertionError('unknown response not completed')
                 result={'task_type':'watermark','item_id':'success','classification':'product_print',
-                        'owner':'factory','location':'bottom','confidence':.99,'abstain':False,'evidence_ids':['success']}
+                        'owner':'factory','location':'bottom','confidence':.99,'abstain':False,'evidence_ids':['success'],'dimensions':[800,800]}
                 return {'choices':[{'message':{'content':json.dumps(result)}}],
                         'usage':{'prompt_tokens':30,'completion_tokens':20,'total_tokens':50}}
             client=JudgeClient(budget,Path(temp)/'cache',models=('a','b'),transport=transport,retries=0)
             def fail_call():
-                try:return client.classify('watermark',{'id':'failure','evidence_ids':['failure']},{})
+                try:return client.classify('watermark',{'id':'failure','evidence_ids':['failure'],'dimensions':[800,800]},{})
                 finally:failed.set()
             try:
                 with ThreadPoolExecutor(max_workers=2) as pool:
                     future=pool.submit(fail_call)
-                    success=pool.submit(client.classify,'watermark',{'id':'success','evidence_ids':['success']},{})
+                    success=pool.submit(client.classify,'watermark',{'id':'success','evidence_ids':['success'],'dimensions':[800,800]},{})
                     future.result(timeout=10);success.result(timeout=10)
                 known_calls=[c for c in client.metrics['calls'] if c.get('usage_status')=='ACTUAL_REPORTED']
                 self.assertEqual(sum(c['total_tokens'] for c in known_calls),50)

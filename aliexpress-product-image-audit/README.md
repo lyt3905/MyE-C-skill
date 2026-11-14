@@ -1,8 +1,22 @@
+> 当前提交版本：[SKU 双模型状态一致性修复与验证](reports/sku-consensus-20261114.md)，672项完整离线测试通过。此前真实只读验证累计30次；最新状态补丁通过离线回放，不宣称整件商品审核已全部通过。
+
+> 最新本地补丁：[SKU 输出字段契约修复](reports/sku-output-contract-20261114.md)，668 项离线测试通过。此补丁在下方真实验收之后开发，未追加真实调用，不把旧结果当作新提示已验证。
+
+> 最新真实只读验收：[Shop 7／5097 结果](reports/mainflow-real-readonly-5097-20261114.md)。新版正式入口完成 28 次请求并生成全量报告，27 次通过格式校验、1 次异常不中断；业务审核仍不完整，商品未修改。下方离线阶段记录保留为历史。
+
+> 最新主流程运行准备：[正式入口参数修复、测试与验收命令](reports/full-audit-generation-20261114.md)。新增可选低推理强度配置及独立 8788 示例；旧配置保持兼容，真实调用仍需授权。
+
+> 正式商品审核入口加固（2026-11-14）：[模型格式异常继续处理与 Windows 使用说明](reports/full-audit-mainflow-20261114.md)。此次推进到 `workflow_runner.py full-audit`，不局限于历史六图验收器；新版真实模型验收仍待授权。
+
+> 当前优先事项（2026-11-14）：先稳定自动审核执行主流程。现有六张历史图片的只读验收入口为 `scripts/complete_observed_audit.py`，单项格式异常记录后继续，支持本地进度查询；准确率优化、完整新商品接入和自动整改后置。[本轮开发与 Windows 使用说明](reports/audit-mainflow-stability-20261114.md)。下方各轮测试数字和入口说明属于对应历史阶段。
+
 > 当前有效范围：[仅主图、详情图、SKU图；Description原值保护](references/当前有效审核范围.md)。此规则覆盖下文历史Description联动口径。
 
 > 最新状态（2026-11-14）：[单件全量审核结果与未完成项](reports/full-product-audit-8788-result.md)。534项完整回归通过；14个语义任务均有双模型结果，两条SKU包装匹配通过，整件商品仍有未确认项，尚未达到完整自动审核验收条件。本轮只读续跑未写商品。下方较早验收记录仅保留为历史。
 
 > 源码溯源更正：[审核清单与GitHub哈希差异核对](reports/full-product-audit-8788-source-reconciliation.md)。历史清单记录Windows原始字节SHA256；GitHub文件应对照核对JSON中的仓库blob哈希。已核对全部233个Python文件：78个字节一致、148个仅换行变化、7个另有末尾空行清理，语法树均一致。该核对不是历史进程已加载模块的运行时证明。
+
+> 8788契约本地修复：[开发报告](reports/8788-development-report.md)、[离线逐图诊断](reports/8788-audit-diagnostics-v2.md)。新版逐标记水印契约和身份五维度仅完成本地Fake/Mock验证；本轮未调用真实模型、未写站、未复用旧授权，也未推送GitHub。
 
 全量只读审核入口为 `scripts/workflow_runner.py full-audit`；获得独立调用额度授权后的补充审核入口为 `scripts/full_audit_recovery.py`。本地网关配置可参照 `scripts/config/model.gateway8788.example.json`，密钥使用本地环境变量，不能写入配置或提交。运行任务、原始回读、凭据和缓存留在本地；GitHub只包含源码、文档与选定测试/结果摘要。
 

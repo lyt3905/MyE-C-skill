@@ -20,11 +20,12 @@ class WatermarkPromptTests(unittest.TestCase):
                 client._request('test', {'task_type': 'watermark', 'id': 'A'}, {})
             body = json.loads(request.call_args.args[0].data)
         prompt = body['messages'][0]['content'][0]['text']
-        self.assertIn('Required fields: task_type, item_id, classification, owner, location, confidence, abstain, evidence_ids', prompt)
-        self.assertIn('owner and location must be non-empty strings', prompt)
+        self.assertIn('Required top-level fields: schema_version, task_type, item_id, confidence, abstain, image_size', prompt)
+        self.assertIn('owner and location are non-empty strings', prompt)
         self.assertIn('Do not return decision', prompt)
-        self.assertIn('classification=unknown and abstain=true', prompt)
+        self.assertIn('classification=unknown and abstain=true on THAT mark', prompt)
         self.assertNotIn('or decision MATCH/MISMATCH/UNCERTAIN', prompt)
+        for field in ('coverage_complete','no_marks_detected','bbox_xyxy','unresolved_items','watermark/v3'):self.assertIn(field,prompt)
 
     def test_cache_key_includes_task_prompt(self):
         before = cache_key('watermark', {}, {}, 'test')

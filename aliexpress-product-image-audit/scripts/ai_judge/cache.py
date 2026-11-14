@@ -2,9 +2,11 @@
 import hashlib,json
 from pathlib import Path
 from job_manager import atomic_json
-def cache_key(task,evidence,context,model,prompt_version='v2',schema_version='v2',policy_version='v2'):
+def cache_key(task,evidence,context,model,prompt_version='v2',schema_version=None,policy_version='v2'):
     from importlib import import_module
-    prompt=import_module('ai_judge.'+task).PROMPT
+    module=import_module('ai_judge.'+task)
+    prompt=module.PROMPT
+    schema_version=schema_version or getattr(module,'SCHEMA_VERSION','v2')
     from .client import COMMON_OUTPUT_CONTRACT
     prompt += COMMON_OUTPUT_CONTRACT
     evidence={k:v for k,v in evidence.items() if k not in {'local','image_id','id','evidence_ids'}}

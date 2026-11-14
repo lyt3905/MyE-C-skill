@@ -1,0 +1,12 @@
+{
+  "schema": "model-gateway/v1",
+  "base_url": "http://127.0.0.1:8788/v1",
+  "models": [
+    "deepseek-v4.1-flash",
+    "kimi-k3-1"
+  ],
+  "max_output_tokens": 16384,
+  "reasoning_effort": "low",
+  "retries": 0,
+  "timeout": 150
+}

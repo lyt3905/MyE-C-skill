@@ -1,3 +1,4 @@
+from watermark_fixtures import exhaustive
 import json
 import tempfile
 import unittest
@@ -13,10 +14,10 @@ class StorePolicyConsensusCliTests(unittest.TestCase):
         budget = BudgetManager({'ai_requests': 4, 'full_resolution_images': 4})
         def transport(model, item, context):
             row = dict(task_type='watermark', item_id=item['id'],
-                       classification='third_party_store_banner' if model == 'fake-a' else 'third_party_store_logo',
+                       classification='third_party_store_banner',
                        owner='Different Store' if conflict and model == 'fake-b' else 'Known Toy Store',
                        location='bottom banner', confidence=.99, abstain=False, evidence_ids=item['evidence_ids'])
-            return {'choices': [{'message': {'content': json.dumps(row)}}]}
+            return {'choices': [{'message': {'content': json.dumps(exhaustive(row,size=item['dimensions']))}}]}
         judge = JudgeClient(budget, Path(root) / 'fake-judge-cache', models=('fake-a', 'fake-b'),
                             retries=0, transport=transport)
         try:
@@ -24,7 +25,7 @@ class StorePolicyConsensusCliTests(unittest.TestCase):
         finally:
             budget.close()
 
-    def test_same_store_subtypes_pass_through_independent_quality_to_fake_writer(self):
+    def test_same_store_region_passes_independent_quality_to_fake_writer(self):
         with tempfile.TemporaryDirectory() as root:
             writer, path, _, error = self.run_case(root, False)
             self.assertIsNone(error, repr(error))

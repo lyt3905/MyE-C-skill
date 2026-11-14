@@ -1,7 +1,7 @@
 """Task-specific result contracts with strict identity and evidence bindings."""
 CLASSES={'official_marketing_text','third_party_store_banner','chinese_promotion_poster','third_party_store_logo','social_account_signature','manufacturer_branding','product_print','marketing_text','photographer_credit','unknown'}
 TASKS={'watermark','sku_match','product_identity','title_semantics','remedy_quality','remedy_geometry','deletion_quality'}
-def validate_result(result, task, item, evidence=None):
+def validate_result(result, task, item, evidence=None, *, allow_legacy=True):
     if task not in TASKS or not isinstance(result,dict): raise ValueError('unsupported task/result')
     if task=='product_identity':
         # Shape aliases only: keep original observations and confidence, and
@@ -11,15 +11,26 @@ def validate_result(result, task, item, evidence=None):
             if alias in result:
                 if field in result and result[field]!=result[alias]:raise ValueError('ambiguous identity observations')
                 result[field]=result[alias]
+        if result.get('schema_version')=='product-identity/v3':
+            from .identity_contract import validate_identity
+            result=validate_identity(result,evidence)
+        elif not allow_legacy:raise ValueError('LEGACY_RESULT_NOT_EXHAUSTIVE:product_identity')
     required={'task_type','item_id','confidence','abstain','evidence_ids'}
-    required |= {'classification','owner','location'} if task=='watermark' else {'decision'}
+    required |= ({'classification','owner','location'} if result.get('schema_version')!='watermark/v3' else set()) if task=='watermark' else {'decision'}
     if not required <= set(result) or result['task_type'] != task or result['item_id'] != item: raise ValueError('identity/fields')
     if type(result['confidence']) not in (int,float) or not 0 <= result['confidence'] <= 1 or type(result['abstain']) is not bool: raise ValueError('confidence/abstain')
     refs=result['evidence_ids']
     if not isinstance(refs,list) or not refs or any(type(x) is not str or not x for x in refs): raise ValueError('evidence')
     if evidence is not None and not set(refs) <= set(evidence.get('evidence_ids',[])): raise ValueError('unbound evidence')
     if task=='watermark':
-        if result['classification'] not in CLASSES or any(type(result[k]) is not str or not result[k] for k in ('owner','location')): raise ValueError('classification')
+        if result.get('schema_version')=='watermark/v3':
+            from .watermark_contract import validate_watermark
+            result=validate_watermark(result,evidence)
+        else:
+            if not allow_legacy:raise ValueError('LEGACY_RESULT_NOT_EXHAUSTIVE:watermark')
+            if result.get('schema_version') not in (None,'legacy-watermark/v2'):raise ValueError('unsupported watermark schema')
+            if result['classification'] not in CLASSES or any(type(result[k]) is not str or not result[k] for k in ('owner','location')): raise ValueError('classification')
+            result=dict(result,coverage_complete=False,legacy_single_mark=True)
     else:
         if result['decision'] not in {'MATCH','MISMATCH','UNCERTAIN'}: raise ValueError('decision')
     if task=='remedy_quality':
