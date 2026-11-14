@@ -34,6 +34,7 @@ import hashlib
 import os
 import shutil
 import sys
+from pathlib import Path
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -56,6 +57,21 @@ PAIRS = [
     ('token_opt_tests', 'tests/test_token_opt.py', 'tests/test_token_opt.py'),
     ('check_template_sync', 'check_template_sync.py', 'scripts/check_template_sync.py'),
 ]
+
+# v2 production modules are discovered recursively; exclude runtime/cache data.
+V2_ROOT = Path(__file__).resolve().parent
+V2_FILES = ['workflow_runner.py', 'job_manager.py', 'budget_manager.py',
+            'policy_engine.py', 'evidence_builder.py', 'plan_v2.py',
+            'download_manager.py', 'workflow_v2_pipeline.py', 'acceptance_v2.py']
+for folder in ('ai_judge', 'executor', 'config'):
+    directory = V2_ROOT / folder
+    if directory.exists():
+        V2_FILES.extend(str(path.relative_to(V2_ROOT)).replace('\\','/')
+                        for path in directory.rglob('*')
+                        if path.suffix in ('.py', '.json') and '__pycache__' not in path.parts)
+for rel in sorted(set(V2_FILES)):
+    if (V2_ROOT / rel).is_file():
+        PAIRS.append(('v2/' + rel, rel, 'scripts/' + rel))
 
 # 用来认「项目目录」的标志文件：碰到任意一个就当这里是 ae-img-audit
 MARKERS = ('子任务模板-单件商品.md', 'SOP-商品图片整改.md', 'pipeline.py')
@@ -103,6 +119,9 @@ def info(path):
 
 def main():
     args = sys.argv[1:]
+    if '--help' in args or '-h' in args:
+        print('Usage: check_template_sync.py [--push|--pull] [--only NAME]; default read-only comparison')
+        return 0
     push = '--push' in args
     pull = '--pull' in args
     if push and pull:
@@ -117,11 +136,13 @@ def main():
         only = args[i + 1]
 
     repo = find_repo()
+    portable = Path(repo) / 'scripts' / 'check_template_sync.py'
+    pairs = [(name, srel if portable.exists() else rel, srel) for name,rel,srel in PAIRS]
     print('项目目录：%s' % repo)
     print('skill 目录：%s' % SKILL_DIR)
     print()
 
-    sel = [p for p in PAIRS if only is None or p[0].startswith(only)]
+    sel = [p for p in pairs if only is None or p[0].startswith(only)]
     if not sel:
         print('没匹配到任何一对，可选：' + ' / '.join(p[0] for p in PAIRS))
         return 2

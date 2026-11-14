@@ -1,0 +1,10 @@
+PROMPT = ('Classify watermark ownership. Return one JSON object only. '
+          'Required fields: task_type, item_id, classification, owner, location, confidence, abstain, evidence_ids. '
+          'task_type must be watermark; item_id must equal the input item id; evidence_ids must reference supplied evidence. '
+          'classification must be one of: official_marketing_text, third_party_store_banner, chinese_promotion_poster, '
+          'third_party_store_logo, social_account_signature, manufacturer_branding, product_print, marketing_text, '
+          'photographer_credit, unknown. Do not return decision. '
+          'owner and location must be non-empty strings. If unknown, use the string unknown rather than omitting them. '
+          'confidence must be a number from 0 to 1; abstain must be a boolean. '
+          'If ownership is unclear, return classification=unknown and abstain=true. '
+          'Preserve social signatures and manufacturer/product/photographer marks.')

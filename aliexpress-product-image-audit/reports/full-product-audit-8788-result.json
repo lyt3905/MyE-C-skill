@@ -1,0 +1,21 @@
+{
+  "audit_complete": false,
+  "audit_status": "INCOMPLETE",
+  "compliance_status": "NON_COMPLIANT",
+  "read_only": true,
+  "new_requests": 28,
+  "new_actual_tokens": 158091,
+  "new_usage_unknown_calls": 0,
+  "historical_unknown_calls": 1,
+  "combined_known_token_subtotal": 273807,
+  "combined_total_tokens": null,
+  "all_14_tasks_have_two_responses": true,
+  "sku_packaging_checks": "BOTH_PASS",
+  "all_16_positions_reported": true,
+  "all_16_positions_still_have_unresolved_semantic_checks": true,
+  "parent_evidence_and_budget_unchanged": true,
+  "source_state_and_account_unchanged": true,
+  "production_writes": 0,
+  "request_authorization_exhausted": true,
+  "final_report": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\full-product-audit-20261114\\jobs\\JOB_93099438cf014a689846bc05469759ad\\recovery_8788_1\\final_report.after-component.json"
+}

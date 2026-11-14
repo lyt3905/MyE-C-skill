@@ -49,55 +49,58 @@ def _cfg_candidates():
 
 def load_cfg():
     """返回 {"base","user","pwd"}；缺 user/pwd 就报错，绝不回退到硬编码密码。"""
-    cfg = {"base": os.environ.get("AE_SITE_BASE") or "", "user": os.environ.get("AE_SITE_USER") or "",
-           "pwd": os.environ.get("AE_SITE_PWD") or ""}
-    for path in _cfg_candidates():
-        if not (path and os.path.isfile(path)):
-            continue
-        try:
-            with open(path, encoding="utf-8") as f:
-                d = json.load(f)
-        except Exception:
-            continue
-        for k in ("base", "user", "pwd"):
-            if not cfg[k] and d.get(k):
-                cfg[k] = str(d[k])
-        if cfg["user"] and cfg["pwd"]:
-            cfg["_from"] = path
-            break
-    if not cfg["base"]:
-        cfg["base"] = "https://39.107.244.239"
-    if not (cfg["user"] and cfg["pwd"]):
-        raise RuntimeError(
-            "缺少站点凭据：设 AE_SITE_USER/AE_SITE_PWD 环境变量，或在 cfg.local.json 里写 "
-            '{"base":"https://39.107.244.239","user":"...","pwd":"..."}（已找过：%s）'
-            % ", ".join(_cfg_candidates()))
-    return cfg
+    raise RuntimeError('Automatic credential discovery disabled; provide explicit read-only credentials')
 
 
-CFG = load_cfg()
+class _LazyConfig(dict):
+    """Legacy dictionary interface, loaded only on actual credential access."""
+    def __getitem__(self, key):
+        if not self:
+            self.update(load_cfg())
+        return super().__getitem__(key)
+
+CFG = _LazyConfig()
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36"
 
-class Site:
+class _SiteTransport:
+    def account_fingerprint(self):
+        from account_identity import fingerprint
+        return fingerprint(self.cfg['base'],self.call('/api/auth/me'))
+    def current_shop(self):
+        response = self.call('/api/auth/me')
+        data = response.get('data') if isinstance(response, dict) else None
+        shop = data.get('selectedShopId') if isinstance(data, dict) else None
+        if shop is None: raise ValueError('SHOP_CONTEXT_UNVERIFIED')
+        return shop
     # 单例槽位：`Site.instance = Site.instance or Site()` 靠它，先置 None 才不会 AttributeError
     instance = None
 
-    def __init__(self):
-        ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+    def __init__(self, cfg=None, *, verify_tls=None):
+        if cfg is not None:
+            if verify_tls is not True or not isinstance(cfg, dict) or any(not isinstance(cfg.get(k), str) or not cfg[k] for k in ('base', 'user', 'pwd')):
+                raise ValueError('explicit credentials require TLS verification')
+            from urllib.parse import urlsplit
+            endpoint = urlsplit(cfg['base'])
+            if endpoint.scheme != 'https' or not endpoint.hostname or endpoint.username or endpoint.password or endpoint.query or endpoint.fragment:
+                raise ValueError('explicit credentials require a valid HTTPS base')
+            self.cfg = dict(cfg)
+        else:
+            raise RuntimeError('Explicit credentials required; automatic discovery disabled')
+        ctx = ssl.create_default_context()
         self.cj = http.cookiejar.CookieJar()
         self.op = urllib.request.build_opener(
             urllib.request.HTTPSHandler(context=ctx), urllib.request.HTTPCookieProcessor(self.cj))
         self.login()
 
     def login(self):
-        self.call("/api/auth/login", {"username": CFG["user"], "password": CFG["pwd"]})
+        self.call("/api/auth/login", {"username": self.cfg["user"], "password": self.cfg["pwd"]})
 
     def call(self, path, data=None, method=None):
         h = {"Accept": "application/json"}
         body = json.dumps(data).encode() if data is not None else None
         if body:
             h["Content-Type"] = "application/json"
-        r = urllib.request.Request(CFG["base"] + path, data=body, headers=h,
+        r = urllib.request.Request(self.cfg["base"] + path, data=body, headers=h,
                                    method=method or ("POST" if body else "GET"))
         with self.op.open(r, timeout=120) as f:
             return json.loads(f.read().decode())
@@ -146,6 +149,12 @@ class Site:
             body['descriptionJson'] = desc
         if extra:
             body.update(extra)
+        if (('descriptionJson' in body) != ('descriptionJson' in p)
+                or type(body.get('descriptionJson')) is not type(p.get('descriptionJson'))
+                or body.get('descriptionJson') != p.get('descriptionJson')):
+            raise ValueError('DESCRIPTION_MUTATION_FORBIDDEN')
+        if isinstance(body.get('identityJson'),dict):
+            body['identityJson']=json.dumps(body['identityJson'],ensure_ascii=False)
         return self.call('/api/admin/products/%s?autoSave=true' % pid, body, method='PUT')
 
     def blacklist(self, pid, image_url):
@@ -157,15 +166,23 @@ class Site:
         return self.call('/api/admin/products/%s/replace-image-links' % pid, {})
 
     def upload(self, local):
+        from pathlib import Path
+        from PIL import Image
+        import io
+        data=Path(local).read_bytes()
+        with Image.open(io.BytesIO(data)) as image:
+            mime=Image.MIME.get(image.format)
+            image.verify()
+        if mime not in {'image/png','image/jpeg','image/webp'}:raise ValueError('unsupported upload MIME')
         bnd = "----pp" + uuid.uuid4().hex
         body = b"".join([
             ("--%s\r\n" % bnd).encode(),
             ('Content-Disposition: form-data; name="file"; filename="%s"\r\n' % os.path.basename(local)).encode(),
-            b"Content-Type: image/jpeg\r\n\r\n",
-            open(local, "rb").read(),
+            ('Content-Type: '+mime+'\r\n\r\n').encode(),
+            data,
             ("\r\n--%s--\r\n" % bnd).encode(),
         ])
-        r = urllib.request.Request(CFG["base"] + "/api/admin/uploads/images", data=body,
+        r = urllib.request.Request(self.cfg["base"] + "/api/admin/uploads/images", data=body,
                                    headers={"Content-Type": "multipart/form-data; boundary=" + bnd}, method="POST")
         with self.op.open(r, timeout=180) as f:
             return json.loads(f.read().decode())["data"]["url"]
@@ -185,54 +202,52 @@ def _u_path(u):
 
 
 def remap_description(d, mapping):
-    """换图后把 descriptionJson 里的旧图 URL 改成新 URL（按文件名替换，保留查询串）。
-    不做这一步的话 prune_description 会认为所有图块都已失效而全部删掉（4755 踩过一次）。"""
-    raw = d.get("descriptionJson")
-    if not raw or not mapping:
-        return 0
-    s = raw if isinstance(raw, str) else json.dumps(raw, ensure_ascii=False)
-    n = 0
-    for old, new in mapping.items():
-        if not old or not new:
-            continue
-        of, nf = _u_path(old), _u_path(new)
-        if not of or of == nf:
-            continue
-        if old in s:
-            s = s.replace(old, new); n += 1
-        elif of in s:
-            s = s.replace(of, nf); n += 1
-    if n:
-        print("  [desc] 同步替换 %d 处旧图 URL" % n)
-        d["descriptionJson"] = s
-    return n
+    """Removed legacy operation: the fixed field must remain opaque."""
+    raise ValueError('DESCRIPTION_OPERATION_FORBIDDEN')
 
 
 def prune_description(d, new_detail):
-    """详情图换/删之后，descriptionJson 里的旧图块必须同步去掉，否则页面还在显示被删的水印图。
-    descriptionJson 是「JSON 字符串」，里层是 blocks 数组；外链常带 ?width=&height= 查询串，比对要按文件名。"""
-    raw = d.get("descriptionJson")
-    if not raw:
-        return
-    try:
-        blocks = json.loads(raw) if isinstance(raw, str) else raw
-    except Exception:
-        return
-    if not isinstance(blocks, list):
-        return
-    keep = set(_u_path(u) for u in new_detail)
-    out, dropped = [], []
-    for b in blocks:
-        if isinstance(b, dict) and b.get("type") == "image" and not b.get("shopFooter") and not b.get("images"):
-            if _u_path(b.get("url")) not in keep:
-                dropped.append(_u_path(b.get("url")))
-                continue
-        out.append(b)
-    if dropped:
-        print("  [desc] 去掉 %d 个旧图块: %s" % (len(dropped), ", ".join(x[:24] for x in dropped[:4])))
-        d["descriptionJson"] = json.dumps(out, ensure_ascii=False)
+    """Removed legacy operation: the fixed field must remain opaque."""
+    raise ValueError('DESCRIPTION_OPERATION_FORBIDDEN')
 
 
+
+class ReadOnlySiteClient:
+    """Explicitly configured read client; no product mutation methods."""
+    instance = None
+    @classmethod
+    def from_transport(cls,transport):
+        client=object.__new__(cls)
+        client.__transport=transport
+        client.coordination_key=transport.account_fingerprint()
+        return client
+    def readonly_client(self):return self
+    def account_fingerprint(self):return self.__transport.account_fingerprint()
+    def __init__(self, cfg=None, *, verify_tls=True):
+        self.__transport = _SiteTransport(cfg=cfg, verify_tls=verify_tls)
+        import hashlib
+        account_cfg=getattr(self.__transport,'cfg',{})
+        if not isinstance(account_cfg,dict):account_cfg={}
+        self.coordination_key=hashlib.sha256(json.dumps({k:account_cfg.get(k) for k in ('base','user')},sort_keys=True).encode()).hexdigest()
+    def product(self, pid):
+        return self.__transport.product(pid)
+    def worker(self):
+        return self.__transport.worker()
+    def download(self,url,destination):
+        return self.__transport.download(url,destination)
+    def current_shop(self):
+        response = self.call('/api/auth/me')
+        data = response.get('data') if isinstance(response, dict) else None
+        shop_id = data.get('selectedShopId') if isinstance(data, dict) else None
+        if shop_id is None:
+            raise ValueError('SHOP_CONTEXT_UNVERIFIED: auth/me has no selectedShopId')
+        return shop_id
+    def call(self, path, data=None, method=None):
+        if data is not None or (method or 'GET').upper() != 'GET':
+            raise PermissionError('Read-only client rejects mutations; use Executor IPC')
+        return self.__transport.call(path, method='GET')
+
+Site = ReadOnlySiteClient
 
 # ---------------- 图像小工具 ----------------
 def banner_rows(bgr, thr=0.5, min_h_frac=0.03):

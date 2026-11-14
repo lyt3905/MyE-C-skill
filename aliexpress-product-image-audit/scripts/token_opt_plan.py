@@ -76,7 +76,8 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
             raise PlanError(f"assets.{name}.min_short must be a positive integer")
 
     desired = _object(plan["desired"], "desired")
-    _keys(desired, {"images", "sku_image_assignments", "description", "fields"}, "desired")
+    if 'description' in desired:raise PlanError('DESCRIPTION_OPERATION_FORBIDDEN')
+    _keys(desired, {"images", "sku_image_assignments", "fields"}, "desired")
     if not desired:
         raise PlanError("desired must declare at least one change")
 
@@ -97,21 +98,6 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
         if "index" in row and (not isinstance(row["index"], int) or row["index"] < 0):
             raise PlanError(f"{where}.index must be a non-negative integer")
         _image_ref(row["image"], f"{where}.image")
-
-    if "description" in desired:
-        desc = _object(desired["description"], "desired.description")
-        _keys(desc, {"replace", "remove", "sync_shop_title"}, "desired.description")
-        for action in ("replace", "remove"):
-            for idx, raw in enumerate(_list(desc.get(action, []), f"desired.description.{action}")):
-                where = f"desired.description.{action}[{idx}]"
-                row = _object(raw, where)
-                allowed = {"old_url", "expected_count", "image"} if action == "replace" else {"url", "expected_count"}
-                required = allowed
-                _keys(row, allowed, where, required)
-                if action == "replace":
-                    _image_ref(row["image"], f"{where}.image")
-                if not isinstance(row["expected_count"], int) or row["expected_count"] < 1:
-                    raise PlanError(f"{where}.expected_count must be a positive integer")
 
     if "fields" in desired:
         fields = _object(desired["fields"], "desired.fields")

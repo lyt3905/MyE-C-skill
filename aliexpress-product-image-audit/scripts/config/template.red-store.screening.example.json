@@ -1,0 +1,14 @@
+{
+  "required_shop_ids": [
+    7
+  ],
+  "no_applicable_shop_ids": [],
+  "templates": [
+    {
+      "shop_id": 7,
+      "path": "../../templates/watermarks/shop7-red-store-text-v1.npy",
+      "projection": "red_excess",
+      "scope": "Confirmed red Transformers Genuine Products Store text style in Shop7 captures; not shop border or all watermark styles"
+    }
+  ]
+}

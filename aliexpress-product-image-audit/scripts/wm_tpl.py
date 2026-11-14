@@ -18,12 +18,19 @@ import numpy as np, cv2
 
 TPL = "work/wm_tpl.npy"
 STD_FLOOR = 2.0
+VERSION = 'wm_tpl/v2'
 
-def resid(path):
+def resid(path, projection='gray'):
+    if projection not in ('gray', 'red_excess'):
+        raise ValueError('Unknown template projection: %r' % (projection,))
     img = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
     if img is None:
         return None
-    g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    if projection == 'gray':
+        g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    else:
+        b, green, red = cv2.split(img.astype(np.float32))
+        g = np.maximum(0, red - np.maximum(green, b))
     return g - cv2.GaussianBlur(g, (0, 0), 25)
 
 def build(path, x0, y0, x1, y1):
@@ -32,18 +39,24 @@ def build(path, x0, y0, x1, y1):
     np.save(TPL, tpl)
     print("template", tpl.shape, "std %.2f" % tpl.std(), "->", TPL)
 
-def scan(path, tpl):
-    r = resid(path)
+def scan(path, tpl, return_location=False, projection='gray'):
+    r = resid(path, projection=projection)
     if r is None or r.shape[0] < tpl.shape[0] or r.shape[1] < tpl.shape[1]:
         return None
     th, tw = tpl.shape
     res = cv2.matchTemplate(r, tpl, cv2.TM_CCOEFF_NORMED)
     k = np.ones((th, tw), np.float32) / (th * tw)
-    m = cv2.filter2D(r, -1, k, borderType=cv2.BORDER_REPLICATE)
-    m2 = cv2.filter2D(r * r, -1, k, borderType=cv2.BORDER_REPLICATE)
+    # NCC coordinates are the window's top-left, so its variance window must
+    # share that anchor. The default centered filter checks a different patch.
+    m = cv2.filter2D(r, -1, k, anchor=(0,0), borderType=cv2.BORDER_REPLICATE)
+    m2 = cv2.filter2D(r * r, -1, k, anchor=(0,0), borderType=cv2.BORDER_REPLICATE)
     sd = np.sqrt(np.maximum(m2 - m * m, 0))[:res.shape[0], :res.shape[1]]
     res = np.where(sd >= STD_FLOOR, res, -1.0)
-    return float(res.max())
+    score=float(res.max())
+    if return_location:
+        _,_,_,(x,y)=cv2.minMaxLoc(res)
+        return {'ncc':score,'source_coordinates':[x,y,x+tw,y+th]}
+    return score
 
 def main(argv):
     if not argv:
@@ -61,7 +74,7 @@ def main(argv):
     hits = 0
     for f in files:
         s = scan(f, tpl)
-        tag = "CLEAN" if (s is None or s < 0.65) else ("HIT" if s >= 0.80 else "SUSPECT")
+        tag = "UNKNOWN" if s is None else "CLEAN" if s <= 0.65 else ("HIT" if s >= 0.80 else "SUSPECT")
         if tag != "CLEAN":
             hits += 1
         print("%-40s %s  NCC=%s" % (os.path.basename(f), tag, "n/a" if s is None else "%.3f" % s))

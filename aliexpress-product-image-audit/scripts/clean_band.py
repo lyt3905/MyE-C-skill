@@ -85,10 +85,17 @@ def fill_rowwise(img, mask, pad=6, max_span=None):
     return img
 
 
-def crop_border(img, box, size=800):
+def crop_border(img, box, size=800, preserve_aspect=False):
     """按 (x0, y0, x1, y1) 裁掉装饰边框，再缩放回 size×size。"""
     x0, y0, x1, y1 = box
     c = img[y0:y1, x0:x1]
+    if preserve_aspect:
+        height,width=c.shape[:2];scale=size/max(height,width)
+        resized=cv2.resize(c,(max(1,round(width*scale)),max(1,round(height*scale))),interpolation=cv2.INTER_LANCZOS4)
+        result=np.full((size,size,3),255,dtype=img.dtype)
+        top=(size-resized.shape[0])//2;left=(size-resized.shape[1])//2
+        result[top:top+resized.shape[0],left:left+resized.shape[1]]=resized
+        return result
     return cv2.resize(c, (size, size), interpolation=cv2.INTER_LANCZOS4)
 
 

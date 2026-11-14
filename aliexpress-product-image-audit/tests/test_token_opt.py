@@ -105,14 +105,15 @@ class PlanTests(unittest.TestCase):
 
 
 class DescriptionTests(unittest.TestCase):
-    def test_exact_url_only_even_when_basename_matches(self):
+    def test_legacy_exact_url_operation_is_forbidden_and_input_is_opaque(self):
         raw = json.dumps([{"url": "https://one/x.jpg"}, {"url": "https://two/x.jpg"}])
         ops = {"replace": [{"old_url": "https://one/x.jpg", "image": {"url": "https://new/y.jpg"},
                              "expected_count": 1}]}
-        result, counts = apply_exact_description_ops(raw, ops, lambda ref: ref["url"])
-        self.assertIn("https://new/y.jpg", result)
-        self.assertIn("https://two/x.jpg", result)
-        self.assertEqual(counts["replace[0]"], 1)
+        resolved=[]
+        with self.assertRaisesRegex(DescriptionError,'DESCRIPTION_OPERATION_FORBIDDEN'):
+            apply_exact_description_ops(raw,ops,lambda ref:resolved.append(ref) or ref['url'])
+        self.assertIn('https://one/x.jpg',raw);self.assertIn('https://two/x.jpg',raw)
+        self.assertNotIn('https://new/y.jpg',raw);self.assertEqual(resolved,[])
 
     def test_count_mismatch_fails_closed(self):
         with self.assertRaises(DescriptionError):
@@ -148,7 +149,7 @@ class ExecutorTests(unittest.TestCase):
             preview = execute_plan(site, plan, path, apply=False)
             self.assertEqual(preview["changed_fields"], [])
             plan["approval"]["site_write"] = True
-            with self.assertRaisesRegex(ApplyError, "no product changes"):
+            with self.assertRaisesRegex(ApplyError, "Legacy writes disabled"):
                 execute_plan(site, plan, path, apply=True, confirm_pid=1)
         self.assertEqual(site.save_calls, 0)
 
@@ -159,16 +160,9 @@ class ExecutorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "plan.v1.json"
             path.write_text(json.dumps(plan), encoding="utf-8")
-            receipt = execute_plan(site, plan, path, apply=True, confirm_pid=1)
-            metrics = json.loads((Path(tmp) / "run_metrics.json").read_text(encoding="utf-8"))
-        self.assertTrue(receipt["ok"])
-        self.assertEqual(metrics["executor"]["site_save_calls"], 1)
-        self.assertEqual(metrics["executor"]["status_calls"], 0)
-        self.assertEqual(site.save_calls, 1)
-        self.assertEqual(site.status_calls, 0)
-        self.assertEqual(site.current["skus"][0]["shippingFee"], 7.43)
-        self.assertEqual(site.current["weight"], 0.2)
-        self.assertEqual(json.loads(site.current["identityJson"])["modelCode"], "A-01")
+            with self.assertRaisesRegex(ApplyError, "Legacy writes disabled"):
+                execute_plan(site, plan, path, apply=True, confirm_pid=1)
+        self.assertEqual(site.save_calls, 0)
 
     def test_stale_state_rejected_before_save(self):
         product = product_fixture()
@@ -195,11 +189,11 @@ class ExecutorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "plan.v1.json"
             path.write_text(json.dumps(plan), encoding="utf-8")
-            with self.assertRaisesRegex(ApplyError, "price mismatch"):
+            with self.assertRaisesRegex(ApplyError, "Legacy writes disabled"):
                 execute_plan(site, plan, path, apply=True, confirm_pid=1)
-            receipt = json.loads((Path(tmp) / "apply_receipt.json").read_text(encoding="utf-8"))
-        self.assertFalse(receipt["ok"])
-        self.assertEqual(site.save_calls, 1)
+            self.assertFalse((Path(tmp) / "apply_receipt.json").exists())
+        self.assertEqual(site.save_calls, 0)
+
 
 
 class ReportTests(unittest.TestCase):

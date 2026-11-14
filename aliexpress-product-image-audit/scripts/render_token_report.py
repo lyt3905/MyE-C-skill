@@ -32,6 +32,20 @@ def _budget_status(metrics: dict[str, Any]) -> str:
 
 
 def render(workdir: Path, pid: int) -> str:
+    metrics_v2=_load(workdir / "run_metrics.json")
+    if metrics_v2.get('schema') == 'token-opt-metrics/v2':
+        review=_load(workdir/'review.json')
+        state=_load(workdir/'state.json').get('state',review.get('status','UNKNOWN'))
+        receipt=_load(workdir/'apply_receipt.json') or _load(workdir/'executor_receipt.json')
+        return '\n'.join([f'# 商品 {pid} 审核报告', '- 流程：token-opt-v2', '- 结论：'+state,
+            '- 原因：'+review.get('reason',''), '- 商品写入：'+str(receipt.get('site_save_calls',0)),
+            '- content_review_status: '+receipt.get('content_review_status','NOT_VERIFIED'),
+            '- AI 请求：'+str(metrics_v2['ai'].get('requests')), '- AI 缓存命中：'+str(metrics_v2['ai'].get('cache_hits')),
+            '- Token状态：'+str(metrics_v2.get('budget',{}).get('token_status','UNKNOWN')),
+            '- 实际 Token：'+str(metrics_v2.get('budget',{}).get('actual_tokens',metrics_v2['ai'].get('total_tokens'))),
+            '- usage 可用：'+str(metrics_v2['ai'].get('usage_available')),
+            '- 预算：'+str(metrics_v2.get('budget')), '- 耗时毫秒：'+str(metrics_v2.get('timing')),
+            '- 未测量指标保留 null；不能据此宣称性能或质量验收完成。'])+'\n'
     flags = _load(workdir / "audit_flags.json")
     plan = _load(workdir / "plan.v1.json")
     metrics = _load(workdir / "run_metrics.json")

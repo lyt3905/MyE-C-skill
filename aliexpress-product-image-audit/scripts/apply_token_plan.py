@@ -11,7 +11,6 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable
 
-from description_refs import apply_exact_description_ops
 from product_state import canonical_state_hash, diff_state, identity_object
 from token_opt_plan import PLAN_SCHEMA, WORKFLOW_VERSION, PlanError, load_plan, validate_plan
 
@@ -120,6 +119,8 @@ def _find_sku(skus: list[dict[str, Any]], row: dict[str, Any]) -> tuple[int, dic
 
 def compile_mutation(product: dict[str, Any], plan: dict[str, Any], resolve: Callable[[dict[str, str]], str]) -> dict[str, Any]:
     desired = plan["desired"]
+    if 'description' in desired:
+        raise ApplyError('DESCRIPTION_OPERATION_FORBIDDEN')
     current_pools = _image_pools(product)
     final_pools = deepcopy(current_pools)
     if "images" in desired:
@@ -150,10 +151,6 @@ def compile_mutation(product: dict[str, Any], plan: dict[str, Any], resolve: Cal
 
     desc = product.get("descriptionJson")
     desc_counts: dict[str, int] = {}
-    if "description" in desired:
-        operations = deepcopy(desired["description"])
-        operations["_titleEn"] = fields.get("titleEn")
-        desc, desc_counts = apply_exact_description_ops(desc, operations, resolve)
 
     identity_payload = (json.dumps(new_identity, ensure_ascii=False, separators=(",", ":"))
                         if "identityJson" in fields else product.get("identityJson"))
@@ -171,7 +168,7 @@ def compile_mutation(product: dict[str, Any], plan: dict[str, Any], resolve: Cal
         "images": changed_images,
         "final_images": final_pools,
         "descriptionJson": desc,
-        "description_changed": "description" in desired,
+        "description_changed": False,
         "description_counts": desc_counts,
         "skus": skus,
         "extra": extra,
@@ -218,10 +215,11 @@ def verify_postconditions(before: dict[str, Any], after: dict[str, Any], compile
 
 def execute_plan(site: Any, plan: dict[str, Any], plan_path: Path, *, apply: bool = False,
                  confirm_pid: int | None = None) -> dict[str, Any]:
+    if apply:
+        raise ApplyError('Legacy writes disabled; use authorized Executor IPC')
     validate_plan(plan)
     workdir = plan_path.resolve().parent
     workdir.mkdir(parents=True, exist_ok=True)
-    site.call("/api/admin/shops/current", {"shopId": plan["shop"]}, method="PUT")
     before = site.product(plan["pid"])
     validate_preconditions(before, plan)
     _write_json(workdir / "product_before.json", before)
@@ -329,6 +327,9 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--apply", action="store_true")
     p_run.add_argument("--confirm-pid", type=int)
     args = parser.parse_args(argv)
+    if args.command == "run" and args.apply:
+        print("ERROR: Legacy live CLI disabled; use privileged v2 executor", file=sys.stderr)
+        return 1
     try:
         if args.command == "validate":
             load_plan(args.plan)
