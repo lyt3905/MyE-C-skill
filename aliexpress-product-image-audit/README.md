@@ -2,6 +2,8 @@
 
 > 最新状态（2026-11-14）：[单件全量审核结果与未完成项](reports/full-product-audit-8788-result.md)。534项完整回归通过；14个语义任务均有双模型结果，两条SKU包装匹配通过，整件商品仍有未确认项，尚未达到完整自动审核验收条件。本轮只读续跑未写商品。下方较早验收记录仅保留为历史。
 
+> 源码溯源更正：[审核清单与GitHub哈希差异核对](reports/full-product-audit-8788-source-reconciliation.md)。历史清单记录Windows原始字节SHA256；GitHub文件应对照核对JSON中的仓库blob哈希。已核对全部233个Python文件：78个字节一致、148个仅换行变化、7个另有末尾空行清理，语法树均一致。该核对不是历史进程已加载模块的运行时证明。
+
 全量只读审核入口为 `scripts/workflow_runner.py full-audit`；获得独立调用额度授权后的补充审核入口为 `scripts/full_audit_recovery.py`。本地网关配置可参照 `scripts/config/model.gateway8788.example.json`，密钥使用本地环境变量，不能写入配置或提交。运行任务、原始回读、凭据和缓存留在本地；GitHub只包含源码、文档与选定测试/结果摘要。
 
 > v1.3 当前验收状态：[真实只读记录](reports/v1.3-real-readonly-canary.md)、[准确率基线](reports/v1.3-audit-accuracy.md)、[功能覆盖矩阵](reports/v1.3-feature-coverage-matrix.md)、[未解决项目](reports/v1.3-remaining-blockers.md)。尚未完成真实Live Dry-run及用户生产Canary，不以Fake通过宣称生产可用。
