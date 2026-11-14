@@ -1,0 +1,1 @@
+{"sample_id":"SYNTHETIC-example-replace-before-evaluation","human_issue":true,"baseline":{"issue":true,"tokens":100,"latency_ms":1000},"candidate":{"issue":false,"tokens":50,"latency_ms":500}}

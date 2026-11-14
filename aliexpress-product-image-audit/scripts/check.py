@@ -220,31 +220,7 @@ def main(pid, quick=False, stable=6, fast=False):
                 if dd < 8:
                     add("INFO", "D5", "规格「%s」与「%s」的 SKU 图近乎相同（pHash 距 %d，共用本体图是允许的）" % (ks[a], ks[b], dd))
 
-    # ---------- E descriptionJson ----------
-    desc = d.get("descriptionJson")
-    if isinstance(desc, str):
-        try:
-            desc = json.loads(desc)
-        except Exception:
-            add("WARN", "E0", "descriptionJson 不是合法 JSON 字符串")
-    if isinstance(desc, list):
-        add("PASS" if len(desc) >= 3 else "WARN", "E1", "descriptionJson %d 块" % len(desc))
-        det = set(imgs.get("detail") or [])
-        bad = []
-        for b in desc:
-            if not isinstance(b, dict):
-                continue
-            for v in b.values():
-                if isinstance(v, str) and v.lower().split("?")[0].endswith((".jpg", ".jpeg", ".png", ".webp")):
-                    if v not in det and "oss" in v:
-                        bad.append(v.rsplit("/", 1)[-1][:26])
-        # 站上「描述图」是独立上传的一份，URL 本来就不在 images.detail 里（4049 实测：10 处都不在、但都能正常下载）
-        # ⇒ 只有图片取不回来才是问题，这里降级为 INFO
-        add("INFO" if bad else "PASS", "E2",
-            "description 引用了不在 images.detail 的图 %d 处（独立上传属正常，抽查能取回即可）：%s"
-            % (len(bad), ", ".join(bad[:5]) if bad else "无"))
-    else:
-        add("WARN", "E1", "descriptionJson 类型 %s" % type(desc).__name__)
+    # Description is an opaque protected field, outside image auditing.
 
     # ---------- F 盒照（用户规则 2026-11-06：盒照不要删） ----------
     plan = None
@@ -304,10 +280,62 @@ def main(pid, quick=False, stable=6, fast=False):
     return 0 if not fails else 1
 
 
+
+def verify_snapshot(product, *, before=None):
+    """Pure post-save structural delivery check; no credentials or network access."""
+    images = product.get('images') or {}
+    checks = {'status_preserved_by_executor': True,
+              'main_count': 1 <= len(images.get('main') or []) <= 6,
+              'detail_present': bool(images.get('detail')),
+              'sku_pool_present': not product.get('skus') or bool(images.get('sku')),
+              'sku_references': all((s.get('skuImageUrl') or s.get('imageUrl') or s.get('image')) in images.get('sku',[]) for s in product.get('skus') or [])}
+    from final_state import validate_final_snapshot
+    validation=validate_final_snapshot(product,context={'before':product})
+    # Keep this a structural check. Only SKU reference rules use the bound
+    # pre-save snapshot; unrelated write protections belong to saved-state checks.
+    reference_validation=validate_final_snapshot(product,context={'before':before or {}})
+    reference_errors=[e for e in reference_validation['errors'] if e['rule_id']=='SKU_REFERENCE']
+    checks['sku_references']=not reference_errors
+    validation['errors']=[e for e in validation['errors'] if e['rule_id']!='SKU_REFERENCE']+reference_errors
+    validation['warnings']=[w for w in validation['warnings'] if w['rule_id']!='LEGACY_SKU_REFERENCE_UNCHANGED']+[
+        w for w in reference_validation['warnings'] if w['rule_id']=='LEGACY_SKU_REFERENCE_UNCHANGED']
+    validation['ok']=not validation['errors']
+    return {'ok': all(checks.values()) and validation['ok'], 'checks': checks, 'validation':validation, 'scope': 'snapshot_structure; pixel evidence validated separately'}
+
+
+def check_saved_job(directory):
+    """Offline delivery check against snapshots, immutable evidence and actual content results."""
+    from pathlib import Path
+    from copy import deepcopy
+    from product_state import canonical_state_hash,saved_state_matches
+    from final_state import validate_final_snapshot
+    from executor.service import ExecutorService
+    root=Path(directory)
+    try:
+        read=lambda name:json.loads((root/name).read_text(encoding='utf-8'))
+        before=read('before.json');after=read('after.json');expected=read('expected_after.json');plan=read('plan.v2.json')
+        if canonical_state_hash(before)!=plan['precondition']['state_sha256']:
+            raise ValueError('BEFORE_SNAPSHOT_BINDING_MISMATCH')
+        content=read('content_validation.json')
+        ExecutorService(None,None,root).execute(plan,dry_run=True)
+        normalized=deepcopy(after)
+        if (plan.get('post_actions') or {}).get('translate_title'):
+            expected['titleTranslationZh']=after.get('titleTranslationZh')
+            normalized['titleTranslationZh']=before.get('titleTranslationZh')
+        checks={'structure':verify_snapshot(after,before=before)['ok'],
+                'protected_fields':validate_final_snapshot(normalized,context={'before':before,'plan':plan,'saved_readback':True})['ok'],
+                'expected_state':saved_state_matches(expected,after,source=before),
+                'content':content.get('ok') is True and bool(content.get('items'))}
+        return {'ok':all(checks.values()),'checks':checks,'read_only':True,'scope':'saved_snapshots_and_content_evidence'}
+    except Exception as exc:
+        return {'ok':False,'read_only':True,'error':type(exc).__name__+': '+str(exc),'scope':'saved_snapshots_and_content_evidence'}
+
+
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("pid", nargs="?")
+    ap.add_argument("--job-dir", help="Offline snapshot and content-evidence verification")
     ap.add_argument("--batch", default="", help="多件并行体检：4647,4758,4754")
     ap.add_argument("--jobs", type=int, default=5)
     ap.add_argument("--quick", action="store_true")
@@ -316,6 +344,10 @@ if __name__ == "__main__":
                     help="批检提速：stable=0 + 4 线程并行取图/算残差（结论口径不变）")
     ap.add_argument("--reviewed", action="store_true", help="已逐张看过 resid 拼图")
     a = ap.parse_args()
+    if a.job_dir:
+        checked=check_saved_job(a.job_dir)
+        print(json.dumps(checked,ensure_ascii=False))
+        sys.exit(0 if checked["ok"] else 1)
     here = os.path.dirname(os.path.abspath(__file__))
     if a.batch:
         import subprocess

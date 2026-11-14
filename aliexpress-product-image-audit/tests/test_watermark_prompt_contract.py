@@ -1,0 +1,32 @@
+import json
+import tempfile
+import unittest
+from unittest.mock import patch, MagicMock
+
+from ai_judge import JudgeClient
+from ai_judge.cache import cache_key
+from ai_judge import watermark
+from budget_manager import BudgetManager
+
+
+class WatermarkPromptTests(unittest.TestCase):
+    def test_sent_prompt_has_one_explicit_watermark_contract(self):
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = b'{}'
+        with tempfile.TemporaryDirectory() as root:
+            client = JudgeClient(BudgetManager({'ai_requests': 1}), root)
+            with patch.dict('os.environ', {'VLM_API_KEY': 'test-only-placeholder'}), \
+                    patch('urllib.request.urlopen', return_value=response) as request:
+                client._request('test', {'task_type': 'watermark', 'id': 'A'}, {})
+            body = json.loads(request.call_args.args[0].data)
+        prompt = body['messages'][0]['content'][0]['text']
+        self.assertIn('Required fields: task_type, item_id, classification, owner, location, confidence, abstain, evidence_ids', prompt)
+        self.assertIn('owner and location must be non-empty strings', prompt)
+        self.assertIn('Do not return decision', prompt)
+        self.assertIn('classification=unknown and abstain=true', prompt)
+        self.assertNotIn('or decision MATCH/MISMATCH/UNCERTAIN', prompt)
+
+    def test_cache_key_includes_task_prompt(self):
+        before = cache_key('watermark', {}, {}, 'test')
+        with patch.object(watermark, 'PROMPT', watermark.PROMPT + ' changed'):
+            self.assertNotEqual(before, cache_key('watermark', {}, {}, 'test'))

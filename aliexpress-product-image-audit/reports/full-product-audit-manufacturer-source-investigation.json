@@ -1,0 +1,40 @@
+{
+  "schema": "audit-source-investigation/v1",
+  "shop": 7,
+  "pid": 5097,
+  "declared_model": "DW-ES09T",
+  "new_model_requests": 0,
+  "production_writes": 0,
+  "authoritative_manufacturer_source_verified": false,
+  "audit_decisions_changed": false,
+  "sources": [
+    {
+      "url": "https://news.tfw2005.com/2026/08/16/dr-wu-dw-es09-v2-prime-commander-micromaster-scale-g2-laser-optimus-prime-new-color-variants-571931",
+      "role": "SECONDARY_NEWS_POINTER",
+      "indexed_claim": "DW-ES09T is the Toxitron variant; article attributes images to manufacturer Weibo",
+      "direct_access": "HTTP_403",
+      "used_as_ground_truth": false
+    },
+    {
+      "url": "https://tformers.com/daily-prime-dr-wu-dwes09t-v2-prime-commander-micro-toxitron-new-reveal/57273/news.html",
+      "role": "SECONDARY_NEWS_POINTER",
+      "indexed_claim": "DW-ES09T V2 Prime Commander preview attributed to official social channel",
+      "direct_access": "HTTP_403",
+      "used_as_ground_truth": false
+    },
+    {
+      "url": "https://weibo.com/u/2352651453",
+      "role": "POTENTIAL_MANUFACTURER_ACCOUNT",
+      "indexed_name": "DrWu玩具工作室",
+      "direct_access": "UNAVAILABLE_ROBOTS_RESTRICTION",
+      "exact_model_post_verified": false,
+      "used_as_ground_truth": false
+    }
+  ],
+  "decision": "No model confidence, watermark ownership, or audit completion promoted from search snippets. Manufacturer post, original pixels and provenance still need verification.",
+  "not_accepted_as_proof": [
+    "Retailer page titles saying Official",
+    "Unverified product descriptions",
+    "Search excerpts attributed to a manufacturer without accessible original post"
+  ]
+}

@@ -1,0 +1,2 @@
+# 回归
+Windows unittest discover共113项通过，0失败0跳过；compileall scripts通过。新增test_round2_preapply、test_round2_authorization、test_round2_budget、test_round2_p1覆盖前置拒绝/身份/漂移/PNG上传回填/SKU/授权/模板/预算。旧伪PNG迁移为真实PNG；旧Schema重试3次预期迁移为1；旧VERIFIED迁移STRUCTURE_CHECKED，未删除测试。

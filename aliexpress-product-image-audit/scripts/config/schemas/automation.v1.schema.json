@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "automation.v1.schema.json",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "automation-policy/v1"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "allow_snapshot_sku_rows": {
+      "type": "boolean",
+      "default": false
+    },
+    "mode": {
+      "const": "auto_apply"
+    },
+    "shop_allowlist": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "pid_allowlist": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "max_products_per_run": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "max_site_save_per_job": {
+      "const": 1
+    },
+    "max_uploads_per_job": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "max_ai_requests_per_job": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "allow_actions": {
+      "type": "object",
+      "properties": {
+        "BRAND_CODE": {
+          "type": "boolean"
+        },
+        "CROP_BANNER": {
+          "type": "boolean"
+        },
+        "DELETE_REDUNDANT": {
+          "type": "boolean"
+        },
+        "ERASE_LOCAL": {
+          "type": "boolean"
+        },
+        "REPLACE_LOCAL": {
+          "type": "boolean"
+        },
+        "REPLACE_TWIN": {
+          "type": "boolean"
+        },
+        "SKU_ASSIGN": {
+          "type": "boolean"
+        },
+        "TITLE_REWRITE": {
+          "type": "boolean"
+        },
+        "WEB_SEARCH": {
+          "type": "boolean"
+        },
+        "BOX_NORMALIZE": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "local_pool_index": {
+      "type": "string",
+      "minLength": 1
+    },
+    "preserve_product_status": {
+      "const": true
+    },
+    "require_live_dry_run": {
+      "const": true
+    },
+    "require_post_write_readback": {
+      "const": true
+    },
+    "require_content_validation": {
+      "const": true
+    },
+    "halt_batch_after_unknown_write": {
+      "const": true
+    },
+    "stop_on_global_integrity_error": {
+      "const": true
+    }
+  },
+  "required": [
+    "schema",
+    "enabled",
+    "mode",
+    "shop_allowlist",
+    "pid_allowlist",
+    "max_products_per_run",
+    "max_site_save_per_job",
+    "max_uploads_per_job",
+    "max_ai_requests_per_job",
+    "allow_actions",
+    "preserve_product_status",
+    "require_live_dry_run",
+    "require_post_write_readback",
+    "require_content_validation",
+    "halt_batch_after_unknown_write",
+    "stop_on_global_integrity_error"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,2 @@
+# 标准调用链
+workflow_runner.run → workflow_v2_pipeline → evidence_builder(模板/manifest) → AI Judge(稳定SKU image_id) → plan_compiler → validate_plan。manual_review.submit → JobManager.resolve_review → 重新编译与刷新report。apply_local → LocalExecutor → ExecutorService → pre_apply_validate → 文件SHA/解码 → 上传 → simulate_final_snapshot → validate_final_snapshot → 再读identity/hash → save → readback → check.verify_snapshot → STRUCTURE_CHECKED。CONTENT_REVIEWED证据缺失不进入VERIFIED。

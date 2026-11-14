@@ -10,8 +10,12 @@ product save/status/upload/translate/blacklist endpoints.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
+from download_manager import download_unique
+import shutil
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -23,12 +27,18 @@ import cv2
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent
+POLICY = json.loads((ROOT / "config" / "policy.v2.json").read_text(encoding="utf-8-sig"))
 CJK_RE = re.compile(r"[\u3400-\u9fff]")
 URL_RE = re.compile(r"https?://[^\s\"'<>\\]+")
 STORE_WORDS = ("store", "shop", "toys", "toy store", "模玩", "玩具店", "商城", "店铺")
 HASBRO = "200017853"
 BANDAI = "200014695"
 DUPLICATE_DISTANCE = 8
+WORKFLOW_VERSION = "token-opt-v1"
+EVIDENCE_SCHEMA = "image-evidence/v1"
+METRICS_SCHEMA = "token-opt-metrics/v1"
+OCR_EXTRACTOR_FINGERPRINT = "rapidocr-onnxruntime:default|full+top28x2+bottom28x2+middle28x2|score>=0.50|v2"
+EVIDENCE_CACHE = ROOT / ".cache" / "audit_evidence" / "v1"
 
 
 def _json_obj(value: Any) -> dict[str, Any]:
@@ -43,23 +53,31 @@ def _json_obj(value: Any) -> dict[str, Any]:
     return {}
 
 
+from image_scope import IMAGE_POOLS
+
 def _image_urls(product: dict[str, Any]) -> list[dict[str, Any]]:
     """Return every main/detail/sku occurrence; include skuImageUrl fallbacks."""
     out: list[dict[str, Any]] = []
     images = product.get("images") or {}
-    for kind in ("main", "detail", "sku"):
+    for kind in IMAGE_POOLS:
         for idx, value in enumerate(images.get(kind) or []):
             url = value.get("url") if isinstance(value, dict) else value
             if url:
                 out.append({"kind": kind, "index": idx, "url": str(url), "source": "images"})
 
     known_sku = {x["url"] for x in out if x["kind"] == "sku"}
+    next_sku_index = len(images.get("sku") or [])
     for idx, sku in enumerate(product.get("skus") or []):
         if not isinstance(sku, dict):
             continue
         url = sku.get("skuImageUrl") or sku.get("imageUrl") or sku.get("image")
         if url and str(url) not in known_sku:
-            out.append({"kind": "sku", "index": idx, "url": str(url), "source": "skus"})
+            # Audit indexes identify the union of pool images and reference-only
+            # images. source_index retains the real SKU-row location; the extra
+            # audit index is never an images.sku write target.
+            out.append({"kind": "sku", "index": next_sku_index, "url": str(url),
+                        "source": "skus", "source_index": idx})
+            next_sku_index += 1
             known_sku.add(str(url))
     return out
 
@@ -70,6 +88,29 @@ def _decode(path: Path) -> np.ndarray | None:
         return cv2.imdecode(np.fromfile(str(path), dtype=np.uint8), cv2.IMREAD_COLOR)
     except (OSError, ValueError, cv2.error):
         return None
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _read_json(path: Path) -> dict[str, Any] | None:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else None
+    except (OSError, TypeError, ValueError):
+        return None
+
+
+def _atomic_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temporary, path)
 
 
 def _phash(gray: np.ndarray) -> str:
@@ -238,18 +279,8 @@ def _classify_ocr(items: list[dict[str, Any]], title_text: str = "") -> tuple[st
     return classifier, hits
 
 
-def run_ocr(engine: Any, image: np.ndarray, title_text: str = "") -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
-    h, w = image.shape[:2]
-    crop_h = max(1, int(round(h * 0.28)))
-    top = cv2.resize(image[:crop_h], None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
-    bottom = cv2.resize(image[h - crop_h:], None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
-    passes = [
-        _ocr_items(engine, image, "full"),
-        _ocr_items(engine, top, "top28_x2", inverse_scale=0.5),
-        _ocr_items(engine, bottom, "bottom28_x2", y0=h - crop_h, inverse_scale=0.5),
-    ]
-    # Classify each pass independently.  Otherwise the same real label seen in
-    # full + strip OCR looks like a repeated/tiled watermark to classify().
+def _classify_ocr_passes(passes: list[list[dict[str, Any]]], title_text: str = "") -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+    """Classify cached/raw OCR by pass so repeated strip reads do not look tiled."""
     all_items: list[dict[str, Any]] = []
     hits: list[dict[str, Any]] = []
     classifiers: set[str] = set()
@@ -259,8 +290,6 @@ def run_ocr(engine: Any, image: np.ndarray, title_text: str = "") -> tuple[list[
         all_items.extend(items)
         hits.extend(pass_hits)
 
-    # Keep one compact evidence item when the enlarged strip redetects the same
-    # text at the same location.  Distinct repeated locations remain separate.
     deduped: list[dict[str, Any]] = []
     for hit in hits:
         box = hit["rect"]
@@ -285,9 +314,32 @@ def run_ocr(engine: Any, image: np.ndarray, title_text: str = "") -> tuple[list[
     return all_items, deduped, ",".join(sorted(classifiers))
 
 
+def run_ocr(engine: Any, image: np.ndarray, title_text: str = "") -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+    h, w = image.shape[:2]
+    crop_h = max(1, int(round(h * 0.28)))
+    top = cv2.resize(image[:crop_h], None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+    bottom = cv2.resize(image[h - crop_h:], None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+    middle_y0 = (h - crop_h) // 2
+    middle = cv2.resize(image[middle_y0:middle_y0 + crop_h], None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+    passes = [
+        _ocr_items(engine, image, "full"),
+        _ocr_items(engine, top, "top28_x2", inverse_scale=0.5),
+        _ocr_items(engine, bottom, "bottom28_x2", y0=h - crop_h, inverse_scale=0.5),
+        _ocr_items(engine, middle, "middle28_x2", y0=middle_y0, inverse_scale=0.5),
+    ]
+    return _classify_ocr_passes(passes, title_text=title_text)
+
+
+def classify_cached_ocr(items: list[dict[str, Any]], title_text: str = "") -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+    """Reclassify title-dependent flags without rerunning title-independent OCR."""
+    regions = ("full", "top28_x2", "bottom28_x2", "middle28_x2")
+    passes = [[item for item in items if item.get("region") == region] for region in regions]
+    return _classify_ocr_passes(passes, title_text=title_text)
+
+
 def title_checks(product: dict[str, Any], shop: int) -> dict[str, Any]:
     title = str(product.get("titleEn") or "")
-    expected_prefix = "Hot Sale" if shop == 7 else "In Stock" if shop == 4 else None
+    expected_prefix = POLICY["shop_title_prefix"].get(str(shop))
     identity = _json_obj(product.get("identityJson"))
     model = str(identity.get("modelCode") or "").strip()
     compact_model = re.sub(r"[\s\-_]+", "", model)
@@ -300,12 +352,12 @@ def title_checks(product: dict[str, Any], shop: int) -> dict[str, Any]:
     dual_ok = bool(model and model_present and (compact_present if dual_required else True))
     transform_text = "%s %s" % (title, product.get("title") or "")
     transform = bool(re.search(r"\btransformation\b|\btransformers?\b|\btransforming\s+toy|变形", transform_text, re.I))
-    expected_brand = HASBRO if transform else BANDAI
+    expected_brand = POLICY["brand_mapping"]["transforming_toys" if transform else "default"]
     actual_brand = str(product.get("brand") or product.get("brandId") or "")
     anomalies: list[str] = []
     if expected_prefix and not title.startswith(expected_prefix + " "):
         anomalies.append("title_prefix")
-    if len(title) > 120:
+    if len(title) > POLICY["title_max_length"]:
         anomalies.append("title_length")
     if not model:
         anomalies.append("modelCode_missing")
@@ -317,6 +369,8 @@ def title_checks(product: dict[str, Any], shop: int) -> dict[str, Any]:
     if not translation_present:
         anomalies.append("titleTranslationZh_missing")
     return {
+        "semantic_review_required": bool(not model or not model_present),
+        "semantic_trigger_reasons": [x for x in anomalies if x in {"modelCode_missing","modelCode_title_inclusion"}],
         "title": title,
         "length": len(title),
         "expected_prefix": expected_prefix,
@@ -335,39 +389,14 @@ def title_checks(product: dict[str, Any], shop: int) -> dict[str, Any]:
 
 
 def description_checks(product: dict[str, Any], live_image_urls: Iterable[str]) -> dict[str, Any]:
-    raw = product.get("descriptionJson")
-    parse_error = None
-    parsed: Any = None
-    if isinstance(raw, str) and raw.strip():
-        try:
-            parsed = json.loads(raw)
-        except (TypeError, ValueError) as exc:
-            parse_error = f"{type(exc).__name__}: {str(exc)[:100]}"
-    elif raw is not None:
-        parsed = raw
-    text = raw if isinstance(raw, str) else json.dumps(raw, ensure_ascii=False) if raw is not None else ""
-    urls = sorted(set(URL_RE.findall(text)))
-    image_ext = re.compile(r"\.(?:jpe?g|png|webp|gif)(?:\?|$)", re.I)
-    image_refs = [url for url in urls if image_ext.search(url)]
-    live_names = {url.split("?", 1)[0].rsplit("/", 1)[-1] for url in live_image_urls}
-    unmatched = [url for url in image_refs
-                 if url.split("?", 1)[0].rsplit("/", 1)[-1] not in live_names]
-    # These are candidates only: common footer/template images are intentionally external.
-    return {
-        "present": raw not in (None, "", []),
-        "parse_error": parse_error,
-        "url_count": len(urls),
-        "image_url_count": len(image_refs),
-        "external_or_unmapped_image_refs": unmatched,
-        "dead_reference_note": "unmatched refs need manual/HTTP validation; shared footer images may be valid" if unmatched else None,
-        "parsed_type": type(parsed).__name__ if parsed is not None else None,
-    }
+    """Removed legacy operation: the fixed field must remain opaque."""
+    raise ValueError('DESCRIPTION_OPERATION_FORBIDDEN')
 
 
 def _head_status(url: str) -> int | str:
     try:
         request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(request, timeout=15) as response:
+        with urllib.request.urlopen(request, timeout=7) as response:
             return int(response.status)
     except Exception as exc:
         return getattr(exc, "code", f"ERR:{type(exc).__name__}")
@@ -385,26 +414,58 @@ def _relative(path: Path) -> str:
         return str(path.resolve())
 
 
-def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dict[str, Any]:
+def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False, output_dir: Path | None = None, *, site=None, keyword=None, downloader=None, ocr_factory=None) -> dict[str, Any]:
     # Deliberately lazy: importing this module for tests does not log in to the site.
     from site_client import Site
 
-    site = Site()
-    site.call("/api/admin/shops/current", {"shopId": shop}, method="PUT")
+    audit_started = time.perf_counter()
+    import os
+    if site is None:
+        read_config = os.environ.get('AE_READONLY_SITE_CFG')
+        if not read_config:
+            raise RuntimeError('Explicit AE_READONLY_SITE_CFG required')
+        site = Site(cfg=json.loads(Path(read_config).read_text(encoding='utf-8')), verify_tls=True)
+    # The read-only workflow cannot change shared account context.
+    # Require a deployment-provided shop-scoped session; reject ambiguous state.
+    current_shop=site.current_shop() if callable(getattr(site, 'current_shop', None)) else None
+    if current_shop != shop:
+        raise ValueError("SHOP_CONTEXT_UNVERIFIED: configure a shop-scoped read-only session")
     product = site.product(pid)
+    after=site.current_shop() if callable(getattr(site, 'current_shop', None)) else None
+    if after != shop:
+        raise ValueError("SHOP_CONTEXT_CHANGED")
 
-    outdir = ROOT / "work" / f"pp_{pid}"
+    outdir = Path(output_dir) if output_dir is not None else ROOT / "work" / f"pp_{pid}"
     imgdir = outdir / "audit_images"
     imgdir.mkdir(parents=True, exist_ok=True)
     snapshot_path = outdir / "audit_product.json"
     snapshot_path.write_text(json.dumps(product, ensure_ascii=False, indent=2), encoding="utf-8")
+    previous_metrics = _read_json(outdir / "run_metrics.json") or {}
 
     refs = _image_urls(product)
     engine = None
-    if not no_ocr:
-        from rapidocr_onnxruntime import RapidOCR
-        engine = RapidOCR()
 
+    def ocr_engine() -> Any:
+        nonlocal engine
+        if engine is None:
+            if ocr_factory is not None:engine=ocr_factory()
+            else:
+                from rapidocr_onnxruntime import RapidOCR
+                engine = RapidOCR()
+        return engine
+
+    metrics: dict[str, Any] = {
+        "schema": METRICS_SCHEMA,
+        "workflow_version": WORKFLOW_VERSION,
+        "pid": pid,
+        "shop": shop,
+        "image_occurrences": len(refs),
+        "downloads": {"cache_hits": 0, "network_fetches": 0},
+        "evidence": {"cache_hits": 0, "cache_misses": 0, "writes": 0},
+        "ocr": {"enabled": not no_ocr, "image_executions": 0, "cache_reuses": 0},
+    }
+    if isinstance(previous_metrics.get("executor"), dict):
+        metrics["executor"] = previous_metrics["executor"]
     raw_images: list[dict[str, Any]] = []
     compact_images: list[dict[str, Any]] = []
     anomalies: list[dict[str, Any]] = []
@@ -413,49 +474,123 @@ def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dic
     residual_hits: list[dict[str, Any]] = []
     main_hashes: list[tuple[int, str, str]] = []
     classifiers: set[str] = set()
+    title_context = "%s %s" % (product.get("titleEn") or "", product.get("title") or "")
+    unique_content_hashes: set[str] = set()
 
-    for ordinal, ref in enumerate(refs):
-        digest = hashlib.sha1(ref["url"].encode("utf-8")).hexdigest()[:10]
-        path = imgdir / f"{ref['kind']}_{ref['index']:02d}_{digest}.bin"
+    downloads = download_unique((ref["url"] for ref in refs), imgdir / "urls", downloader=downloader, force=force, metrics=metrics["downloads"])
+    metrics["downloads"]["unique_urls"] = len(downloads)
+    metrics["downloads"]["failed"] = sum("error" in r for r in downloads.values())
+    for ref in refs:
+        url_digest = hashlib.sha1(ref["url"].encode("utf-8")).hexdigest()[:10]
+        path = imgdir / f"{ref['kind']}_{ref['index']:02d}_{url_digest}.bin"
         rec = dict(ref)
+        rec["image_id"] = ref['kind'].upper() + '_' + str(ref['index']).zfill(3)
         rec["file"] = _relative(path)
+        rec['timing_ms']={'download':downloads[ref['url']].get('elapsed_ms'),'cv':None,'ocr':None,'residual_stats':None}
+        rec['processing_status']={'download':'ERROR' if 'error' in downloads[ref['url']] else 'CACHE_HIT' if downloads[ref['url']].get('cached') else 'NETWORK_FETCH',
+                                  'cv':'NOT_CALLED','ocr':'DISABLED' if no_ocr else 'NOT_CALLED'}
+        cv_started=None;ocr_started=None
         try:
-            if force or not path.exists() or path.stat().st_size == 0:
-                site.download(ref["url"], str(path))
+            downloaded = downloads[ref["url"]]
+            if "error" in downloaded:
+                raise ValueError(downloaded["error"])
+            shutil.copyfile(downloaded["path"], path)
+            if downloaded["cached"]:
+                pass  # download manager counts unique URL cache hits
             rec["bytes"] = path.stat().st_size
-            image = _decode(path)
-            if image is None:
-                raise ValueError("cv2.imdecode returned None")
-            h, w = image.shape[:2]
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            rec.update({"width": int(w), "height": int(h), "short": int(min(w, h)),
-                        "ratio": round(w / h, 4)})
-            borders = border_candidates(gray)
-            residual = residual_stats(gray)
-            rec["borders"] = borders
-            rec["residual"] = residual
-            if ref["kind"] == "main":
-                main_hashes.append((ref["index"], _phash(gray), rec["file"]))
-            if min(w, h) < 800:
-                anomalies.append({"type": "short_side_lt_800", "image": rec["file"],
-                                  "kind": ref["kind"], "index": ref["index"], "value": min(w, h)})
-            if borders:
-                border_hits.append({"image": rec["file"], "kind": ref["kind"],
-                                    "index": ref["index"], "bands": borders})
-            if residual["candidate"]:
-                residual_hits.append({"image": rec["file"], "kind": ref["kind"],
-                                      "index": ref["index"], "stats": residual})
-            if engine is not None:
-                title_context = "%s %s" % (product.get("titleEn") or "", product.get("title") or "")
-                items, hits, classifier = run_ocr(engine, image, title_text=title_context)
+            content_hash = _sha256(path)
+            rec["content_sha256"] = content_hash
+            unique_content_hashes.add(content_hash)
+            cache_path = EVIDENCE_CACHE / content_hash[:2] / f"{content_hash}.json"
+            evidence = _read_json(cache_path)
+            valid_evidence = bool(evidence and evidence.get("schema") == EVIDENCE_SCHEMA
+                                  and evidence.get("sha256") == content_hash)
+            image: np.ndarray | None = None
+            evidence_dirty = False
+            if valid_evidence:
+                metrics["evidence"]["cache_hits"] += 1
+                rec['processing_status']['cv']='CACHE_HIT'
+            else:
+                metrics["evidence"]["cache_misses"] += 1
+                cv_started=time.perf_counter()
+                image = _decode(path)
+                if image is None:
+                    raise ValueError("cv2.imdecode returned None")
+                h, w = image.shape[:2]
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                residual_started=time.perf_counter()
+                residual_result=residual_stats(gray)
+                rec['timing_ms']['residual_stats']=round((time.perf_counter()-residual_started)*1000,3)
+                evidence = {
+                    "schema": EVIDENCE_SCHEMA,
+                    "sha256": content_hash,
+                    "bytes": rec["bytes"],
+                    "width": int(w),
+                    "height": int(h),
+                    "short": int(min(w, h)),
+                    "ratio": round(w / h, 4),
+                    "phash": _phash(gray),
+                    "borders": border_candidates(gray),
+                    "residual": residual_result,
+                }
+                rec['timing_ms']['cv']=round((time.perf_counter()-cv_started)*1000,3)
+                rec['processing_status']['cv']='EXECUTED';cv_started=None
+                evidence_dirty = True
+
+            assert evidence is not None
+            ocr_cache_valid = ("ocr" in evidence and
+                               evidence.get("ocr_fingerprint") == OCR_EXTRACTOR_FINGERPRINT)
+            if not no_ocr and not ocr_cache_valid:
+                ocr_started=time.perf_counter()
+                if image is None:
+                    image = _decode(path)
+                    if image is None:
+                        raise ValueError("cv2.imdecode returned None")
+                items, hits, classifier = run_ocr(ocr_engine(), image, title_text=title_context)
+                evidence["ocr"] = items
+                evidence["ocr_fingerprint"] = OCR_EXTRACTOR_FINGERPRINT
+                evidence_dirty = True
+                metrics["ocr"]["image_executions"] += 1
+                rec['processing_status']['ocr']='EXECUTED'
+            elif not no_ocr:
+                ocr_started=time.perf_counter()
+                items, hits, classifier = classify_cached_ocr(evidence.get("ocr") or [], title_text=title_context)
+                metrics["ocr"]["cache_reuses"] += 1
+                rec['processing_status']['ocr']='CACHE_RECLASSIFIED'
+            else:
+                items, hits, classifier = [], [], "disabled"
+            if ocr_started is not None:
+                rec['timing_ms']['ocr']=round((time.perf_counter()-ocr_started)*1000,3);ocr_started=None
+
+            if evidence_dirty:
+                _atomic_json(cache_path, evidence)
+                metrics["evidence"]["writes"] += 1
+
+            rec.update({key: evidence[key] for key in ("width", "height", "short", "ratio", "borders", "residual")})
+            if not no_ocr:
                 classifiers.add(classifier)
                 rec["ocr"] = items
                 for hit in hits:
                     all_hits.append({"image": rec["file"], "kind": ref["kind"],
                                      "index": ref["index"], **hit})
+            if ref["kind"] == "main":
+                main_hashes.append((ref["index"], str(evidence["phash"]), rec["file"]))
+            if rec["short"] < POLICY["image_min_short_side"]:
+                anomalies.append({"type": "short_side_lt_800", "image": rec["file"],
+                                  "kind": ref["kind"], "index": ref["index"], "value": rec["short"]})
+            if rec["borders"]:
+                border_hits.append({"image": rec["file"], "kind": ref["kind"],
+                                    "index": ref["index"], "bands": rec["borders"]})
+            if rec["residual"]["candidate"]:
+                residual_hits.append({"image": rec["file"], "kind": ref["kind"],
+                                      "index": ref["index"], "stats": rec["residual"]})
             compact_images.append({key: rec[key] for key in
                                    ("kind", "index", "source", "file", "width", "height", "short", "ratio")})
         except Exception as exc:  # continue so one bad image does not hide the product audit
+            for stage,started in (('cv',cv_started),('ocr',ocr_started)):
+                if started is not None:
+                    rec['processing_status'][stage]='ERROR'
+                    rec['timing_ms'][stage]=round((time.perf_counter()-started)*1000,3)
             rec["error"] = f"{type(exc).__name__}: {str(exc)[:180]}"
             anomalies.append({"type": "image_error", "kind": ref["kind"], "index": ref["index"],
                               "image": rec["file"], "error": rec["error"]})
@@ -470,28 +605,13 @@ def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dic
                                    "files": [file_a, file_b]})
 
     counts = {kind: sum(1 for ref in refs if ref["kind"] == kind) for kind in ("main", "detail", "sku")}
-    if counts["main"] > 6:
+    if counts["main"] > POLICY["main_max_count"]:
         anomalies.append({"type": "main_count_gt_6", "value": counts["main"]})
     if counts["detail"] == 0:
         anomalies.append({"type": "no_detail_images"})
 
     title = title_checks(product, shop)
     anomalies.extend({"type": name} for name in title["anomalies"])
-    desc = description_checks(product, (ref["url"] for ref in refs))
-    if desc["parse_error"]:
-        anomalies.append({"type": "description_parse_error", "error": desc["parse_error"]})
-    unmapped = desc["external_or_unmapped_image_refs"]
-    if unmapped:
-        statuses = [{"url": url, "status": _head_status(url)} for url in unmapped[:40]]
-        dead = [row for row in statuses if _definitely_dead(row["status"])]
-        uncertain = [row for row in statuses
-                     if not _definitely_dead(row["status"])
-                     and not (isinstance(row["status"], int) and 200 <= row["status"] < 400)]
-        desc["unmapped_status"] = statuses
-        desc["dead_refs"] = dead
-        desc["uncertain_refs"] = uncertain
-        if dead:
-            anomalies.append({"type": "description_dead_refs", "count": len(dead)})
     pool_summary: dict[str, Any] = {}
     for kind in ("main", "detail", "sku"):
         rows = [row for row in compact_images if row["kind"] == kind]
@@ -513,6 +633,7 @@ def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dic
     deep = bool(anomalies or all_hits or duplicates or border_hits or residual_hits)
     flags = {
         "schema": "audit-one/v1",
+        "workflow_version": WORKFLOW_VERSION,
         "pid": pid,
         "shop": shop,
         "read_only_product": True,
@@ -536,25 +657,42 @@ def audit(pid: int, shop: int, no_ocr: bool = False, force: bool = False) -> dic
         "product_checks": {
             "invariants": invariants,
             "title_identity_brand": title,
-            "description": desc,
         },
         "evidence": {
             "context": _relative(outdir / "audit_context.md"),
             "product_snapshot": _relative(snapshot_path),
             "raw": _relative(outdir / "audit_raw.json"),
+            "metrics": _relative(outdir / "run_metrics.json"),
             "image_dir": _relative(imgdir),
         },
     }
     raw = {
         "schema": "audit-one-raw/v1",
+        "workflow_version": WORKFLOW_VERSION,
         "pid": pid,
         "shop": shop,
         "classifier": sorted(classifiers),
         "images": raw_images,
     }
+    metrics["elapsed_seconds"] = round(time.perf_counter() - audit_started, 3)
+    metrics["unique_content_digests"] = len(unique_content_hashes)
+    metrics["classifier_executions"] = len(raw_images) if not no_ocr else 0
+    metrics["image_errors"] = sum(1 for item in raw_images if item.get("error"))
+    metrics["budget"] = {
+        "full_resolution_views": {"value": None, "limit": 12, "source": "agent_updates_required"},
+        "temporary_scripts": {"value": None, "limit": 1, "source": "agent_updates_required"},
+        "model_requests": {"value": None, "target_max": 45, "source": "external-session-ledger"},
+    }
+    previous_budget = previous_metrics.get("budget", {})
+    if isinstance(previous_budget, dict):
+        for name, row in metrics["budget"].items():
+            old_row = previous_budget.get(name)
+            if isinstance(old_row, dict) and "value" in old_row:
+                row["value"] = old_row["value"]
     (outdir / "audit_raw.json").write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
     flags_path = outdir / "audit_flags.json"
     flags_path.write_text(json.dumps(flags, ensure_ascii=False, indent=2), encoding="utf-8")
+    (outdir / "run_metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
     (outdir / "audit_context.md").write_text(_render_context(flags), encoding="utf-8")
     return flags
 
@@ -568,7 +706,7 @@ def _render_context(flags: dict[str, Any], max_items: int = 12) -> str:
     title = checks["title_identity_brand"]
     lines = [
         f"# 商品 {flags['pid']} 只读预审",
-        f"- 模式：{summary['suggested_mode']}；店铺：{flags['shop']}；状态：{inv.get('status')}",
+        f"- 流程：{flags.get('workflow_version')}；模式：{summary['suggested_mode']}；店铺：{flags['shop']}；状态：{inv.get('status')}",
         f"- 图片：main {counts['main']} / detail {counts['detail']} / sku {counts['sku']}；读取错误 {summary['image_errors']}",
         f"- 命中：OCR {summary['ocr_hit_count']} / 重复 {summary['duplicate_pair_count']} / 边框 {summary['border_candidate_count']} / 残差 {summary['residual_candidate_count']} / 字段异常 {summary['anomaly_count']}",
         f"- 标题：{title.get('length')} 字；前缀={title.get('prefix_ok')}；编号双格式={title.get('dual_format_ok')}",
@@ -593,6 +731,7 @@ def _render_context(flags: dict[str, Any], max_items: int = 12) -> str:
     lines.extend([
         "## 证据路由",
         "- 默认只读本文件；出现问题再读 audit_flags.json；机器明细只在必要时读 audit_raw.json。",
+        "- 资源账本：run_metrics.json；只记录摘要，不把原始日志贴入上下文。",
     ])
     return "\n".join(lines) + "\n"
 

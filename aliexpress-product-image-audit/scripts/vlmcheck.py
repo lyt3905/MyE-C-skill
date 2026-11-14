@@ -27,23 +27,16 @@ KEY = os.environ.get("VLM_API_KEY", "")
 
 
 def _key():
-    k = os.environ.get("VLM_API_KEY")
-    if k:
-        return k
-    try:
-        with open(os.path.join(ROOT, "bench_vl2.mjs"), "r", encoding="utf-8") as f:
-            m = re.search(r'const KEY = "([0-9a-f]{16,})"', f.read())
-            if m:
-                return m.group(1)
-    except Exception:
-        pass
-    raise SystemExit("缺 VLM_API_KEY（或 bench_vl2.mjs 里的 KEY）")
+    value = os.environ.get("VLM_API_KEY")
+    if not value:
+        raise SystemExit("VLM_API_KEY required")
+    return value
 
 
 PROMPT = "\n".join([
     "这是速卖通(AliExpress)商品图。请判断：图中是否存在**其他卖家店铺**的水印或店铺标识"
-    "（别的店铺的店名文字、店铺 logo、印着店名的横幅/边框/角标、微博号/微信号）。",
-    "不算水印（不要报）：品牌名、商品型号、厂牌/厂商名、官方宣传文案、正品或授权标识、"
+    "（别的店铺的店名文字、店铺 logo、印着店名的横幅/边框/角标）。",
+    "不算水印（不要报）：微博/微信/小红书社交署名、摄影署名、品牌名、商品型号、厂牌/厂商名、官方宣传文案、正品或授权标识、"
     "商品包装盒上印刷的文字、画面左下角或边缘的厂牌印章（例如 易玩天明 / 钢铁战魂 / METAL SOULS / 铁鼠 MAUS / YW-2611 这类）。",
     '只输出一行 JSON，不要解释：{"watermark": true 或 false, "location": "底部横幅|左下角|右下角|画面中部横贯|整幅重复|边缘角标|无", "text": "你读到的可疑文字，读不出就填空字符串", "confidence": 0到1之间的小数}',
 ])
@@ -183,7 +176,7 @@ def fetch_dir(d):
     return out, d
 
 
-def main(argv):
+def legacy_main(argv):
     pid = None
     kind = None
     d = None
@@ -277,5 +270,24 @@ def main(argv):
     return 2 if need else 0
 
 
-if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+def main(argv):
+    """v2 accepts a machine queue, never an entire product image pool."""
+    import argparse
+    from pathlib import Path
+    from ai_judge import JudgeClient
+    from budget_manager import BudgetManager
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--queue', type=Path, required=True)
+    parser.add_argument('--context', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args(argv)
+    queue=json.loads(args.queue.read_text(encoding='utf-8'))
+    context=json.loads(args.context.read_text(encoding='utf-8'))
+    budget=BudgetManager({'ai_requests':45,'full_resolution_images':12}, args.output.parent/'budget.sqlite')
+    judge=JudgeClient(budget,args.output.parent/'judge_cache')
+    results=judge.process_queue(queue,context)
+    args.output.write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
+    return 2 if any(x['status'] != 'CLEAN' for x in results.values()) else 0
+
+if __name__ == '__main__':
+    raise SystemExit(main(sys.argv[1:]))

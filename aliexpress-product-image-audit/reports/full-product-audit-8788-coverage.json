@@ -1,0 +1,323 @@
+{
+  "source_report": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\full-product-audit-20261114\\jobs\\JOB_93099438cf014a689846bc05469759ad\\recovery_8788_1\\final_report.after-component.json",
+  "expected_positions": 16,
+  "reported_positions": 16,
+  "expected_model_results": 28,
+  "saved_model_results": 28,
+  "positions": [
+    {
+      "id": "MAIN_000",
+      "source_sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "PASS"
+      },
+      "confirmed_findings": [
+        {
+          "rule": "store_watermark",
+          "verdict": "FAIL",
+          "observations": [
+            {
+              "classification": "third_party_store_banner",
+              "owner": "Mr.Li's Studio Store",
+              "location": "top center, pink/purple banner overlay (approx. x=256-544, y=6-33)",
+              "confidence": 0.98,
+              "evidence_ids": [
+                "WM_20583cfb87a9ac7e",
+                "TARGET_OCR_20583cfb87a9ac7e_0",
+                "TARGET_OCR_20583cfb87a9ac7e_1",
+                "TARGET_GAUSSIAN_20583cfb87a9ac7e"
+              ]
+            },
+            {
+              "classification": "third_party_store_banner",
+              "owner": "Mr. Li's Studio Store",
+              "location": "top center banner",
+              "confidence": 0.93,
+              "evidence_ids": [
+                "WM_20583cfb87a9ac7e",
+                "TARGET_OCR_20583cfb87a9ac7e_0",
+                "TARGET_OCR_20583cfb87a9ac7e_1",
+                "TARGET_GAUSSIAN_20583cfb87a9ac7e"
+              ]
+            }
+          ],
+          "remediation_authorized": false
+        }
+      ],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "MAIN_001",
+      "source_sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "PASS"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "MAIN_002",
+      "source_sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "MAIN_003",
+      "source_sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "MAIN_004",
+      "source_sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "MAIN_005",
+      "source_sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "DETAIL_000",
+      "source_sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "PASS"
+      },
+      "confirmed_findings": [
+        {
+          "rule": "store_watermark",
+          "verdict": "FAIL",
+          "observations": [
+            {
+              "classification": "third_party_store_banner",
+              "owner": "Mr.Li's Studio Store",
+              "location": "top center, pink/purple banner overlay (approx. x=256-544, y=6-33)",
+              "confidence": 0.98,
+              "evidence_ids": [
+                "WM_20583cfb87a9ac7e",
+                "TARGET_OCR_20583cfb87a9ac7e_0",
+                "TARGET_OCR_20583cfb87a9ac7e_1",
+                "TARGET_GAUSSIAN_20583cfb87a9ac7e"
+              ]
+            },
+            {
+              "classification": "third_party_store_banner",
+              "owner": "Mr. Li's Studio Store",
+              "location": "top center banner",
+              "confidence": 0.93,
+              "evidence_ids": [
+                "WM_20583cfb87a9ac7e",
+                "TARGET_OCR_20583cfb87a9ac7e_0",
+                "TARGET_OCR_20583cfb87a9ac7e_1",
+                "TARGET_GAUSSIAN_20583cfb87a9ac7e"
+              ]
+            }
+          ],
+          "remediation_authorized": false
+        }
+      ],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "DETAIL_001",
+      "source_sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "PASS"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "DETAIL_002",
+      "source_sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "DETAIL_003",
+      "source_sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "DETAIL_004",
+      "source_sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "DETAIL_005",
+      "source_sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "SKU_000",
+      "source_sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "SKU_001",
+      "source_sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "SKU_ROW_000",
+      "source_sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN",
+        "sku_packaging": "PASS"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    },
+    {
+      "id": "SKU_ROW_001",
+      "source_sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+      "checks": {
+        "source": "PASS",
+        "dimensions": "PASS",
+        "watermark": "UNKNOWN",
+        "product_identity": "UNKNOWN",
+        "sku_packaging": "PASS"
+      },
+      "confirmed_findings": [],
+      "verdict": "UNKNOWN"
+    }
+  ],
+  "global_checks": [
+    {
+      "rule": "ocr_available",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "near_duplicate_review",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "template_configuration",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "gaussian_highpass_coverage",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "brand_mapping",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "source_state_and_account_unchanged",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "required_pool_main",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "required_pool_detail",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "required_pool_sku",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "main_count_1_to_6",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "main_exact_duplicates",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "sku_pool_reference_0",
+      "verdict": "PASS"
+    },
+    {
+      "rule": "sku_pool_reference_1",
+      "verdict": "PASS"
+    }
+  ],
+  "audit_complete": false,
+  "unresolved_positions": 16
+}

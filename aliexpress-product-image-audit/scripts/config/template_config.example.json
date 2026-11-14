@@ -1,0 +1,6 @@
+{
+  "schema": "template-config/v1",
+  "required_shop_ids": [4, 7],
+  "no_applicable_shop_ids": [],
+  "templates": []
+}

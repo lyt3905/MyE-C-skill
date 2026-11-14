@@ -1,0 +1,1 @@
+PROMPT = 'Check product type, model and box versus product. Return decision MATCH/MISMATCH/UNCERTAIN. Any model requires model_evidence_ids referencing supplied evidence. Never infer an unsupported model.'

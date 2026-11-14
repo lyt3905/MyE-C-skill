@@ -1,0 +1,26 @@
+local/
+__pycache__/
+*.pyc
+scripts/.cache/
+work/
+**/work/
+.venv/
+.pytest_cache/
+*.sqlite
+*.sqlite-*
+*.zip
+*.local.json
+.env
+.env.*
+!.env.example
+deployment/auto-v1-delivery/
+
+# Publish documentation and selected verification summaries, not raw live jobs.
+reports/**
+!reports/*.md
+!reports/full-audit-recovery-full-tests.log
+!reports/full-audit-recovery-full-tests-status.json
+!reports/github-prepush-tests.log
+!reports/github-prepush-tests-status.json
+!reports/full-product-audit-8788-*.json
+!reports/full-product-audit-manufacturer-source-investigation.json
