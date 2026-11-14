@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 
 _FIELDS = ('schema', 'base_url', 'models', 'max_output_tokens', 'retries', 'timeout')
+_OPTIONAL_FIELDS = ('reasoning_effort',)
 _MODEL_ID = re.compile(r'[A-Za-z0-9_./:-]+', re.ASCII)
 
 
@@ -18,7 +19,7 @@ def validate_config(config):
     """Return a fresh normalized profile; never include supplied values in errors."""
     if not isinstance(config, dict):
         _invalid('config')
-    if set(config) - set(_FIELDS):
+    if set(config) - set(_FIELDS) - set(_OPTIONAL_FIELDS):
         _invalid('fields')
     for field in _FIELDS:
         if field not in config:
@@ -55,9 +56,14 @@ def validate_config(config):
     for field, low, high in (('max_output_tokens', 1, 16384), ('retries', 0, 2), ('timeout', 1, 150)):
         if type(config[field]) is not int or not low <= config[field] <= high:
             _invalid(field)
-    return {'schema': config['schema'], 'base_url': base_url.rstrip('/'),
+    if 'reasoning_effort' in config and (not isinstance(config['reasoning_effort'],str)
+            or config['reasoning_effort'] not in ('low','medium','high')):
+        _invalid('reasoning_effort')
+    normalized = {'schema': config['schema'], 'base_url': base_url.rstrip('/'),
             'models': list(models), 'max_output_tokens': config['max_output_tokens'],
             'retries': config['retries'], 'timeout': config['timeout']}
+    if 'reasoning_effort' in config:normalized['reasoning_effort']=config['reasoning_effort']
+    return normalized
 
 
 def load_config(path):

@@ -1,3 +1,4 @@
+from watermark_fixtures import exhaustive
 import json
 import tempfile
 import unittest
@@ -11,10 +12,11 @@ import test_v13_account_cli
 
 
 class ImageObservationTests(unittest.TestCase):
-    def evidence(self):return {'id':'WM_MAIN_000','task_type':'watermark','sha256':'a'*64,'evidence_ids':['WM_MAIN_000']}
+    def evidence(self):return {'id':'WM_MAIN_000','task_type':'watermark','sha256':'a'*64,'evidence_ids':['WM_MAIN_000'],'dimensions':[800,800]}
     def response(self,usage=True,valid=True):
         result={'task_type':'watermark','item_id':'WM_MAIN_000','classification':'manufacturer_branding',
                 'owner':'factory','location':'box','confidence':.95,'abstain':False,'evidence_ids':['WM_MAIN_000']}
+        result=exhaustive(result)
         response={'choices':[{'message':{'content':json.dumps(result) if valid else 'not JSON'}}]}
         if usage:response['usage']={'prompt_tokens':40,'completion_tokens':10,'total_tokens':50}
         return response

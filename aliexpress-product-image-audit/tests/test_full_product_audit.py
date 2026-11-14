@@ -8,6 +8,7 @@ import json
 from PIL import Image
 
 from full_product_audit import build_inventory, assemble_report, build_queue
+from watermark_fixtures import exhaustive,identity
 
 
 class FullProductAuditTests(unittest.TestCase):
@@ -42,6 +43,9 @@ class FullProductAuditTests(unittest.TestCase):
                     'abstain':False,'evidence_ids':[key],'image_type':'product_only',
                     'sku_packaging':'without_box' if row['sku_row_index']==0 else 'with_box',
                     'missing_image':False,'shared_across_skus':False}]*2}
+        for key,value in results.items():
+            if key.startswith('WM_'):value['results']=[exhaustive(dict(row,item_id=key)) for row in value['results']]
+            elif key.startswith('IDENTITY_'):value['results']=[identity(dict(row,task_type='product_identity',item_id=key)) for row in value['results']]
         return results
 
     def test_every_slot_and_sku_reference_is_included_without_machine_triggers(self):
@@ -75,6 +79,7 @@ class FullProductAuditTests(unittest.TestCase):
             key=next(k for k in results if k.startswith('WM_'))
             for row in results[key]['results']:
                 row['classification']='third_party_store_banner';row['marks'][0]['classification']='third_party_store_banner'
+                row['marks'][0]['owner']='Example Store'
             results[key]['status']='HIT'
             report=assemble_report(product,inventory,results,[])
             self.assertTrue(report['audit_complete'])
@@ -94,7 +99,9 @@ class FullProductAuditTests(unittest.TestCase):
             key=next(iter(results))
             for row in results[key]['results']:
                 row.update(classification='third_party_store_banner',owner='store',location='top')
-                row['marks'].append({'classification':'unknown','owner':'unknown','location':'bottom','confidence':.4})
+                row['marks'][0].update(classification='third_party_store_banner',owner='Example Store')
+                row['marks'].append({'mark_id':'M2','classification':'unknown','owner':'unknown','location':'bottom','confidence':.4,
+                                     'abstain':True,'bbox_xyxy':[20,400,100,440],'evidence_ids':[key]})
             report=assemble_report(product,inventory,results,[])
             self.assertFalse(report['audit_complete'])
             self.assertEqual(report['compliance_status'],'NON_COMPLIANT')
@@ -129,7 +136,9 @@ class FullProductAuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             product,raw=self.fixture(root);inventory=build_inventory(product,raw);results=self.decisions(inventory)
             key=next(k for k in results if k.startswith('IDENTITY_'))
-            for row in results[key]['results']:row.pop('model_evidence_ids')
+            for row in results[key]['results']:
+                row.pop('model_evidence_ids')
+                row['observations']['model_identity']['evidence_ids']=[]
             self.assertFalse(assemble_report(product,inventory,results,[])['audit_complete'])
 
     def test_source_text_annotations_reach_models_without_description_or_prices(self):

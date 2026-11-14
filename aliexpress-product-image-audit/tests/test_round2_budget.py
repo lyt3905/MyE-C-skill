@@ -15,7 +15,7 @@ class Round2BudgetTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as root:
    b=BudgetManager({'ai_requests':0})
    c=JudgeClient(b,root,transport=lambda *args:calls.append(args))
-   result=c.classify('watermark',{'id':'a','evidence_ids':[]},{})
+   result=c.classify('watermark',{'id':'a','evidence_ids':[],'dimensions':[800,800]},{})
    self.assertEqual(result['error'],'BUDGET_EXCEEDED')
    self.assertEqual(calls,[]);self.assertEqual(c.metrics['retries'],0)
    b.close()
@@ -25,7 +25,7 @@ class Round2BudgetTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as root:
    b=BudgetManager({'ai_requests':0,'total_tokens':10000})
    c=JudgeClient(b,root,transport=lambda *args:self.fail('must not call'))
-   c.classify('watermark',{'id':'x','evidence_ids':[]},{})
+   c.classify('watermark',{'id':'x','evidence_ids':[],'dimensions':[800,800]},{})
    self.assertEqual(b.snapshot()['used']['total_tokens'],0)
    self.assertEqual(c.metrics['requests'],0)
    b.close()

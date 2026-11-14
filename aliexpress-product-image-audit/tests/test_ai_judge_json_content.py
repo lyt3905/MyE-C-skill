@@ -1,3 +1,4 @@
+from watermark_fixtures import exhaustive
 import json
 import tempfile
 import unittest
@@ -12,12 +13,14 @@ class JsonContentTests(unittest.TestCase):
                            owner='store', location='center', confidence=.95,
                            abstain=False, evidence_ids=['A'])
 
+        self.result=exhaustive(self.result)
+
     def classify(self, content):
         with tempfile.TemporaryDirectory() as root:
             client = JudgeClient(BudgetManager({'ai_requests': 10}), root,
                                  models=('test',), retries=0,
                                  transport=lambda *args: {'choices': [{'message': {'content': content}}]})
-            return client.classify('watermark', {'id': 'A', 'evidence_ids': ['A']}, {})
+            return client.classify('watermark', {'id': 'A', 'evidence_ids': ['A'], 'dimensions':[800,800]}, {})
 
     def test_plain_and_complete_single_fences(self):
         raw = json.dumps(self.result)

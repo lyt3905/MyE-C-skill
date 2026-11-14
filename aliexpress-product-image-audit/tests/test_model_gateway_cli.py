@@ -1,3 +1,4 @@
+from watermark_fixtures import exhaustive
 import copy
 import io
 import json
@@ -19,9 +20,9 @@ PROFILE={'schema':'model-gateway/v1','base_url':'http://127.0.0.1:3425/v1',
 
 
 def response(item,classification='product_print'):
-    return {'choices':[{'message':{'content':json.dumps({'task_type':'watermark','item_id':item['id'],
+    return {'choices':[{'message':{'content':json.dumps(exhaustive({'task_type':'watermark','item_id':item['id'],
         'classification':classification,'owner':'factory','location':'center','confidence':.99,
-        'abstain':False,'evidence_ids':item['evidence_ids']})}}],
+        'abstain':False,'evidence_ids':item['evidence_ids']}))}}],
         'usage':{'prompt_tokens':2,'completion_tokens':2,'total_tokens':4}}
 
 
@@ -35,9 +36,9 @@ class ModelGatewayCliTests(unittest.TestCase):
                 requests=[]
                 def send(req,timeout):
                     requests.append((req.full_url,json.loads(req.data),timeout))
-                    return io.BytesIO(json.dumps(response({'id':'A','evidence_ids':['A']})).encode())
+                    return io.BytesIO(json.dumps(response({'id':'A','evidence_ids':['A'],'dimensions':[800,800]})).encode())
                 with patch('urllib.request.urlopen',side_effect=send):
-                    result=client.classify('watermark',{'id':'A','task_type':'watermark','evidence_ids':['A']},{})
+                    result=client.classify('watermark',{'id':'A','task_type':'watermark','evidence_ids':['A'],'dimensions':[800,800]},{})
                 self.assertEqual(result['status'],'CLEAN',result)
                 self.assertEqual([r[1]['model'] for r in requests],PROFILE['models'])
                 self.assertTrue(all(r[0]==PROFILE['base_url']+'/chat/completions' and r[1]['max_tokens']==4096 and r[2]==90 for r in requests))
@@ -52,7 +53,7 @@ class ModelGatewayCliTests(unittest.TestCase):
                 budget=BudgetManager({'ai_requests':2})
                 try:
                     client=JudgeClient(budget,root,config=dict(PROFILE,base_url=base),transport=send)
-                    self.assertEqual(client.classify('watermark',{'id':'A','evidence_ids':['A']},{})['status'],'CLEAN')
+                    self.assertEqual(client.classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{})['status'],'CLEAN')
                 finally:budget.close()
             self.assertEqual(len(calls),4)
 

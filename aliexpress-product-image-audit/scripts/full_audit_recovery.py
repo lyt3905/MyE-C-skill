@@ -36,8 +36,8 @@ def select_pending(product,inventory,queue,results):
     pending=[]
     for item in queue['items']:
         result=results.get(item['id'],{});task=item['task_type']
-        if task=='watermark':verdict=_watermark(result)
-        elif task=='product_identity':verdict=_identity(result,model)
+        if task=='watermark':verdict=_watermark(result,item)
+        elif task=='product_identity':verdict=_identity(result,model,item)
         elif task=='sku_match':
             shared=sum(r['target_type']=='sku_reference' and r['sha256']==item['sha256'] for r in inventory['occurrences'])>1
             verdict=_sku(result,item['sku_name'],shared)
@@ -94,9 +94,9 @@ def recover(parent,authorization,reader,*,registry=None,judge_factory=None):
     pending,labels=add_source_labels(pending,registry or {})
     for item in pending['items']:
         if item['task_type']=='product_identity':
-            item['purpose']+=' Use canonical JSON keys model and color (not observed_model/observed_color). Return the observed catalog model code alone in model; put display names in notes. image_type must describe ALL visible target content, not merely the largest object.'
+            item['purpose']+=' Follow product-identity/v3 observations for each dimension with independent confidence and evidence. Windowed packaging enclosing a toy is BOX; MIXED requires an unpackaged figure outside its packaging. Keep unverifiable model identity explicitly uncertain.'
         if item['task_type']=='sku_match':
-            item['purpose']+=' When both product and box are visible, image_type is mixed. For a without-box SKU, mixed must be MISMATCH. For an explicitly with-box SKU, mixed is permitted if identity is consistent and the image is not shared with the without-box row.'
+            item['purpose']+=' A toy enclosed inside windowed packaging is box. An unpackaged product outside its box alongside packaging is mixed. For a without-box SKU, mixed must be MISMATCH. For an explicitly with-box SKU, mixed is permitted if identity is consistent and the image is not shared with the without-box row.'
     protected={name:hashlib.sha256((parent/name).read_bytes()).hexdigest() for name in
         ('job.json','binding.json','state.json','budget.sqlite','full_audit_report.json','full_ai_judgements.json','full_ai_metrics.json','full_ai_queue.json','full_inventory.json')}
     phase=parent/PHASE;phase.mkdir()
@@ -135,7 +135,7 @@ def recover(parent,authorization,reader,*,registry=None,judge_factory=None):
         try:verify_state();stable=True
         except ValueError:stable=False
         checks.append({'rule':'source_state_and_account_unchanged','verdict':'PASS' if stable else 'UNKNOWN'})
-        report=assemble_report(product,inventory,combined,checks)
+        report=assemble_report(product,inventory,combined,checks,queue=queue)
         previous=read('full_ai_metrics.json');all_calls=previous.get('calls',[])+judge.metrics.get('calls',[])
         known_tokens=sum(c['total_tokens'] for c in all_calls if c.get('called') and c.get('usage_status') in {'ACTUAL_ZERO','ACTUAL_REPORTED'})
         unknown=sum(bool(c.get('called')) and c.get('usage_status')=='UNKNOWN' for c in all_calls)
