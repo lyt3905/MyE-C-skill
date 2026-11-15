@@ -79,3 +79,14 @@ Job位于work/v2/JOB_*，保留before/after、计划、上传回执、执行日�
 最新Description范围：[允许站点自动同步顶部生成标题，保留采集正文与图片引用](reports/v1.3-description-header-scope.md)。不新增Description审核或整改；418项完整回归通过，最新状态见reports/v1.3-current-delivery-status.md。
 
 最新标题策略：[不做模型复核，每次自动处理翻译一次](reports/v1.3-title-single-translation-scope.md)；[Shop7/PID3527真实1保存1翻译回读结果](reports/v1.3-single-translation-3527-result.md)。425项完整回归通过，其他图片不确定项继续暂缓。
+# V2.0 本地开发入口（2026-11-15）
+
+标准 `scripts/workflow_runner.py run` 与 `full-audit` 默认使用统一视觉决策策略（`--image-workflow v2`），旧内部 Job 和 `--image-workflow legacy` 保持兼容。V2 只处理主图、详情图、SKU 图与真实 SKU 图片引用，不调用 OCR/CV 语义分类，不读取 Description 中的内容。
+
+新增配置样例：`scripts/config/automation.v2.example.json`（执行默认关闭）、`scripts/config/image-options.v2.example.json`（默认 RIGHTS_UNKNOWN）；通过 `--automation-config` 与 `--image-options` 指定。没有素材处理授权时不擦除；没有本地 LaMa 权重或图片编辑后端时明确暂缓。只支持 DeepSeek/MiMo，置信度门槛 0.80，Token 默认仅记录。
+
+站点每个 SKU 目前只证明支持单一图片 URL。无盒分支选两张独立 SHA 的逻辑候选；实际映射首图，并报告未能写入第二张的限制，不假造接口字段或 SKU ID。
+
+本轮只允许离线开发/Fake 测试，未授权运行以上入口连接真实模型或保存线上商品。完整验证结果、限制及后续门槛见 `reports/v2-final-acceptance.md`；真实 Shadow/Canary 本轮均 NOT RUN。
+
+V2续作当前证据见 `reports/v2-followup-acceptance.md` 与 `reports/v2-followup-requirement-matrix.md`；配置式编辑适配器见 `docs/image-edit-adapter-v2.md`。同SKU的第二引用能力尚未核实；两张无盒候选已实际加入既有SKU图片池。真实阶段仍待授权和门槛，不把Fake验收视为完整目标完成。

@@ -1,3 +1,4 @@
+from model_budget_fixtures import authorize_http_fake,request_with_fake_budget
 import io
 import json
 import os
@@ -17,13 +18,14 @@ class GatewayDiagnosticsTests(unittest.TestCase):
             budget=BudgetManager({'ai_requests':4,'total_tokens':50000})
             try:
                 client=JudgeClient(budget,root,models=('fake',),retries=0)
-                with patch('urllib.request.urlopen',side_effect=lambda *args,**kwargs:io.BytesIO(b'not-json')) as upstream:
-                    first=client.classify('watermark',{'id':'A','task_type':'watermark','evidence_ids':['A'],'dimensions':[800,800]},{})
+                authorize_http_fake(client)
+                with patch('ai_judge.client._open_model_request',side_effect=lambda *args,**kwargs:io.BytesIO(b'not-json')) as upstream:
+                    first=client.classify('watermark',{'id':'A','task_type':'watermark','evidence_ids':['A'],'dimensions':[800,800]},{'pid':1})
                     self.assertEqual(first['status'],'NEEDS_REVIEW')
                     self.assertEqual(budget.snapshot()['token_status'],'UNKNOWN')
                     self.assertFalse(client.metrics['usage_available'])
                     self.assertIsNone(client.metrics['total_tokens'])
-                    second=client.classify('watermark',{'id':'B','task_type':'watermark','evidence_ids':['B'],'dimensions':[800,800]},{})
+                    second=client.classify('watermark',{'id':'B','task_type':'watermark','evidence_ids':['B'],'dimensions':[800,800]},{'pid':1})
                     self.assertEqual(second['error'],'BUDGET_EXCEEDED')
                     self.assertEqual(upstream.call_count,1)
                     self.assertEqual(client.metrics['requests'],1)
@@ -36,7 +38,7 @@ class GatewayDiagnosticsTests(unittest.TestCase):
                 client=JudgeClient(budget,root,models=('fake',),retries=0,transport=lambda *args:
                     {'choices':[{'message':{'content':'{}'}}],
                      'usage':{'prompt_tokens':1,'completion_tokens':2,'total_tokens':3}})
-                result=client.classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{})
+                result=client.classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{'pid':1})
                 self.assertEqual(result['status'],'NEEDS_REVIEW')
                 self.assertEqual(budget.snapshot()['token_status'],'ACTUAL_REPORTED')
                 self.assertEqual(client.metrics['total_tokens'],3)
@@ -51,11 +53,12 @@ class GatewayDiagnosticsTests(unittest.TestCase):
                     budget=BudgetManager({'ai_requests':1})
                     try:
                         client=JudgeClient(budget,root,models=('fake',),retries=0)
+                        authorize_http_fake(client)
                         class Reply:
                             def __enter__(self):return io.BytesIO(b'{}')
                             def __exit__(self,*args):return False
-                        with patch('urllib.request.urlopen',return_value=Reply()) as mocked:
-                            client._request('fake',{'id':'A','task_type':'watermark','evidence_ids':['A'],'dimensions':[800,800]},{})
+                        with patch('ai_judge.client._open_model_request',return_value=Reply()) as mocked:
+                            request_with_fake_budget(client,'fake',{'id':'A','task_type':'watermark','evidence_ids':['A'],'dimensions':[800,800]},{'pid':1})
                         body=json.loads(mocked.call_args.args[0].data)
                         self.assertEqual(body['max_tokens'],expected)
                     finally:budget.close()
@@ -66,7 +69,7 @@ class GatewayDiagnosticsTests(unittest.TestCase):
             try:
                 client=JudgeClient(budget,root,models=('fake',),retries=0,
                     transport=lambda *args:self.fail('Configured output was not reserved'))
-                result=client.classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{})
+                result=client.classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{'pid':1})
                 self.assertEqual(result['error'],'BUDGET_EXCEEDED')
                 self.assertEqual(client.metrics['requests'],0)
                 self.assertEqual(budget.snapshot()['used']['ai_requests'],0)
@@ -94,7 +97,7 @@ class GatewayDiagnosticsTests(unittest.TestCase):
                         io.BytesIO(json.dumps({'error':{'message':message}}).encode()))
                 try:
                     client=JudgeClient(budget,root,models=('fake',),retries=0,transport=fail)
-                    result=client.classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{})
+                    result=client.classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{'pid':1})
                     event=client.metrics['calls'][0]
                     self.assertEqual(result['status'],'NEEDS_REVIEW')
                     self.assertEqual(event.get('http_status'),code)

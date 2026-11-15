@@ -53,7 +53,7 @@ def resume_verification(manager,job_id,reader,quality_gate=None):
         finally:
             if owned:owned.close()
 
-def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quality_gate=None):
+def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quality_gate=None,full_audit_reader=None):
     """Account-serialized execution, using local preauthorization instead of review clicks."""
     from auto_workflow import prepare,verify_content,report
     from candidate_quality import CandidateQualityGate
@@ -71,6 +71,7 @@ def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quali
         result.update(run_id=run_id,total_elapsed_ms=round((time.perf_counter()-started)*1000,3))
         return report(root,job,status,result,writer=writer,inspector=quality_gate.inspector if quality_gate else None)
     if manager.load(job['job_id'])!=job:raise ValueError('job binding mismatch')
+    use_full_audit=auditor is None or full_audit_reader is not None
     if auditor is None:
         if writer is None:
             from site_client import ReadOnlySiteClient
@@ -80,7 +81,10 @@ def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quali
         readonly=getattr(writer,'readonly_client',None)
         if not callable(readonly):raise ValueError('EXPLICIT_READONLY_CLIENT_REQUIRED')
         audit_reader=readonly()
+        full_audit_reader=audit_reader
         from audit_one import audit
+        if job.get('image_workflow')=='v2':
+            from full_product_audit import download_only as audit
         def auditor(pid,shop,output_dir):
             before=observed_account(audit_reader)
             if before!=observed_account(writer):raise ValueError('ACCOUNT_MISMATCH')
@@ -110,7 +114,21 @@ def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quali
             if has_account_probe:
                 if observed_account(writer)!=bound_account:raise ValueError('ACCOUNT_CONTEXT_CHANGED')
                 if bound_account:job=manager.bind_account(job['job_id'],bound_account)
-            run(manager,job,auditor=auditor,judge=judge)
+            if use_full_audit:
+                from full_product_audit import run_full_audit
+                # The existing full-audit implementation owns this same Job's
+                # machine/semantic stages; no narrower second model queue.
+                if not (root/'full_audit_report.json').exists():
+                    def full_machine(pid,shop,output_dir,site):
+                        if full_audit_reader is not None and auditor is not None:
+                            # Explicit injected full-audit fixtures support site=.
+                            import inspect
+                            if 'site' in inspect.signature(auditor).parameters:
+                                return auditor(pid,shop,output_dir=output_dir,site=site)
+                        return auditor(pid,shop,output_dir=output_dir)
+                    run_full_audit(manager.root,job['pid'],job['shop_id'],full_audit_reader,
+                                   manager=manager,job=job,auditor=full_machine,judge=judge)
+            else:run(manager,job,auditor=auditor,judge=judge)
             job=manager.load(job['job_id'])
             if quality_gate is None:
                 from visual_quality import VisualQualityInspector
@@ -120,7 +138,7 @@ def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quali
             update_metrics(root,'remedy_plan_ms',round((time.perf_counter()-phase)*1000,3))
             status=compiled['status']; result=compiled
             if not compiled['ok'] or compiled['read_only']:
-                if status=='CLEAN':
+                if status=='CLEAN' and job.get('image_workflow')!='v2':
                     from audit_coverage import complete_readonly
                     content=complete_readonly(root,job,writer)
                     result.update(site_save_calls=0,upload_calls=0,translate_calls=0,status_calls=0,verification_ok=True,content_validation=content)
@@ -235,7 +253,9 @@ def main():
     full.add_argument('--shop',type=int,required=True)
     full.add_argument('--site-config',type=Path,required=True)
     full.add_argument('--model-config',type=Path,required=True)
-    full.add_argument('--template-config',type=Path,required=True)
+    full.add_argument('--template-config',type=Path,help='Template configuration for explicit legacy audits')
+    full.add_argument('--image-workflow',choices=['v2','legacy'],default='v2')
+    full.add_argument('--image-options',type=Path)
     start = sub.add_parser('run')
     selection=start.add_mutually_exclusive_group(required=True)
     selection.add_argument('--pid', type=int)
@@ -243,10 +263,14 @@ def main():
     selection.add_argument('--pending',type=int,help='Read-only selection of pending products')
     start.add_argument('--shop', type=int, required=True)
     start.add_argument('--mode', choices=['read_only','audit','dry_run','apply','auto_apply'], default='audit')
+    start.add_argument('--model-budget-config',type=Path,help='Explicit new-Job read-only model budget; disabled by default')
+    full.add_argument('--model-budget-config',type=Path)
     start.add_argument('--automation-config',type=Path,default=Path('local/automation.v1.json'))
     start.add_argument('--site-config',type=Path)
     start.add_argument('--template-config',type=Path,help='Explicit template applicability and template paths')
     start.add_argument('--model-config',type=Path,help='Secret-free gateway/model/output profile, frozen into this Job')
+    start.add_argument('--image-workflow',choices=['v2','legacy'],default='v2',help='V2 unified vision strategy; legacy only for explicit compatibility')
+    start.add_argument('--image-options',type=Path,help='Program rights, mask limit and optional local LaMa model')
     apply_parser=sub.add_parser('apply')
     apply_parser.add_argument('--job',required=True)
     apply_parser.add_argument('--site-config',type=Path,required=True)
@@ -288,7 +312,9 @@ def main():
         from full_product_audit import run_full_audit
         profile=load_config(args.model_config)
         reader=ReadOnlySiteClient(json.loads(args.site_config.read_text(encoding='utf-8-sig')))
-        result=run_full_audit(args.root,args.pid,args.shop,reader,model_config=profile,template_config=args.template_config)
+        options={'model_budget':json.loads(args.model_budget_config.read_text(encoding='utf-8-sig'))} if args.model_budget_config else {'model_budget':{'mode':'RECORD_ONLY','usage_source':'GATEWAY_REPORTED_UNVERIFIED'}}
+        if args.image_workflow=='v2':options.update(image_workflow='v2',image_options=json.loads(args.image_options.read_text(encoding='utf-8-sig')) if args.image_options else None)
+        result=run_full_audit(args.root,args.pid,args.shop,reader,model_config=profile,template_config=args.template_config,**options)
         print(json.dumps({key:result.get(key) for key in ('job_id','audit_complete','audit_status','compliance_status','unresolved_count')},ensure_ascii=False))
         return
     if args.command == 'executor-request':
@@ -374,6 +400,7 @@ def main():
         if args.model_config:
             from model_config import load_config
             model_options['model_config']=load_config(args.model_config)
+        model_options['model_budget']=json.loads(args.model_budget_config.read_text(encoding='utf-8-sig')) if args.model_budget_config else {'mode':'RECORD_ONLY','usage_source':'GATEWAY_REPORTED_UNVERIFIED'}
         limits=dict(LIMITS)
         pids=[args.pid] if args.pid is not None else [int(v.strip()) for v in args.batch.split(',')] if args.batch else []
         if args.pending is not None:
@@ -386,7 +413,7 @@ def main():
             from automation_policy import AutomationPolicy
             policy_path=args.automation_config
             if args.mode!='auto_apply' and not policy_path.exists():
-                policy_path=Path(__file__).parent/'config'/'automation.v1.example.json'
+                policy_path=Path(__file__).parent/'config'/('automation.v2.example.json' if args.image_workflow=='v2' else 'automation.v1.example.json')
             policy=AutomationPolicy.load(policy_path)
             for pid in pids:policy.authorize(pid,args.shop,[],product_count=len(pids),execution=args.mode=='auto_apply')
             limits['ai_requests']=min(limits.get('ai_requests',45),policy.config['max_ai_requests_per_job'])
@@ -406,7 +433,9 @@ def main():
                     transport=_SiteTransport(cfg=config,verify_tls=True)
             def run_one(pid,shop):
                 writer=SiteWriteClient(transport) if transport is not None else reader
-                job=manager.create(pid,shop,limits,args.mode,templates_required=True,**model_options)
+                image_options=json.loads(args.image_options.read_text(encoding='utf-8-sig')) if args.image_options else None
+                image_kwargs={'image_workflow':'v2','image_options':image_options} if args.image_workflow=='v2' else {}
+                job=manager.create(pid,shop,limits,args.mode,templates_required=args.image_workflow=='legacy',**model_options,**image_kwargs)
                 if args.template_config:
                     from template_applicability import snapshot
                     snapshot(args.template_config,manager.directory(job['job_id']))

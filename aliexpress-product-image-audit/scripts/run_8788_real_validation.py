@@ -5,6 +5,7 @@ The current gateway has no verified per-request total-token bound: real mode
 fails closed. Enabling it requires implementing and testing a provider-backed
 bound, and separate user authorization; there is deliberately no bypass flag.
 """
+from policy_engine import MODEL_CONFIDENCE_MIN
 import argparse
 import base64
 from copy import deepcopy
@@ -29,7 +30,7 @@ from token_budget import (BudgetError, TokenLedger, DurableFakeBudget, provider_
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT/'work/full-product-audit-20261114/jobs/JOB_93099438cf014a689846bc05469759ad'
-DEFAULT_CONFIG = ROOT/'work/operational-20261113-7adadd47/model.json'
+DEFAULT_CONFIG = ROOT/'scripts/config/model.gateway8788.example.json'
 SEAL = ROOT/'work/8788-contract-fix-20261114/evidence-before.json'
 # New local release baseline; the original 8788 manifest and evidence remain sealed.
 BASELINE = ROOT/'reports/sku-consensus-targeted-source-manifest.json'
@@ -94,7 +95,7 @@ def source_versions():
                                      prompt_sha256=hashlib.sha256(module.PROMPT.encode()).hexdigest())
                            for task, module in modules.items()},
                 matching=read(ROOT/'scripts/config/watermark.matching.v3.json'),
-                confidence_min=.90, distinct_models=2, cache='DISABLED',
+                confidence_min=MODEL_CONFIDENCE_MIN, distinct_models=2, cache='DISABLED',
                 cache_version_file_sha256=sha(ROOT/'scripts/ai_judge/cache.py'))
 
 
@@ -267,6 +268,7 @@ def request_body(model, item, context, output_limit):
 
 def _http_transport(config, model, item, context, *, body=None):
     """Single HTTP attempt; no redirects, retries or auth probes. Currently gated off."""
+    raise Blocked("LEGACY_MODEL_ENTRY_DISABLED_USE_BOUND_WORKFLOW")
     import urllib.request
     key = os.environ.get('VLM_API_KEY')
     if not key: raise Blocked('LOCAL_CREDENTIAL_MISSING')
@@ -289,7 +291,7 @@ def prepare(source, inputs, output, config_path):
     baseline = baseline_check()
     verify_inputs(source, inputs)
     config = load_config(config_path)
-    if config['base_url'] != 'http://127.0.0.1:8788/v1' or config['models'] != ['deepseek-v4.1-flash', 'kimi-k3-1'] or config['retries'] != 0:
+    if config['base_url'] != 'http://127.0.0.1:8788/v1' or config['models'] != ['deepseek-v4.1-flash', 'mimo-v2.6-pro'] or config['retries'] != 0:
         raise Blocked('MODEL_PROFILE_NOT_APPROVED')
     versions = source_versions()
     if versions['contracts']['watermark']['schema'] != 'watermark/v3' or versions['contracts']['product_identity']['schema'] != 'product-identity/v3' or versions['matching']['min_iou'] != .5:
@@ -336,7 +338,7 @@ def prepare(source, inputs, output, config_path):
         '# 8788真实模型验收预检', '', '**PREFLIGHT_BLOCKED**', '',
         '六份完整SHA256、尺寸、辅助证据及16个位置绑定已通过；新Job独立保存，旧433个文件未改。',
         '上一轮253个源码/测试/配置文件逐字节匹配。新Runner源码另行封存，不冒称经过旧567项验证。',
-        '配置：http://127.0.0.1:8788/v1；deepseek-v4.1-flash / kimi-k3-1；retries=0。',
+        '配置：http://127.0.0.1:8788/v1；deepseek-v4.1-flash / mimo-v2.6-pro；retries=0。',
         '只核实本地配置ID，未访问网关，供应商实际解析版本仍待真实响应核对。',
         '计划24次：6图 × watermark/product_identity × 2模型；额外SKU请求0。',
         '硬限制：请求上限24；Token上限300000；未知用量/超时/格式错误立即停，失败计数，禁止重试。',

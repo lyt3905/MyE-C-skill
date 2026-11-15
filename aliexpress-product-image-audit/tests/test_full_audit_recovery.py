@@ -27,7 +27,7 @@ class RecoveryTests(unittest.TestCase):
                 if item['task_type']=='sku_match':row.update(sku_id=item['sku_id'],image_id=item['image_id'])
         for key in results:
             if key.startswith('WM_'):
-                for row in results[key]['results']:row['confidence']=.8
+                for row in results[key]['results']:row['confidence']=.79
         atomic_json(root/'audit_product.json',product);atomic_json(root/'audit_raw.json',{'images':raw})
         atomic_json(root/'full_inventory.json',inv);atomic_json(root/'full_ai_queue.json',queue)
         atomic_json(root/'full_ai_judgements.json',results)

@@ -1,3 +1,4 @@
+from current_source_fixtures import freeze_current_source
 """Continuation evaluates only never-called pairs, keeping schema failures UNKNOWN."""
 from pathlib import Path
 import tempfile
@@ -27,6 +28,8 @@ def fake_parent(directory):
 
 
 class ContinuationTests(unittest.TestCase):
+    def setUp(self):freeze_current_source(self)
+
     def test_missing_model_a_keeps_model_b_observations_in_model_b_slot(self):
         with tempfile.TemporaryDirectory() as tmp:
             parent=fake_parent(Path(tmp))

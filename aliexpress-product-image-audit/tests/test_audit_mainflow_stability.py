@@ -1,3 +1,4 @@
+from current_source_fixtures import freeze_current_source
 """Main-flow resilience uses Fake transport and preserves strict audit verdicts."""
 import contextlib
 import io
@@ -14,6 +15,8 @@ from test_8788_real_validation import response
 
 
 class MainFlowTests(unittest.TestCase):
+    def setUp(self):freeze_current_source(self)
+
     def test_schema_errors_complete_in_one_job_without_parent_or_retries(self):
         with tempfile.TemporaryDirectory() as tmp:
             calls=[]

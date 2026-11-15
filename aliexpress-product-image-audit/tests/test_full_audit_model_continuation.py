@@ -88,7 +88,7 @@ class FullAuditModelContinuationTests(unittest.TestCase):
                 atomic_json(output_dir/'audit_flags.json',{'pid':pid,'summary':{'ocr_enabled':True},'duplicates':[],'anomalies':[]})
             def transport(model,item,context):
                 calls.append((item['id'],model))
-                payload='{}' if item['id']==next(iter(expected)) and model=='glm-5v-turbo' else json.dumps(expected[item['id']]['results'][0])
+                payload='{}' if item['id']==next(iter(expected)) and model=='deepseek-v4.1-flash' else json.dumps(expected[item['id']]['results'][0])
                 return dict(model=model,usage=dict(prompt_tokens=90,completion_tokens=10,total_tokens=100),
                             choices=[dict(message=dict(content=payload))])
             def factory(*args,**kwargs):

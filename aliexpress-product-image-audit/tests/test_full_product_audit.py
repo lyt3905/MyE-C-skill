@@ -89,7 +89,7 @@ class FullProductAuditTests(unittest.TestCase):
     def test_low_confidence_or_abstention_does_not_become_a_clear_failure(self):
         with tempfile.TemporaryDirectory() as root:
             product,raw=self.fixture(root);inventory=build_inventory(product,raw);results=self.decisions(inventory)
-            key=next(iter(results));results[key]['results'][0]['confidence']=.89
+            key=next(iter(results));results[key]['results'][0]['confidence']=.79
             report=assemble_report(product,inventory,results,[])
             self.assertFalse(report['audit_complete'])
 
@@ -114,7 +114,7 @@ class FullProductAuditTests(unittest.TestCase):
             product,raw=self.fixture(root);inventory=build_inventory(product,raw);results=self.decisions(inventory)
             key=next(iter(results))
             for row in results[key]['results']:
-                row.update(classification='third_party_store_banner',owner='store',location='top',confidence=.89)
+                row.update(classification='third_party_store_banner',owner='store',location='top',confidence=.79)
             report=assemble_report(product,inventory,results,[])
             self.assertNotEqual(report['compliance_status'],'NON_COMPLIANT')
             self.assertFalse(report['occurrences'][0].get('confirmed_findings'))

@@ -3,7 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 
-ACTIONS = frozenset('REPLACE_TWIN REPLACE_LOCAL CROP_BANNER BOX_NORMALIZE ERASE_LOCAL SKU_ASSIGN TITLE_REWRITE BRAND_CODE DELETE_REDUNDANT WEB_SEARCH'.split())
+ACTIONS = frozenset('REPLACE_TWIN REPLACE_LOCAL CROP_BANNER BOX_NORMALIZE ERASE_LOCAL SKU_ASSIGN TITLE_REWRITE BRAND_CODE DELETE_REDUNDANT WEB_SEARCH DELETE REMOVE_TEXT AI_REGENERATE'.split())
 MANDATORY = ('preserve_product_status','require_live_dry_run','require_post_write_readback',
              'require_content_validation','halt_batch_after_unknown_write','stop_on_global_integrity_error')
 
@@ -12,9 +12,10 @@ class AutomationPolicy:
         self.config = json.loads(json.dumps(config))
         c = self.config
         if 'DESCRIPTION_URL_REMAP' in c.get('allow_actions',{}):raise ValueError('DESCRIPTION_PERMISSION_MIGRATION_REQUIRED: remove DESCRIPTION_URL_REMAP')
-        known={'schema','enabled','mode','shop_allowlist','pid_allowlist','max_products_per_run','max_site_save_per_job','max_uploads_per_job','max_ai_requests_per_job','allow_actions','local_pool_index','allow_snapshot_sku_rows'}|set(MANDATORY)
+        known={'schema','enabled','mode','shop_allowlist','pid_allowlist','max_products_per_run','max_site_save_per_job','max_uploads_per_job','max_ai_requests_per_job','allow_actions','local_pool_index','allow_snapshot_sku_rows','delete_decorated_composites'}|set(MANDATORY)
         if set(c)-known:raise ValueError('UNKNOWN_AUTOMATION_POLICY_FIELD')
         if 'allow_snapshot_sku_rows' in c and type(c['allow_snapshot_sku_rows']) is not bool:raise ValueError('INVALID_SNAPSHOT_SKU_PERMISSION')
+        if 'delete_decorated_composites' in c and type(c['delete_decorated_composites']) is not bool:raise ValueError('INVALID_COMPOSITE_DELETION_POLICY')
         if 'local_pool_index' in c and (type(c['local_pool_index']) is not str or not c['local_pool_index'].strip()):raise ValueError('INVALID_LOCAL_POOL_INDEX')
         if c.get('schema') != 'automation-policy/v1' or c.get('mode') != 'auto_apply':
             raise ValueError('INVALID_AUTOMATION_POLICY')

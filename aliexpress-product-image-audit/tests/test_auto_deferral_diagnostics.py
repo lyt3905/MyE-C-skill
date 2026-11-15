@@ -39,7 +39,7 @@ class DeferralDiagnosticsTests(unittest.TestCase):
 
     def test_low_confidence_factory_is_not_reported_as_failed_remediation(self):
         rows = self.prepare_item({'status': 'REVIEW', 'results': [
-            {'classification': 'official_marketing_text', 'confidence': .82, 'abstain': False}] * 2})
+            {'classification': 'official_marketing_text', 'confidence': .72, 'abstain': False}] * 2})
         self.assertEqual(rows[0]['reason_codes'], ['WATERMARK_OWNERSHIP_UNVERIFIED', 'MODEL_CONFIDENCE_BELOW_THRESHOLD'])
         self.assertNotIn('NO_VERIFIED_REMEDY', rows[0]['reason_codes'])
 

@@ -1,4 +1,5 @@
 """Exhaustive mark observations, conservative region agreement and legacy evidence."""
+from policy_engine import MODEL_CONFIDENCE_MIN
 from copy import deepcopy
 import json
 import math
@@ -8,7 +9,7 @@ from policy_engine import KEEP, REMOVE
 
 VERSION='watermark/v3'
 CLASSES=KEEP|REMOVE|{'unknown','marketing_text','chinese_promotion_poster'}
-THRESHOLD=.90
+THRESHOLD=MODEL_CONFIDENCE_MIN
 MATCHING=json.loads((Path(__file__).parents[1]/'config'/'watermark.matching.v3.json').read_text(encoding='utf-8'))
 UNPROVEN={'','unknown','uncertain','none','n/a','unproven','未知','不确定'}
 

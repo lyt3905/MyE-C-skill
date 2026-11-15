@@ -25,8 +25,17 @@ class DefaultReadSessionTests(unittest.TestCase):
    def audit(pid,shop,output_dir,site):
     seen.append(site);return actual_audit(pid,shop,output_dir=output_dir,site=site,downloader=site.download,ocr_factory=OCR)
    class Judge:
-    metrics={'requests':0,'usage_available':False}
-    def process_queue(self,queue,context):return {}
+    models=('a','b');metrics={'requests':0,'usage_available':False}
+    def process_queue(self,queue,context):
+     from watermark_fixtures import exhaustive,identity
+     results={}
+     for item in queue['items']:
+      row={'task_type':item['task_type'],'item_id':item['id'],'evidence_ids':item['evidence_ids'],'confidence':.99,'abstain':False}
+      if item['task_type']=='watermark':
+       row=exhaustive(dict(row,classification='manufacturer_branding',owner='factory',location='bottom'),size=item['dimensions'])
+      else:row=identity(dict(row,decision='MATCH',model='NA-H74',image_type='FIGURE',color='blue'))
+      results[item['id']]={'status':'CLEAN','results':[deepcopy(row),deepcopy(row)],'models':['a','b']}
+     return results
    manager=JobManager(root);job=manager.create(1,7,{'ai_requests':4},mode='audit')
    with patch('audit_one.audit',audit),patch.dict(os.environ,{'AE_READONLY_SITE_CFG':'Z:/must-not-read-other-account.json'}):
     result=run_automatic(manager,job,AutomationPolicy(dict(CONFIG,enabled=False)),writer=reader,judge=Judge(),quality_gate=CandidateQualityGate(Inspector()))

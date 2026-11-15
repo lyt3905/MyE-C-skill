@@ -20,7 +20,7 @@ class JobManager:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def create(self, pid, shop, budget, mode='read_only', templates_required=False, model_config=None):
+    def create(self, pid, shop, budget, mode='read_only', templates_required=False, model_config=None, model_budget=None, image_workflow=None, image_options=None):
         if type(pid) is not int or type(shop) is not int or min(pid, shop) <= 0:
             raise ValueError('positive PID/shop required')
         if mode not in {'read_only','audit','dry_run','apply','auto_apply'}:
@@ -34,6 +34,22 @@ class JobManager:
                'created_at': datetime.now(timezone.utc).isoformat(), 'mode': mode,
                'budget': dict(budget), 'input_state_sha256': None}
         if model_config is not None:job['model_config']=model_config
+        if model_budget is not None:job['model_budget']=json.loads(json.dumps(model_budget,allow_nan=False))
+        if image_workflow is not None:
+            if image_workflow!='v2':raise ValueError('UNKNOWN_IMAGE_WORKFLOW')
+            options={'rights':'RIGHTS_UNKNOWN','max_mask_area':.25}
+            options.update(image_options or {})
+            if set(options)-{'rights','max_mask_area','lama_model_path','lama_model_sha256','image_edit'} or options['rights'] not in {'OWNED_OR_LICENSED','RIGHTS_UNKNOWN','THIRD_PARTY_ATTRIBUTION'} or type(options['max_mask_area']) not in (int,float) or not 0<options['max_mask_area']<=.25:raise ValueError('INVALID_IMAGE_OPTIONS')
+            if options.get('lama_model_path'):
+                path=Path(options['lama_model_path']).resolve();options['lama_model_path']=str(path)
+                if path.is_file():
+                    digest=hashlib.sha256(path.read_bytes()).hexdigest()
+                    if options.get('lama_model_sha256',digest)!=digest:raise ValueError('LAMA_MODEL_CHANGED')
+                    options['lama_model_sha256']=digest
+            if 'image_edit' in options:
+                from image_repairs_v2 import freeze_image_edit_config
+                options['image_edit']=freeze_image_edit_config(options['image_edit'])
+            job.update(image_workflow='v2',image_options=options)
         directory = self.root / job['job_id']
         directory.mkdir()
         atomic_json(directory / 'job.json', job)
@@ -46,7 +62,7 @@ class JobManager:
         self.load(job_id)
         path=self.directory(job_id)/'state.json'
         previous=json.loads(path.read_text(encoding='utf-8'))['state']
-        if previous not in {'NEEDS_REVIEW','PLAN_READY'} or not result.get('ok'):
+        if previous not in {'NEEDS_REVIEW','PLAN_READY','AI_RESOLVED'} or not result.get('ok'):
             raise ValueError('automatic plan not ready')
         atomic_json(path,{'state':'PLAN_READY','checkpoint':previous,'automatic':True})
 
@@ -57,6 +73,13 @@ class JobManager:
         path=self.directory(job_id)/'state.json'
         previous=json.loads(path.read_text(encoding='utf-8'))['state']
         atomic_json(path,{'state':status,'checkpoint':previous,'automatic':True})
+
+    def bind_full_audit(self,job_id):
+        job=self.load(job_id);job['audit_scope']='full'
+        directory=self.directory(job_id)
+        atomic_json(directory/'job.json',job)
+        atomic_json(directory/'binding.json',{'sha256':hashlib.sha256(json.dumps(job,sort_keys=True).encode()).hexdigest()})
+        return job
 
     def bind_account(self,job_id,fingerprint):
         import re

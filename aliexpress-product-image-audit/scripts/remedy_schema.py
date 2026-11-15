@@ -17,6 +17,9 @@ ACTION_CHECKS = {
 }
 
 def validate_candidate(candidate):
+    if isinstance(candidate,dict) and candidate.get('v2_contract'):
+        from v2_remediation import validate_candidate as validate_v2
+        return validate_v2(candidate)
     if type(candidate) is not dict: raise ValueError('INVALID_REMEDY')
     for key in ('remedy_id','item_id','action'):
         if not isinstance(candidate.get(key),str) or not candidate[key]: raise ValueError('MISSING_'+key)
@@ -30,7 +33,9 @@ def validate_candidate(candidate):
         raise ValueError('INVALID_REMEDY_TARGET_OR_CHECKS')
     common=COMMON_CHECKS-{'source_clean'} if candidate['action']=='DELETE_REDUNDANT' else COMMON_CHECKS
     required=common|ACTION_CHECKS.get(candidate['action'],set())
+    composite=candidate['action']=='DELETE_REDUNDANT' and candidate.get('validation_scope',{}).get('type')=='AUTHORIZED_DECORATED_COMPOSITE_REMOVAL'
+    if composite:required=(required-{'non_box_deletion'})|{'decorated_composite','retained_packaging_verified'}
     if any(candidate['checks'].get(k) is not True for k in required): raise ValueError('QUALITY_GATE_INCOMPLETE')
-    if candidate['action']=='DELETE_REDUNDANT' and candidate.get('is_box') is not False:
+    if candidate['action']=='DELETE_REDUNDANT' and candidate.get('is_box') is not False and not composite:
         raise ValueError('BOX_DELETION_FORBIDDEN')
     return candidate

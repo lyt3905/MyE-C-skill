@@ -3,6 +3,7 @@
 Existing model-format errors remain exceptions. Parent Jobs are read-only;
 new calls use a new sibling Job and a single-use continuation claim.
 """
+from policy_engine import MODEL_CONFIDENCE_MIN
 from pathlib import Path
 import argparse
 from datetime import datetime,timezone
@@ -43,7 +44,7 @@ def verify_parent(parent, *, fake):
         raise rv.Blocked('PARENT_PRODUCER_SOURCE_CHANGED')
     if set(current['files'])-set(producer['files'])-{'scripts/complete_observed_audit.py'}:
         raise rv.Blocked('UNAPPROVED_SOURCE_ADDITION')
-    if (producer['contracts']!=current['contracts'] or producer['confidence_min']!=.9
+    if (producer['contracts']!=current['contracts'] or producer['confidence_min']!=MODEL_CONFIDENCE_MIN
             or producer['matching']!=current['matching']): raise rv.Blocked('PARENT_CONTRACT_CHANGED')
     if len(plan)!=24 or len({(p['item_id'],p['model']) for p in plan})!=24: raise rv.Blocked('PARENT_PLAN_SCOPE')
     rows=oa.Journal(parent/'observed-requests.sqlite',parent.name,create=False).rows()

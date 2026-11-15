@@ -25,9 +25,9 @@ class DescriptionHeaderTests(unittest.TestCase):
         doc[0]['texts'][0]['content']='New title';observed['descriptionJson']=json.dumps(doc)
         return source,expected,observed
 
-    def test_exact_site_header_sync_is_allowed_without_mutating_snapshots(self):
+    def test_exact_site_header_sync_is_rejected_without_mutating_snapshots(self):
         source,expected,observed=self.snapshots();original=deepcopy((source,expected,observed))
-        self.assertTrue(product_state.saved_state_matches(expected,observed,source=source))
+        self.assertFalse(product_state.saved_state_matches(expected,observed,source=source))
         self.assertEqual((source,expected,observed),original)
         self.assertNotEqual(product_state.canonical_state_hash(expected),product_state.canonical_state_hash(observed))
 
@@ -49,18 +49,13 @@ class DescriptionHeaderTests(unittest.TestCase):
         source.update(images={'main':['https://x/m'],'detail':['https://x/d']},skus=[])
         observed.update(images=deepcopy(source['images']),skus=[])
         self.assertFalse(validate_final_snapshot(observed,context={'before':source})['ok'])
-        self.assertTrue(validate_final_snapshot(observed,context={'before':source,'saved_readback':True})['ok'])
+        self.assertFalse(validate_final_snapshot(observed,context={'before':source,'saved_readback':True})['ok'])
 
-    def test_standard_cli_accepts_only_header_sync_and_preserves_collected_body(self):
+    def test_standard_cli_rejects_header_body_and_image_changes(self):
         for case in ('backend_header','backend_header_body','backend_header_image'):
             with self.subTest(case=case),tempfile.TemporaryDirectory() as temp:
                 writer,path,_,error=cli.AccountCliTests().execute(temp,case=case)
                 self.assertEqual((writer.saves,writer.uploads),(1,0))
-                if case=='backend_header':
-                    self.assertIsNone(error,repr(error));self.assertEqual(writer.translations,1)
-                    from check import check_saved_job
-                    self.assertTrue(check_saved_job(path)['ok'])
-                else:
-                    self.assertIsNotNone(error);self.assertEqual(writer.translations,0)
-                    state=json.loads((path/'state.json').read_text(encoding='utf-8'))
-                    self.assertEqual(state['state'],'APPLY_UNKNOWN')
+                self.assertIsNotNone(error);self.assertEqual(writer.translations,0)
+                state=json.loads((path/'state.json').read_text(encoding='utf-8'))
+                self.assertEqual(state['state'],'APPLY_UNKNOWN')

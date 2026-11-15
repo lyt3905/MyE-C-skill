@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 POLICY = json.loads((Path(__file__).parent / 'config' / 'policy.v2.json').read_text(encoding='utf-8-sig'))
+MODEL_CONFIDENCE_MIN = 0.80
 KEEP = {key for key,value in POLICY['watermark'].items() if value == 'KEEP'}
 REMOVE = {key for key,value in POLICY['watermark'].items() if value == 'REMOVE_CANDIDATE'}
 def evaluate(judgement):
@@ -12,7 +13,7 @@ def evaluate(judgement):
         from ai_judge.watermark_contract import aggregate_watermarks
         audit=aggregate_watermarks(judgement,judgement.get('evidence_spec'))
         return 'KEEP' if audit['review_status']=='PASS' else 'REMOVE_CANDIDATE' if audit['review_status']=='FAIL' else 'NEEDS_REVIEW'
-    if any(r.get('abstain') or r.get('confidence',0) < .9 for r in rows): return 'NEEDS_REVIEW'
+    if any(r.get('abstain') or r.get('confidence',0) < MODEL_CONFIDENCE_MIN for r in rows): return 'NEEDS_REVIEW'
     for row in rows:
         if row.get('task_type') == 'sku_match':
             # Explicit semantic conflicts cannot be overridden by a MATCH label.

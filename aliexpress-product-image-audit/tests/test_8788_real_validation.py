@@ -1,3 +1,4 @@
+from current_source_fixtures import freeze_current_source
 """Offline validation-runner tests. All provider responses are synthetic."""
 import copy
 import json
@@ -69,6 +70,8 @@ class BudgetTests(unittest.TestCase):
 
 
 class RealValidationTests(unittest.TestCase):
+    def setUp(self):freeze_current_source(self)
+
     @classmethod
     def setUpClass(cls):
         cls.source = rv.DEFAULT_SOURCE
@@ -117,7 +120,7 @@ class RealValidationTests(unittest.TestCase):
     def test_contract_change_after_preflight_stops_before_first_call(self):
         with tempfile.TemporaryDirectory() as tmp:
             job = rv.prepare(self.source, self.inputs, Path(tmp), rv.DEFAULT_CONFIG)
-            versions = rv.source_versions(); versions['confidence_min'] = .80
+            versions = rv.source_versions(); versions['confidence_min'] = .70
             with patch.object(rv, 'source_versions', return_value=versions):
                 result = rv.run_fake(job, lambda *args: self.fail('provider called'), per_request_ceiling=100)
             self.assertEqual(result['simulated_requests'], 0)

@@ -1,4 +1,5 @@
 """Offline diagnostics of sealed image evidence. No Site, Writer, or Judge calls."""
+from policy_engine import MODEL_CONFIDENCE_MIN
 import argparse
 from copy import deepcopy
 import hashlib
@@ -25,7 +26,7 @@ def baseline_trigger(task,result):
     if len(rows)!=2:return {'branch':'_strong: result_count != 2','reason_code':'REQUIRED_FIELD_MISSING','field':'results'}
     for i,row in enumerate(rows):
         if row.get('abstain') is not False:return {'branch':'_strong: abstain','reason_code':'MODEL_ABSTAIN','model_index':i,'field':'abstain','value':row.get('abstain')}
-        if type(row.get('confidence')) not in (int,float) or row['confidence']<.9:return {'branch':'_strong: confidence < 0.90','reason_code':'LOW_CONFIDENCE','model_index':i,'field':'confidence','value':row.get('confidence')}
+        if type(row.get('confidence')) not in (int,float) or row['confidence']<MODEL_CONFIDENCE_MIN:return {'branch':f'_strong: confidence < {MODEL_CONFIDENCE_MIN:.2f}','reason_code':'LOW_CONFIDENCE','model_index':i,'field':'confidence','value':row.get('confidence')}
     if task=='watermark':
         from policy_engine import KEEP,REMOVE,evaluate
         for i,row in enumerate(rows):
@@ -33,7 +34,7 @@ def baseline_trigger(task,result):
             for j,mark in enumerate(row['marks']):
                 for field,invalid,code in (
                     ('classification',mark.get('classification') not in KEEP|REMOVE,'OWNER_UNPROVEN'),
-                    ('confidence',type(mark.get('confidence')) not in (int,float) or mark['confidence']<.9,'LOW_CONFIDENCE'),
+                    ('confidence',type(mark.get('confidence')) not in (int,float) or mark['confidence']<MODEL_CONFIDENCE_MIN,'LOW_CONFIDENCE'),
                     ('owner',not mark.get('owner'),'OWNER_UNPROVEN'),('location',not mark.get('location'),'EVIDENCE_INSUFFICIENT')):
                     if invalid:return {'branch':'_watermark: mark validation','reason_code':code,'model_index':i,'field':f'marks[{j}].{field}','value':mark.get(field)}
         if len({r.get('classification') for r in rows})!=1:return {'branch':'_watermark: root policy disagreement','reason_code':'MODEL_DISAGREEMENT','field':'classification'}

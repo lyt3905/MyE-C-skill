@@ -3,6 +3,7 @@
 Uses existing downloads, OCR, image evidence, model client and persistent budgets.
 There is deliberately no Writer, upload, save, translation or status operation.
 """
+from policy_engine import MODEL_CONFIDENCE_MIN
 from collections import defaultdict
 from copy import deepcopy
 import hashlib
@@ -178,7 +179,7 @@ def build_queue(product,inventory,root):
 def _strong(result):
     rows=result.get('results',[])
     return (len(rows)==2 and all(r.get('abstain') is False and type(r.get('confidence')) in (int,float)
-            and r['confidence']>=.9 for r in rows))
+            and r['confidence']>=MODEL_CONFIDENCE_MIN for r in rows))
 
 
 def _watermark(result,evidence=None):
@@ -302,7 +303,10 @@ def assemble_report(product,inventory,judgements,global_checks,queue=None):
             'read_only':True,'remediation_executed':False,'site_save_calls':0,'upload_calls':0,'translate_calls':0,'status_calls':0}
 
 
-def run_full_audit(root,pid,shop,reader,*,model_config=None,template_config=None,judge=None,auditor=None):
+def run_full_audit(root,pid,shop,reader,*,model_config=None,template_config=None,judge=None,auditor=None,manager=None,job=None,model_budget=None,image_workflow=None,image_options=None):
+    if job and job.get('image_workflow')=='v2':
+        from job_manager import JobManager
+        return run_unified_audit(manager or JobManager(root),job,reader,judge=judge,auditor=auditor)
     from job_manager import JobManager
     from budget_manager import BudgetManager
     from product_state import canonical_state_hash
@@ -312,12 +316,16 @@ def run_full_audit(root,pid,shop,reader,*,model_config=None,template_config=None
     from ai_judge.client import safe_payload
     if str(reader.current_shop())!=str(shop):raise ValueError('SHOP_CONTEXT_UNVERIFIED')
     account=reader.account_fingerprint()
-    manager=JobManager(root)
+    manager=manager or JobManager(root)
     limits={'ai_requests':40,'full_resolution_images':32,'total_tokens':500000,'site_save':0,'translate_title':0}
-    job=manager.create(pid,shop,limits,mode='audit',templates_required=template_config is not None,model_config=model_config)
+    job=job or manager.create(pid,shop,limits,mode='audit',templates_required=template_config is not None and image_workflow!='v2',model_config=model_config,model_budget=model_budget,image_workflow=image_workflow,image_options=image_options)
+    if manager.load(job['job_id'])!=job or (job['pid'],job['shop_id'])!=(pid,shop):raise ValueError('FULL_AUDIT_JOB_MISMATCH')
+    if job.get('image_workflow')=='v2':return run_unified_audit(manager,job,reader,judge=judge,auditor=auditor)
+    limits=job['budget']
+    job=manager.bind_full_audit(job['job_id'])
     job=manager.bind_account(job['job_id'],account);directory=manager.directory(job['job_id'])
     print(job['job_id'],flush=True)
-    manager.transition(job['job_id'],'PREFLIGHT')
+    if read_state(directory)=='CREATED':manager.transition(job['job_id'],'PREFLIGHT')
     if template_config is not None:snapshot(template_config,directory)
     if auditor is None:
         from audit_one import audit
@@ -340,13 +348,13 @@ def run_full_audit(root,pid,shop,reader,*,model_config=None,template_config=None
         judge=judge or JudgeClient(budget,directory/'judge_cache',continue_model_errors=True,
                                   **({'config':job['model_config']} if 'model_config' in job else {}))
         if len(judge.models)!=2 or len(set(judge.models))!=2:raise ValueError('TWO_DISTINCT_MODELS_REQUIRED')
-        if len(queue['items'])*2>limits['ai_requests']:raise ValueError('FULL_AUDIT_REQUEST_BUDGET_INSUFFICIENT')
+        if not budget.record_only and len(queue['items'])*2>limits['ai_requests']:raise ValueError('FULL_AUDIT_REQUEST_BUDGET_INSUFFICIENT')
         atomic_json(directory/'full_audit_protocol.json',{'pid':pid,'shop':shop,'read_only':True,
-            'models':list(judge.models),'threshold':.9,'limits':limits,'expected_items':len(queue['items']),
+            'models':list(judge.models),'threshold':MODEL_CONFIDENCE_MIN,'limits':limits,'expected_items':len(queue['items']),
             'scope':['images.main','images.detail','images.sku','skus.image_references'],
             'excluded':['Description','prices','title_model_review','generated_description_header'],
             'deduplication':'exact content SHA only; every business occurrence retained',
-            'source_state_sha256':job['input_state_sha256']})
+            'source_state_sha256':job['input_state_sha256'],'contract_versions':contract_versions()})
         manager.transition(job['job_id'],'AI_PENDING')
         results=judge.process_queue(queue,context)
         atomic_json(directory/'full_ai_judgements.json',results)
@@ -373,9 +381,13 @@ def run_full_audit(root,pid,shop,reader,*,model_config=None,template_config=None
         atomic_json(directory/'coverage_matrix.json',{'expected_positions':len(inventory['occurrences']),
                     'reported_positions':len(report['occurrences']),'unresolved_count':report['unresolved_count'],
                     'positions':[{'id':r['id'],'checks':r['checks']} for r in report['occurrences']]})
+        # Runtime statistics continue changing during candidate preparation,
+        # execution and reporting. Freeze the audit-era values separately.
+        if (directory/'run_metrics.json').is_file():
+            atomic_json(directory/'full_audit_run_metrics.json',read('run_metrics.json'))
         bindings=[]
         for path in sorted(directory.rglob('*')):
-            if path.is_file() and path.suffix.lower() not in {'.sqlite','.tmp'} and path.name not in {'binding.json','state.json'}:
+            if path.is_file() and path.suffix.lower() not in {'.sqlite','.tmp'} and path.name not in {'binding.json','state.json','run_metrics.json'}:
                 bindings.append({'path':str(path.relative_to(directory)),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
         atomic_json(directory/'full_audit_evidence_manifest.json',{'files':bindings,'source_sha256':job['input_state_sha256']})
         text=['# 商品全量自动审核 '+str(pid),'',
@@ -390,3 +402,196 @@ def run_full_audit(root,pid,shop,reader,*,model_config=None,template_config=None
         manager.transition(job['job_id'],'AI_RESOLVED' if report['audit_complete'] else 'NEEDS_REVIEW')
         return report
     finally:budget.close()
+
+
+def read_state(directory):
+    return json.loads((Path(directory)/'state.json').read_text(encoding='utf-8'))['state']
+
+
+def download_only(pid,shop,*,output_dir,site,downloader=None):
+    """Only fetch allowed image references, decode dimensions and hash originals."""
+    from audit_one import _image_urls
+    from download_manager import download_unique
+    if str(site.current_shop())!=str(shop):raise ValueError('SHOP_CONTEXT_UNVERIFIED')
+    product=site.product(pid);directory=Path(output_dir);directory.mkdir(parents=True,exist_ok=True)
+    refs=_image_urls(product);downloads=download_unique((r['url'] for r in refs),directory/'audit_images',downloader=downloader)
+    rows=[]
+    for ref in refs:
+        result=downloads[ref['url']];row=dict(ref)
+        if 'error' in result:row['error']=result['error']
+        else:
+            path=result['path']
+            try:
+                with Image.open(path) as im:im.load();row.update(width=im.width,height=im.height,format=im.format)
+                row.update(file=str(path.resolve()),content_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+            except (ValueError,OSError):row['error']='DECODE_FAILED'
+        rows.append(row)
+    atomic_json(directory/'audit_product.json',product)
+    atomic_json(directory/'audit_raw.json',{'pid':pid,'images':rows})
+    atomic_json(directory/'audit_flags.json',{'pid':pid,'summary':{'ocr_enabled':False,'cv_semantics_enabled':False},'anomalies':[]})
+    return {'pid':pid,'images':rows}
+
+
+def run_unified_audit(manager,job,reader,*,judge=None,auditor=None):
+    """V2 strategy inside the existing full-audit entry, retaining the same Job."""
+    from budget_manager import BudgetManager
+    from ai_judge import JudgeClient
+    from ai_judge.client import safe_payload
+    from ai_judge.image_action_decision import decide,SCHEMA_VERSION,PROMPT
+    from product_state import canonical_state_hash
+    if str(reader.current_shop())!=str(job['shop_id']):raise ValueError('SHOP_CONTEXT_UNVERIFIED')
+    account=reader.account_fingerprint();job=manager.bind_full_audit(job['job_id'])
+    job=manager.bind_account(job['job_id'],account);directory=manager.directory(job['job_id']).resolve()
+    atomic_json(directory/'audit_account.json',{'account_fingerprint':account,'status':'VERIFIED'})
+    if read_state(directory)=='CREATED':manager.transition(job['job_id'],'PREFLIGHT')
+    (auditor or download_only)(job['pid'],job['shop_id'],output_dir=directory,site=reader)
+    read=lambda n:json.loads((directory/n).read_text(encoding='utf-8'))
+    product=read('audit_product.json');raw=read('audit_raw.json');job=manager.bind_input(job['job_id'],product)
+    manager.transition(job['job_id'],'AUDITED')
+    inventory=build_inventory(product,raw['images']);atomic_json(directory/'full_inventory.json',inventory)
+    # No OCR/CV-derived fields are used, even if an injected legacy fixture contains them.
+    queue=[]
+    for digest,content in inventory['contents'].items():
+        first=next(r for r in inventory['occurrences'] if r['sha256']==digest)
+        queue.append(dict(id='IMG_'+digest,task_type='image_action_decision',image_type=first.get('pool','sku').upper(),
+                          local=content['file'],sha256=digest,dimensions=[content['width'],content['height']],evidence_ids=['SOURCE_'+digest]))
+    atomic_json(directory/'full_ai_queue.json',{'schema':'ai-queue/v2','pid':job['pid'],'items':queue})
+    context=safe_payload({},dict(pid=job['pid'],shop=job['shop_id'],identityJson=product.get('identityJson'),brand=product.get('brand'),skus=product.get('skus',[])))['context']
+    budget=BudgetManager(job['budget'],directory/'budget.sqlite')
+    try:
+        if 'model_budget' in job:budget.configure_model_budget(job['model_budget'],job['job_id'])
+        judge=judge or JudgeClient(budget,directory/'judge_cache',continue_model_errors=True,**({'config':job['model_config']} if 'model_config' in job else {}))
+        if judge.budget is not budget and 'model_budget' in job:judge.budget.configure_model_budget(job['model_budget'],job['job_id'])
+        manager.transition(job['job_id'],'AI_PENDING')
+        results={item['sha256']:decide(judge,item,context) for item in queue}
+        atomic_json(directory/'full_ai_judgements.json',results);atomic_json(directory/'full_ai_metrics.json',judge.metrics)
+        fresh=reader.product(job['pid']);stable=canonical_state_hash(fresh)==job['input_state_sha256'] and reader.account_fingerprint()==account and str(reader.current_shop())==str(job['shop_id'])
+        if not stable:raise ValueError('SOURCE_STATE_CHANGED')
+        rows=[dict(r,decision=results.get(r['sha256'],{}).get('decision','REVIEW'),verdict='UNKNOWN' if results.get(r['sha256'],{}).get('decision','REVIEW')=='REVIEW' else 'PASS' if results[r['sha256']]['decision']=='KEEP' else 'FAIL') for r in inventory['occurrences']]
+        unresolved=sum(r['decision']=='REVIEW' for r in rows)
+        report=dict(schema='full-product-audit/v2-unified',job_id=job['job_id'],pid=job['pid'],shop=job['shop_id'],models=list(judge.models),
+            audit_status='INCOMPLETE' if unresolved else 'COMPLETE',audit_complete=not unresolved,compliance_status='UNKNOWN' if unresolved else 'COMPLIANT' if all(r['decision']=='KEEP' for r in rows) else 'NON_COMPLIANT',
+            image_and_reference_count=len(rows),unique_image_contents=len(inventory['contents']),unresolved_count=unresolved,occurrences=rows,global_checks=[],
+            source_state_sha256=job['input_state_sha256'],source_unchanged=True,read_only=True,site_save_calls=0,upload_calls=0)
+        atomic_json(directory/'full_audit_report.json',report)
+        atomic_json(directory/'coverage_matrix.json',{'expected_positions':len(rows),'reported_positions':len(rows),'positions':rows})
+        atomic_json(directory/'full_audit_protocol.json',{'schema_version':SCHEMA_VERSION,'prompt_sha256':hashlib.sha256(PROMPT.encode()).hexdigest(),'threshold':MODEL_CONFIDENCE_MIN,'models':list(judge.models),'semantic_source':'AI_VISION_ONLY','excluded':['Description','images.ai','images.scene'],'source_state_sha256':job['input_state_sha256']})
+        names=['audit_product.json','audit_raw.json','audit_flags.json','audit_account.json','full_inventory.json','full_ai_queue.json','full_ai_judgements.json','full_ai_metrics.json','full_audit_report.json','coverage_matrix.json','full_audit_protocol.json']
+        names+=sorted({str(Path(c['file']).relative_to(directory)) for c in inventory['contents'].values()})
+        atomic_json(directory/'full_audit_evidence_manifest.json',{'source_sha256':job['input_state_sha256'],'files':[dict(path=n,sha256=hashlib.sha256((directory/n).read_bytes()).hexdigest()) for n in names]})
+        manager.transition(job['job_id'],'NEEDS_REVIEW' if unresolved else 'AI_RESOLVED')
+        return report
+    finally:budget.close()
+
+
+def contract_versions():
+    from importlib import import_module
+    from ai_judge.client import COMMON_OUTPUT_CONTRACT
+    return {task:{'schema':getattr(import_module('ai_judge.'+task),'SCHEMA_VERSION','v2'),
+                  'prompt_sha256':hashlib.sha256((import_module('ai_judge.'+task).PROMPT+COMMON_OUTPUT_CONTRACT).encode()).hexdigest()}
+            for task in ('watermark','product_identity','sku_match')}
+
+
+def remediation_inputs(directory,job):
+    """Verify authoritative full-audit evidence and map semantic SHA to positions.
+
+    Never calls a model, never converts UNKNOWN, never guesses a database SKU ID.
+    """
+    from product_state import canonical_state_hash
+    root=Path(directory).resolve()
+    read=lambda name:json.loads((root/name).read_text(encoding='utf-8'))
+    manifest=read('full_audit_evidence_manifest.json')
+    names=set()
+    for ref in manifest['files']:
+        path=(root/ref['path']).resolve()
+        if not path.is_relative_to(root) or hashlib.sha256(path.read_bytes()).hexdigest()!=ref['sha256']:
+            raise ValueError('FULL_AUDIT_EVIDENCE_CHANGED')
+        names.add(ref['path'])
+    required={'full_audit_report.json','full_inventory.json','full_ai_queue.json','full_ai_judgements.json',
+              'full_audit_protocol.json','coverage_matrix.json','audit_product.json','audit_raw.json'}
+    if not required<=names:raise ValueError('FULL_AUDIT_EVIDENCE_MISSING')
+    report=read('full_audit_report.json');product=read('audit_product.json');protocol=read('full_audit_protocol.json')
+    if ((report.get('job_id'),report.get('pid'),report.get('shop'))!=(job['job_id'],job['pid'],job['shop_id']) or
+            report.get('schema')!='full-product-audit/v2' or protocol.get('contract_versions')!=contract_versions() or
+            report.get('models')!=protocol.get('models') or len(set(report.get('models',[])))!=2 or
+            ('model_config' in job and report.get('models')!=job['model_config']['models']) or
+            report.get('source_state_sha256')!=job['input_state_sha256'] or manifest.get('source_sha256')!=job['input_state_sha256'] or
+            canonical_state_hash(product)!=job['input_state_sha256'] or report.get('source_unchanged') is not True):
+        raise ValueError('FULL_AUDIT_BINDING_OR_VERSION_MISMATCH')
+    # Rebuild from current source bytes to reject post-audit image/SKU drift.
+    inventory=build_inventory(product,read('audit_raw.json')['images'])
+    if inventory!=read('full_inventory.json'):raise ValueError('FULL_AUDIT_IMAGE_OR_POSITION_CHANGED')
+    occurrences=inventory['occurrences'];rows=report['occurrences']
+    if ({r['id'] for r in rows}!={r['id'] for r in occurrences} or len(rows)!=len(occurrences) or
+            report.get('audit_status') not in {'COMPLETE','INCOMPLETE'}):raise ValueError('FULL_AUDIT_COVERAGE_UNBOUND')
+    sources={r['id']:r for r in read('full_ai_queue.json')['items']}
+    judgements=read('full_ai_judgements.json');items=[];mapped={};deferred=[]
+    for row in rows:
+        sku=row['target_type']=='sku_reference'
+        source_id=row['id'] if sku else 'WM_'+str(row['sha256'])[:16]
+        source=sources.get(source_id)
+        if source:
+            item=deepcopy(source);item.update(id=('FULL_'+row['id']),image_id=row['id'],pool=row.get('pool'),
+                kind=row.get('pool'),index=row.get('index'),source_url=row.get('url'),source_sha256=row['sha256'],
+                full_source_task_id=source_id,full_confirmed_findings=deepcopy(row.get('confirmed_findings',[])),full_identity_status=row.get('checks',{}).get('product_identity'),full_finding_ids=[f.get('finding_id',f.get('mark_id')) for f in row.get('confirmed_findings',[])],
+                reference_only=sku)
+            if sku:
+                dbrow=product['skus'][row['sku_row_index']];stable_id=dbrow.get('skuId') or dbrow.get('id')
+                item.update(sku_row_index=row['sku_row_index'],sku_id=str(stable_id) if stable_id is not None else None)
+            items.append(item);mapped[item['id']]=deepcopy(judgements.get(source_id,{}))
+            # The original result/spec/evidence IDs stay bound to the raw semantic task.
+            if not sku:mapped[item['id']].setdefault('evidence_spec',{'id':source_id,'dimensions':source.get('dimensions'),'evidence_ids':source['evidence_ids']})
+        # Audit rows are bound to the product snapshot and their row index.
+        # Missing database IDs affect assignment authorization, not an otherwise
+        # complete image/reference judgement. semantic_remedies owns that gate.
+        unresolved=(row.get('verdict')=='UNKNOWN' or row.get('checks',{}).get('product_identity')!='PASS' or row.get('unresolved_items') or not source)
+        if unresolved:
+            deferred.append(dict(remedy_id='FULL_DEFER_'+row['id'],item_id='FULL_'+row['id'],action='WEB_DEFER',
+                target={'image_id':row['id'],'pool':row.get('pool'),'index':row.get('index')},source={},checks={},
+                evidence_ids=row.get('evidence_ids',[]),reason_codes=row.get('unknown_reason_codes') or ['FULL_AUDIT_UNRESOLVED']))
+    for index,check in enumerate(report['global_checks']):
+        if check.get('verdict')!='PASS':
+            deferred.append(dict(remedy_id='FULL_GLOBAL_'+str(index),item_id='FULL_GLOBAL_'+str(index),action='WEB_DEFER',
+                target={},source={},checks={},evidence_ids=['full_audit_report.json'],reason_codes=['FULL_AUDIT_'+check['rule']]))
+    if report['audit_status']=='INCOMPLETE' and not deferred:raise ValueError('FULL_AUDIT_UNRESOLVED_COVERAGE')
+    return items,mapped,deferred
+
+
+def localized_confirmed_repair(directory,candidate):
+    """A local fix may resolve a confirmed mark while other findings stay open."""
+    if candidate.get('action') not in {'CROP_BANNER','ERASE_LOCAL'}:return False
+    report=json.loads((Path(directory)/'full_audit_report.json').read_text(encoding='utf-8'))
+    target=candidate.get('target',{});source=candidate.get('source',{})
+    for row in report['occurrences']:
+        if row['target_type']!='image_slot' or (row.get('pool'),row.get('index'))!=(target.get('pool'),target.get('index')):continue
+        if row.get('checks',{}).get('product_identity')=='FAIL':return False
+        for finding in row.get('confirmed_findings',[]):
+            box=finding.get('bbox_xyxy');region=source.get('crop_box') if candidate['action']=='CROP_BANNER' else source.get('erase_box')
+            if not isinstance(box,list) or len(box)!=4 or not isinstance(region,list) or len(region)!=4:continue
+            x0,y0,x1,y1=region;a0,b0,a1,b1=box
+            if candidate['action']=='CROP_BANNER' and (a1<=x0 or a0>=x1 or b1<=y0 or b0>=y1):return True
+            if candidate['action']=='ERASE_LOCAL' and x0<=a0<a1<=x1 and y0<=b0<b1<=y1:return True
+    return False
+
+
+def confirmed_edge_proposal(item):
+    """Compile an edge-strip proposal from the already confirmed mark region.
+
+    Candidate quality inspection independently checks the resulting pixels.
+    """
+    import math
+    size=item.get('dimensions')
+    if not isinstance(size,list) or len(size)!=2:return {}
+    w,h=size
+    for finding in item.get('full_confirmed_findings',[]):
+        boxes=[finding.get('bbox_xyxy')]+[v.get('bbox_xyxy') for v in finding.get('observations',[])]
+        boxes=[v for v in boxes if isinstance(v,list) and len(v)==4]
+        if not boxes:continue
+        x0=min(v[0] for v in boxes);y0=min(v[1] for v in boxes);x1=max(v[2] for v in boxes);y1=max(v[3] for v in boxes)
+        crop=None
+        if y1+3<=.28*h:crop=[0,math.ceil(y1)+3,w,h]
+        elif y0-3>=.72*h:crop=[0,0,w,math.floor(y0)-3]
+        elif x1+3<=.28*w:crop=[math.ceil(x1)+3,0,w,h]
+        elif x0-3>=.72*w:crop=[0,0,math.floor(x0)-3,h]
+        if crop:return {'crop_box':crop,'subject_box':list(crop)}
+    return {}

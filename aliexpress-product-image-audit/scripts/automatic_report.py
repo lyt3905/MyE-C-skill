@@ -5,6 +5,29 @@ from pathlib import Path
 from urllib.parse import quote
 from job_manager import atomic_json
 
+def summarize_deferred(directory,rows):
+    """Separate repeated image occurrences from SKU rows and excluded fields."""
+    path=Path(directory)/'full_audit_report.json'
+    full=json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+    occurrences=full.get('occurrences',[]);groups={};sku=[];outside=[];other=[]
+    for row in rows:
+        target=row.get('target',{});reasons=sorted(set(row.get('reason_codes',[])))
+        if row.get('item_id','').startswith('ANOMALY_') and any('title' in reason or 'brand_rule' in reason for reason in reasons):
+            outside.append(row['item_id']);continue
+        if 'sku_row_index' in target:
+            sku.append(row['item_id']);continue
+        occurrence=next((entry for entry in occurrences if entry.get('id')==target.get('image_id')),None)
+        if occurrence is None and target.get('pool') is not None:
+            occurrence=next((entry for entry in occurrences if (entry.get('pool'),entry.get('index'))==(target.get('pool'),target.get('index'))),None)
+        if occurrence and occurrence.get('sha256'):
+            digest=occurrence['sha256'];key=(digest,tuple(reasons))
+            group=groups.setdefault(key,{'sha256':digest,'reason_codes':reasons,'occurrences':[]})
+            group['occurrences'].append(row['item_id'])
+        else:other.append(row['item_id'])
+    return {'record_count':len(rows),'unique_image_contents':len({key[0] for key in groups}),
+            'image_issue_groups':list(groups.values()),'sku_row_records':sku,
+            'outside_image_scope_records':outside,'other_records':other}
+
 def image_observations(directory):
     """Read existing observations only; never invent labels, calls or stage times."""
     import hashlib
@@ -73,9 +96,17 @@ def write(directory,job,status,result,writer=None,inspector=None):
     def read(name,default=None):
         path=root/name
         return json.loads(path.read_text(encoding='utf-8')) if path.exists() else ({} if default is None else default)
-    metrics=read('run_metrics.json');pipeline=read('ai_metrics.json')
+    metrics=read('run_metrics.json');pipeline=read('full_ai_metrics.json',read('ai_metrics.json'))
     phases=read('quality_metrics.json',{'phases':{}})
     judge=getattr(inspector,'judge',None);quality=getattr(judge,'metrics',None)
+    if job.get('image_workflow')=='v2' and isinstance(quality,dict):
+        from copy import deepcopy
+        quality=deepcopy(quality)
+        quality['calls']=[c for c in quality.get('calls',[]) if c.get('task_type')!='image_action_decision']
+        quality['requests']=sum(c.get('called') is True for c in quality['calls'])
+        quality['cache_hits']=sum(c.get('status')=='CACHE_HIT' for c in quality['calls'])
+        quality['usage_available']=all(c.get('total_tokens') is not None for c in quality['calls'] if c.get('called'))
+        quality['total_tokens']=sum(c['total_tokens'] for c in quality['calls'] if c.get('called')) if quality['usage_available'] else None
     if isinstance(quality,dict):
         phases['phases'][getattr(inspector,'metrics_phase','current')]=quality
         atomic_json(root/'quality_metrics.json',phases)
@@ -95,6 +126,7 @@ def write(directory,job,status,result,writer=None,inspector=None):
         'actual_tokens':actual,'token_status':'UNKNOWN' if actual is None else 'NOT_CALLED' if requests==0 else 'ACTUAL_ZERO' if actual==0 else 'ACTUAL_REPORTED',
         'cache_hits':summed('cache_hits'),'quality_metrics_available':isinstance(quality,dict),
         'accounted_tokens':budget.get('used',{}).get('total_tokens')}
+    full=read('full_audit_report.json')
     raw=read('audit_raw.json');flags=read('audit_flags.json');before=read('before.json');after=read('after.json')
     observations=image_observations(root)
     atomic_json(root/'image_observations.json',observations)
@@ -117,7 +149,7 @@ def write(directory,job,status,result,writer=None,inspector=None):
         target=row['target'];pool,index=target.get('pool'),target.get('index');old=None;new=None
         if pool is not None and type(index) is int:
             old=at(before,pool,index)
-            if row['action']=='DELETE_REDUNDANT':new='REMOVED'
+            if row['action'] in {'DELETE_REDUNDANT','DELETE'}:new='REMOVED'
             else:
                 position=(plan.get('post_actions') or {}).get('target_positions',{}).get(target.get('image_id'),target)
                 new=at(after,position['pool'],position['index']) if after else 'UPLOAD_TOKEN:'+row['candidate_asset']['sha256'][:16] if row.get('candidate_asset') else row['source'].get('url')
@@ -128,10 +160,27 @@ def write(directory,job,status,result,writer=None,inspector=None):
     run_times=metrics.setdefault('timing_ms_by_run',{})
     if result.get('run_id') and type(result.get('total_elapsed_ms')) in (int,float):run_times[result['run_id']]=result['total_elapsed_ms']
     timing=dict(metrics.get('timing',{}));timing['total_ms']=round(sum(run_times.values()),3) if run_times else result.get('total_elapsed_ms',timing.get('total_ms'))
+    model_budget={}
+    path=root/'budget.sqlite'
+    if path.is_file():
+        connection=sqlite3.connect('file:'+quote(path.resolve().as_posix(),safe='/:')+'?mode=ro',uri=True)
+        try:
+            if connection.execute("SELECT 1 FROM sqlite_master WHERE name='model_scope'").fetchone():
+                scope=connection.execute('SELECT job,policy,status FROM model_scope').fetchall()
+                entries=connection.execute('SELECT id,state,reserved,reserved_usd,actual,usd,usage,metadata FROM model_calls').fetchall()
+                model_budget={'scope':scope,'requests':[{'request_id':r[0],'state':r[1],'reserved_tokens':r[2],'reserved_usd':r[3],'reported_tokens':r[4],'reported_usd':r[5],'raw_usage':json.loads(r[6]) if r[6] else None,'metadata':json.loads(r[7])} for r in entries], 'SPEND_CAP_GUARANTEED':False}
+                atomic_json(root/'model_budget_summary.json',model_budget)
+        finally:connection.close()
     data={'schema':'automatic-report/v1','status':status,'identity':{'pid':job['pid'],'shop':job['shop_id'],'job_id':job['job_id'],'automation_policy_sha256':read('automation_policy_summary.json').get('sha256')},
           'audit':{'image_occurrences':sum(r.get('kind') in {'main','detail','sku'} for r in raw.get('images',[])),'machine_anomalies':len(flags.get('anomalies',[])),'deferred_items':len(deferred),
-                   'image_observations':'image_observations.json'},
-          'ai':ai,'budget':{'audit_and_models':budget,'writes':write_budget},'timing_ms':timing,
+                   'image_observations':'image_observations.json','full_audit_status':full.get('audit_status'),
+                   'full_compliance_status':full.get('compliance_status'),'full_unresolved_count':full.get('unresolved_count'),
+                   'full_evidence_manifest':'full_audit_evidence_manifest.json' if full else None},
+          'deferred_summary':summarize_deferred(root,deferred),
+          'excluded_findings':[finding for finding in flags.get('anomalies',[]) if isinstance(finding,dict) and
+              (finding.get('type','').startswith('title') or finding.get('type') in {'modelCode_missing','modelCode_title_inclusion','brand_rule'}) and
+              read('automation_policy_summary.json').get('config',{}).get('allow_actions',{}).get('TITLE_REWRITE') is not True],
+          'ai':ai,'budget':{'audit_and_models':budget,'writes':write_budget,'controlled_models':model_budget},'timing_ms':timing,
           'actions':{'planned_safe_counts':dict(counts),'executed_safe_counts':dict(counts) if executor.get('site_save_calls')==1 else {}},
           'action_details':details,'conditional_transitions':read('conditional_decisions.json',{'items':[]})['items'],'deferred':deferred,'dry_run':dry,'executor':executor,
           'verification':{'structure':read('final_check.json',read('verification.json')),'content':read('content_validation.json'),'recovery':read('recovery_readback.json'),'overall_status':status},
@@ -142,8 +191,10 @@ def write(directory,job,status,result,writer=None,inspector=None):
     atomic_json(root/'run_metrics.json',metrics);atomic_json(root/'report_data.json',data)
     text=f"# 商品自动审核与整改 {job['pid']}\n\nShop: {job['shop_id']} · Job: {job['job_id']}\n\nStatus: **{status}**\n\n"
     text+=f"审核图片：{data['audit']['image_occurrences']}；待处理项：{len(deferred)}；实际 Token：{actual if actual is not None else 'UNKNOWN'}。\n\n"
+    if full:text+='完整审核：'+str(full.get('audit_status'))+'；合规结论：'+str(full.get('compliance_status'))+'；未确认：'+str(full.get('unresolved_count'))+'。原始覆盖和逐项证据见 full_audit_report.json / full_audit_evidence_manifest.json。\n\n'
     text+='## 执行与验证\n\n```json\n'+json.dumps({'actions':data['actions'],'executor':executor,'timing_ms':timing,'ai':ai,'verification':data['verification']},ensure_ascii=False,indent=2)+'\n```\n\n'
     text+='## 逐项变更与证据\n\n```json\n'+json.dumps(details,ensure_ascii=False,indent=2)+'\n```\n\n## 暂缓项目（原引用保留）\n\n'
+    text+='原始暂缓记录 '+str(len(deferred))+' 条；涉及 '+str(data['deferred_summary']['unique_image_contents'])+' 份独立图片内容。重复业务位置、SKU行和范围外字段分开见report_data.json的deferred_summary。\n\n'
     for row in deferred:text+='- '+row['item_id']+': '+', '.join(row.get('reason_codes',[]))+'\n'
     text+='\n完整机器记录：report_data.json；逐图片独立信号：image_observations.json。来源、质量、预算、预演与回读证据均保留在同一 Job 目录。缺失 usage 标 UNKNOWN，不等同于零 Token。\n'
     (root/'report.md').write_text(text,encoding='utf-8')

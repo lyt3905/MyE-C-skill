@@ -1,4 +1,4 @@
-"""Standard CLI, actual audit/compiler/executor; only external boundaries are Fake."""
+"""Legacy injected-auditor CLI regressions; full default has separate bridge tests."""
 import unittest,tempfile,json,io
 from pathlib import Path
 from copy import deepcopy
@@ -182,16 +182,34 @@ class AccountCliTests(unittest.TestCase):
     return {'clean':known,'verified':known,'image_type':'BOX' if not case.startswith('lowres') and data==blobs['https://fake/main'] else 'FIGURE',
             'model':'NA-H74','color':'red' if data==blobs.get('https://fake/red_body') else 'blue','sha256':hashlib.sha256(data).hexdigest(),'evidence_ids':['FAKE_MODEL_AND_PACKAGING']}
    def close(self):pass
+  original_run=workflow_runner.run_automatic
+  def injected_legacy_run(manager,job,policy,**kwargs):
+   writer=kwargs['writer'];reader=writer.readonly_client()
+   def injected_audit(pid,shop,output_dir):
+    before=None
+    try:before=reader.account_fingerprint()
+    except ValueError:
+     if job['mode']!='audit':raise
+    result=audit(pid,shop,output_dir,reader)
+    after=None
+    try:after=reader.account_fingerprint()
+    except ValueError:
+     if job['mode']!='audit':raise
+    if before!=after:raise ValueError('ACCOUNT_CONTEXT_CHANGED')
+    atomic_json(output_dir/'audit_account.json',{'account_fingerprint':before,'status':'VERIFIED' if before else 'UNVERIFIED'})
+    return result
+   return original_run(manager,job,policy,auditor=injected_audit,**kwargs)
   original_preview=workflow_runner.live_dry_run
   def preview(*args):
    result=original_preview(*args)
    if after_preview:after_preview(transport,Path(args[0].directory(args[1])))
    return result
-  argv=['workflow_runner.py','run','--pid','1','--shop','7','--mode',mode,'--site-config',str(config),'--automation-config',str(root/'policy.json'),'--template-config',str(root/'templates.json'),'--root',str(jobs)]
+  argv=['workflow_runner.py','run','--image-workflow','legacy','--pid','1','--shop','7','--mode',mode,'--site-config',str(config),'--automation-config',str(root/'policy.json'),'--template-config',str(root/'templates.json'),'--root',str(jobs)]
   if model_profile is not None:argv.extend(['--model-config',str(model_profile)])
   if case=='missing_template':
    position=argv.index('--template-config');del argv[position:position+2]
   with ExitStack() as stack:
+   stack.enter_context(patch('workflow_runner.run_automatic',side_effect=injected_legacy_run))
    stack.enter_context(patch('sys.argv',argv));stack.enter_context(patch('site_client._SiteTransport',return_value=transport))
    stack.enter_context(patch('audit_one.audit',audit));stack.enter_context(patch('workflow_v2_pipeline.JudgeClient',return_value=queue_judge if queue_judge is not None else Judge()))
    stack.enter_context(patch('visual_quality.VisualQualityInspector',return_value=Quality()))

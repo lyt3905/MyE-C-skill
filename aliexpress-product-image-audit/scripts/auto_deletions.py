@@ -9,12 +9,14 @@ def deletion_description(product,deleted_urls,remaining_images):
     """Removed legacy operation: the fixed field must remain opaque."""
     raise ValueError('DESCRIPTION_OPERATION_FORBIDDEN')
 
-def plan_deletion(directory,item,product,raw_images,inspector,comparison=None):
+def plan_deletion(directory,item,product,raw_images,inspector,comparison=None,*,decorated_refs=None):
     root=Path(directory);pool,index=item.get('pool'),item.get('index')
     urls=(product.get('images') or {}).get(pool,[])
     if pool not in {'main','detail'} or type(index) is not int or not 0<=index<len(urls) or len(urls)<=1:return None
     url=urls[index]
-    if url!=item.get('source_url') or any(r.get('url')==url and (r.get('is_box') is True or r.get('image_type') in {'box','packaging'}) for r in raw_images):return None
+    decorated=decorated_refs is not None
+    if decorated and (not decorated_refs or comparison is not None):return None
+    if url!=item.get('source_url') or (not decorated and any(r.get('url')==url and (r.get('is_box') is True or r.get('image_type') in {'box','packaging'}) for r in raw_images)):return None
     if inspector is None or not callable(getattr(inspector,'inspect_deletion',None)):return None
     path=Path(item['local'])
     try:
@@ -31,8 +33,19 @@ def plan_deletion(directory,item,product,raw_images,inspector,comparison=None):
             observed=inspector.inspect_deletion(path,product,comparison=reference)
             if observed.get('category')!='REDUNDANT' or observed.get('reference_sha256')!=digest or sha256(reference)!=digest or sha256(path)!=digest:return None
             observed=dict(observed,reference_url=comparison['url'])
+        elif decorated:
+            references=[]
+            for raw in decorated_refs:
+                ref=Path(raw['file'])
+                if not ref.is_absolute():ref=Path(__file__).parent/ref
+                ref_sha=sha256(ref)
+                if ref_sha==digest or raw.get('content_sha256') not in (None,ref_sha) or raw.get('url')==url:return None
+                if raw.get('url') not in (product.get('images') or {}).get(raw.get('kind'),[]):return None
+                references.append({'pool':raw['kind'],'index':raw['index'],'url':raw['url'],'sha256':ref_sha})
+            observed=inspector.inspect_deletion(path,product,decorated_refs=decorated_refs)
+            if observed.get('decorated_composite') is not True or observed.get('retained_packaging_verified') is not True or observed.get('category')!='DECORATION':return None
         else:observed=inspector.inspect_deletion(path,product)
-        if observed.get('ok') is not True or observed.get('is_box') is not False or observed.get('is_official') is not False or observed.get('information_preserved') is not True or observed.get('category') not in {'REDUNDANT','DECORATION','STORE_BANNER'} or not observed.get('evidence_ids'):return None
+        if observed.get('ok') is not True or (not decorated and observed.get('is_box') is not False) or observed.get('is_official') is not False or observed.get('information_preserved') is not True or observed.get('category') not in {'REDUNDANT','DECORATION','STORE_BANNER'} or not observed.get('evidence_ids'):return None
         # Duplicate deletion needs a bound existing sibling, not a model's ungrounded adjective.
         if observed['category']=='REDUNDANT' and not observed.get('reference_url'):return None
         if observed['category']=='REDUNDANT' and not any(observed['reference_url'] in values for values in product['images'].values()):return None
@@ -48,6 +61,13 @@ def plan_deletion(directory,item,product,raw_images,inspector,comparison=None):
         remaining={k:list(v) for k,v in product['images'].items()};del remaining[pool][index]
         checks={k:True for k in ('product_identity_match','candidate_visual_validation','protected_elements_preserved','source_bound','non_box_deletion','non_official_deletion','visual_evidence_600px')}
         row=dict(remedy_id='DEL_'+item['id'],item_id=item['id'],action='DELETE_REDUNDANT',target={'pool':pool,'index':index,'image_id':item['image_id']},source={'type':'existing_pool','url':url,'sha256':digest},candidate_asset=None,evidence_ids=item['evidence_ids']+observed['evidence_ids'],checks=checks,is_box=False,reason_codes=['INDEPENDENT_DELETION_VALIDATED'])
+        if decorated:
+            row['is_box']=observed['is_box']
+            row['checks'].pop('non_box_deletion')
+            row['checks'].update(decorated_composite=True,retained_packaging_verified=True)
+            row['source']['retained_references']=references
+            row['validation_scope']={'type':'AUTHORIZED_DECORATED_COMPOSITE_REMOVAL'}
+            row['reason_codes']=['DECORATED_COMPOSITE_FULL_IMAGE_REVIEW_AND_RETAINED_PACKAGING']
         if comparison is not None:
             row['source']['reference']={'pool':comparison['kind'],'index':comparison['index'],'url':comparison['url'],'sha256':digest}
         record=root/'deletion_validation.json'
@@ -56,6 +76,62 @@ def plan_deletion(directory,item,product,raw_images,inspector,comparison=None):
         atomic_json(record,{'items':records})
         return row
     except Exception:return None
+
+
+def plan_decorated_cleanup(directory,product,raw_images,inspector):
+    """Classify whole shop posters before attempting local watermark repair."""
+    rows=[]
+    for image in raw_images:
+        if image.get('kind') not in {'main','detail'} or image.get('source')=='skus' or image.get('error'):continue
+        try:
+            path=Path(image['file'])
+            if not path.is_absolute():path=Path(__file__).parent/path
+            digest=sha256(path);refs={}
+            for ref in raw_images:
+                if ref.get('kind') not in {'main','detail','sku'} or ref.get('source')=='skus' or ref.get('error'):continue
+                refpath=Path(ref['file'])
+                if not refpath.is_absolute():refpath=Path(__file__).parent/refpath
+                other=sha256(refpath)
+                if other!=digest:refs.setdefault(other,ref)
+            item={'id':'FULL_'+image['kind'].upper()+'_'+str(image['index']).zfill(3),
+                  'image_id':image['kind'].upper()+'_'+str(image['index']).zfill(3),'pool':image['kind'],
+                  'index':image['index'],'local':str(path),'source_url':image['url'],
+                  'source_sha256':digest,'evidence_ids':['audit_raw.json']}
+            candidate=plan_deletion(directory,item,product,raw_images,inspector,decorated_refs=list(refs.values()))
+            if candidate:rows.append(candidate)
+        except (OSError,ValueError,KeyError):continue
+    proposed_hashes={row['source']['sha256'] for row in rows}
+    if len(proposed_hashes)>1:
+        # Recheck against the actual retained material, not another poster that
+        # the same plan would remove. Keep both sets of observations as evidence.
+        confirmed=[]
+        for row in rows:
+            target=row['target']
+            image=next(r for r in raw_images if r.get('kind')==target['pool'] and r.get('index')==target['index'] and r.get('source')!='skus')
+            refs={}
+            for ref in raw_images:
+                if ref.get('kind') not in {'main','detail','sku'} or ref.get('source')=='skus' or ref.get('error'):continue
+                path=Path(ref['file'])
+                if not path.is_absolute():path=Path(__file__).parent/path
+                digest=sha256(path)
+                if digest not in proposed_hashes:refs.setdefault(digest,ref)
+            item={'id':row['item_id'],'image_id':target['image_id'],'pool':target['pool'],'index':target['index'],
+                  'local':image['file'],'source_url':image['url'],'source_sha256':row['source']['sha256'],'evidence_ids':['audit_raw.json']}
+            candidate=plan_deletion(directory,item,product,raw_images,inspector,decorated_refs=list(refs.values()))
+            if candidate:confirmed.append(candidate)
+        rows=confirmed
+    return rows
+
+
+def validated_composite_deletion(directory,row):
+    if row.get('action')!='DELETE_REDUNDANT' or row.get('validation_scope',{}).get('type')!='AUTHORIZED_DECORATED_COMPOSITE_REMOVAL':return False
+    path=Path(directory)/'deletion_validation.json'
+    if not path.is_file():return False
+    proposed={k:v for k,v in row.items() if k not in {'decision','automation_policy_sha256'}}
+    for proof in json.loads(path.read_text(encoding='utf-8')).get('items',[]):
+        observed=proof.get('observation',{})
+        if proof.get('candidate')==proposed and observed.get('ok') is True and observed.get('decorated_composite') is True and observed.get('retained_packaging_verified') is True:return True
+    return False
 
 
 def plan_main_cleanup(directory,product,raw_images,inspector,existing=(),enabled=False):

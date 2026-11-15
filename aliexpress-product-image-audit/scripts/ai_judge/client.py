@@ -1,4 +1,5 @@
 """Strict, queue-only AI judgement client. Never mutates products."""
+from policy_engine import MODEL_CONFIDENCE_MIN
 import base64
 import hashlib
 import json
@@ -13,9 +14,22 @@ from pathlib import Path
 from .schemas import validate_result
 from .cache import cache_key, ResultCache
 from concurrent.futures import ThreadPoolExecutor
-from threading import RLock
+from threading import RLock, local
 from PIL import Image
 import io
+
+class _NoModelRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self,*args,**kwargs):
+        from budget_manager import BudgetExceeded
+        raise BudgetExceeded('MODEL_REDIRECT_FORBIDDEN')
+
+
+def _open_model_request(request,timeout):
+    from model_config import require_enabled_model
+    require_enabled_model(json.loads(request.data)["model"])
+    # No proxy discovery or redirects can silently change the approved route.
+    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),_NoModelRedirect())
+    return opener.open(request,timeout=timeout)
 
 COMMON_OUTPUT_CONTRACT = (' Return one JSON object. task_type must exactly equal the supplied item.task_type; '
                           'item_id must exactly equal the supplied item.id. '
@@ -27,7 +41,7 @@ COMMON_OUTPUT_CONTRACT = (' Return one JSON object. task_type must exactly equal
                           'return explicit coverage_complete/no_marks_detected, image_size, marks and unresolved_items; do not return decision.')
 
 def safe_payload(item, context):
-    allowed={'id','item_id','task_type','image_id','pool','kind','index','sha256','sku_id','sku_name','reason','evidence_ids','purpose','dimensions','proposed_title'}
+    allowed={'id','item_id','task_type','image_id','image_type','pool','kind','index','sha256','sku_id','sku_name','reason','evidence_ids','purpose','dimensions','proposed_title'}
     safe_item={k:v for k,v in item.items() if k in allowed}
     # Image-derived annotations only. Neither the product Description nor price
     # fields enter this channel. OCR text is observation, never an instruction.
@@ -83,7 +97,7 @@ def _same_store_remove_consensus(outputs, models):
     if len(outputs)!=2 or len(models)!=2 or len(set(models))!=2:return False
     from policy_engine import REMOVE
     if any(r.get('task_type')!='watermark' or r.get('classification') not in REMOVE for r in outputs):return False
-    if any(r.get('abstain') is not False or r.get('confidence',0)<.9 for r in outputs):return False
+    if any(r.get('abstain') is not False or r.get('confidence',0)<MODEL_CONFIDENCE_MIN for r in outputs):return False
     owners=[r.get('owner') for r in outputs]
     if any(not isinstance(owner,str) or not owner.strip() for owner in owners):return False
     owners=[owner.strip().casefold() for owner in owners]
@@ -93,7 +107,7 @@ def _same_store_remove_consensus(outputs, models):
     return owners[0]==owners[1] and owners[0] not in placeholders
 
 class JudgeClient:
-    def __init__(self, budget, cache_dir, transport=None, models=('glm-5v-turbo','kimi-k3-1'), retries=2, timeout=150, config=None, *, continue_model_errors=False):
+    def __init__(self, budget, cache_dir, transport=None, models=('deepseek-v4.1-flash','mimo-v2.6-pro'), retries=2, timeout=150, config=None, *, continue_model_errors=False):
         self.continue_model_errors=continue_model_errors
         self.config_sha256=None
         self.base_url=os.environ.get('VLM_BASE','http://127.0.0.1:8788/v1')
@@ -108,28 +122,32 @@ class JudgeClient:
             raise ValueError('VLM_MAX_OUTPUT_TOKENS must be an integer from 1 to 16384')
         self.max_output_tokens=int(output_limit)
         self.reasoning_effort=config.get('reasoning_effort') if config is not None else None
-        self.semaphore=BoundedSemaphore(4)
+        self.semaphore=BoundedSemaphore(4 if transport is not None else 1)
+        self._call_local=local()
         self._viewed=set()
         from threading import Lock
         self._view_lock=Lock()
         self._metrics_lock=RLock()
-        self.workers=4
+        self.workers=4 if transport is not None and budget._model_policy is None else 1
         self.result_cache=ResultCache(cache_dir)
         self.budget, self.cache = budget, Path(cache_dir)
         self.cache.mkdir(parents=True,exist_ok=True)
         self.transport = transport or self._request
-        self.models, self.retries, self.timeout = models, min(retries,2), timeout
+        self.models, self.retries, self.timeout = models, (min(retries,2) if transport is not None else 0), timeout
         self.metrics = {'requests':0,'retries':0,'cache_hits':0,'prompt_tokens':0,'completion_tokens':0,'total_tokens':0,'usage_available':True,'visual_inputs':[],
                         'models':list(models),'max_output_tokens':self.max_output_tokens,'calls':[]}
         if config is not None:self.metrics.update(base_url=self.base_url,model_config_sha256=self.config_sha256)
         if self.reasoning_effort is not None:self.metrics['reasoning_effort']=self.reasoning_effort
     def _request(self, model, item, context):
+        self.budget._load_model_budget()
         key = os.environ.get('VLM_API_KEY')
         if not key: raise ValueError('VLM_API_KEY required')
         from importlib import import_module
         task_prompt=import_module('ai_judge.'+item['task_type']).PROMPT
         output_prompt = '' if item['task_type'] in {'watermark','sku_match'} else ' Return JSON task_type,item_id,decision MATCH/MISMATCH/UNCERTAIN,confidence,abstain,evidence_ids.'
         prompt = task_prompt+' Classify evidence. Preserve social signatures, manufacturer branding, product print, photographer credits. Unknown ownership must abstain.'+output_prompt+COMMON_OUTPUT_CONTRACT+' No write instructions. '+json.dumps(safe_payload(item,context),ensure_ascii=False)
+        if item['task_type']=='image_action_decision':
+            prompt=task_prompt+'\n'+json.dumps(safe_payload(item,context),ensure_ascii=False)
         content=[{'type':'text','text':prompt}]
         if item.get('local'):
             sent,metadata=prepare_image(item['local'])
@@ -143,9 +161,65 @@ class JudgeClient:
             content.append({'type':'image_url','image_url':{'url':'data:image/jpeg;base64,'+base64.b64encode(sent).decode()}})
         body={'model':model,'temperature':0,'max_tokens':self.max_output_tokens,'response_format':{'type':'json_object'},'messages':[{'role':'user','content':content}]}
         if self.reasoning_effort is not None:body['reasoning_effort']=self.reasoning_effort
-        req=urllib.request.Request(self.base_url+'/chat/completions',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
-        with urllib.request.urlopen(req,timeout=self.timeout) as response: return json.load(response)
-    def classify(self, task_type, evidence, context):
+        from importlib import import_module
+        module=import_module('ai_judge.'+item['task_type'])
+        images=([hashlib.sha256(Path(item['local']).read_bytes()).hexdigest()] if item.get('local') else [])
+        images += [r['sha256'] for r in item.get('extra_images',[])]
+        metadata={'task_type':item['task_type'],'item_id':item['id'],
+                  'prompt_sha256':hashlib.sha256(prompt.encode()).hexdigest(),
+                  'schema_version':getattr(module,'SCHEMA_VERSION','v2'),
+                  'request_body_sha256':hashlib.sha256(json.dumps(body).encode()).hexdigest()}
+        def send():
+            self.budget.assert_model_dispatch()
+            self._record_dispatch()
+            req=urllib.request.Request(self.base_url+'/chat/completions',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
+            with _open_model_request(req,timeout=self.timeout) as response:return json.load(response)
+        return self.budget.model_call(model,self.base_url,context.get('pid'),images,self.max_output_tokens,metadata,send)
+    def _record_dispatch(self):
+        event=getattr(self._call_local,'event',None)
+        with self._metrics_lock:
+            self.metrics['requests']+=1
+            if event:
+                if event['attempt']>1:self.metrics['retries']+=1
+                event.update(called=True,status='REQUESTED',usage_status='UNKNOWN')
+
+    def invoke_image_adapter(self,model,item,context,adapter):
+        """Budget and measure configured image editing through this same client."""
+        from model_config import require_enabled_model
+        require_enabled_model(model)
+        if model not in self.models:raise ValueError('MODEL_SELECTION_NOT_CONFIGURED')
+        self.budget.reserve_call(None,1)
+        event=dict(item_id=item['id'],task_type='image_edit_v2',model=model,attempt=1,called=False,status='NOT_CALLED',usage_status='NOT_CALLED',total_tokens=None)
+        started=time.perf_counter();self._call_local.event=event
+        def send():
+            self._record_dispatch()
+            return adapter()
+        try:
+            raw=self.budget.model_call(model,self.base_url,context.get('pid'),[item['sha256']],self.max_output_tokens,
+                dict(task_type='image_edit_v2',item_id=item['id'],schema_version='image-edit-adapter/v2',prompt_sha256=item['prompt_sha256']),send)
+            usage=raw.get('usage') if isinstance(raw,dict) else None
+            if isinstance(usage,dict) and all(type(usage.get(k)) is int and usage[k]>=0 for k in ('prompt_tokens','completion_tokens','total_tokens')) and usage['prompt_tokens']+usage['completion_tokens']==usage['total_tokens']:
+                event.update(status='RESPONSE_RECEIVED',usage_status='ACTUAL_REPORTED',total_tokens=usage['total_tokens'])
+                with self._metrics_lock:
+                    if self.metrics['usage_available']:
+                        for key in ('prompt_tokens','completion_tokens','total_tokens'):self.metrics[key]+=usage[key]
+            else:
+                event.update(status='RESPONSE_RECEIVED',usage_status='UNKNOWN')
+                with self._metrics_lock:
+                    self.metrics['usage_available']=False
+                    for key in ('prompt_tokens','completion_tokens','total_tokens'):self.metrics[key]=None
+            return raw
+        except Exception:
+            event['status']='ERROR'
+            raise
+        finally:
+            self._call_local.event=None;event['elapsed_ms']=round((time.perf_counter()-started)*1000,3)
+            with self._metrics_lock:self.metrics['calls'].append(event)
+
+    def classify(self, task_type, evidence, context, *, models=None, attempts=None):
+        selected=self.models if models is None else tuple(models)
+        if not selected or any(m not in self.models for m in selected):raise ValueError('MODEL_SELECTION_NOT_CONFIGURED')
+        if self.budget._model_policy is not None:self.retries=0
         outputs=[]
         model_errors=[]
         evidence=dict(evidence)
@@ -167,7 +241,7 @@ class JudgeClient:
             size=evidence.get('dimensions')
             if not isinstance(size,list) or len(size)!=2 or any(type(v) is not int or v<=0 for v in size):
                 return {'status':'NEEDS_REVIEW','error':'SOURCE_UNVERIFIED','results':[]}
-        for model in self.models:
+        for model in selected:
             cache_started=time.perf_counter()
             cache_options={'policy_version':'v2:gateway:'+self.config_sha256} if self.config_sha256 else {}
             key=cache_key(task_type,evidence,context,model,**cache_options)
@@ -176,6 +250,7 @@ class JudgeClient:
                 try:
                     cached=self.result_cache.get(key)
                     cached['item_id']=evidence['id']
+                    if task_type=='image_action_decision':cached['image_id']=evidence['id']
                     cached['evidence_ids']=evidence.get('evidence_ids',[])
                     if task_type=='sku_match': cached.update({k:evidence[k] for k in ('sku_id','image_id')})
                     outputs.append(validate_result(cached,task_type,evidence['id'],evidence,allow_legacy=False))
@@ -186,7 +261,7 @@ class JudgeClient:
                             'elapsed_ms':round((time.perf_counter()-cache_started)*1000,3),'result':dict(cached)})
                     continue
                 except (ValueError,KeyError): pass
-            for attempt in range(self.retries+1):
+            for attempt in range(self.retries+1 if attempts is None else attempts):
                 token_reservation=None
                 sent=False
                 response_received=False
@@ -196,25 +271,35 @@ class JudgeClient:
                        'status':'NOT_CALLED','called':False,'usage_status':'NOT_CALLED','total_tokens':None}
                 try:
                     token_cost=None
-                    if 'total_tokens' in self.budget.snapshot()['limits']:
+                    if not self.budget.record_only and 'total_tokens' in self.budget.snapshot()['limits']:
                         token_cost=self.max_output_tokens + len(json.dumps(safe_payload(evidence,context)).encode('utf-8')) + 4096 * (1+len(evidence.get('extra_images',[])))
                     with self._view_lock:
                         digests=({evidence['sha256']}|{r['sha256'] for r in evidence.get('extra_images',[])}) if evidence.get('local') else set()
                         new=digests-self._viewed
                         token_reservation=self.budget.reserve_call(token_cost,len(new))
                         self._viewed.update(new)
-                    with self._metrics_lock:
-                        self.metrics['requests']+=1
-                        if attempt: self.metrics['retries']+=1
                     with self.semaphore:
-                        sent=True
-                        event.update(called=True,status='REQUESTED',usage_status='UNKNOWN')
-                        raw=self.transport(model,evidence,context)
+                        self._call_local.event=event
+                        def injected_send():
+                            self._record_dispatch()
+                            return self.transport(model,evidence,context)
+                        controlled=self.budget._model_policy is not None and self.transport!=self._request
+                        if controlled:
+                            from importlib import import_module
+                            module=import_module('ai_judge.'+task_type)
+                            metadata={'task_type':task_type,'item_id':evidence['id'],
+                                      'prompt_sha256':hashlib.sha256((module.PROMPT+COMMON_OUTPUT_CONTRACT).encode()).hexdigest(),
+                                      'schema_version':getattr(module,'SCHEMA_VERSION','v2'),
+                                      'safe_payload_sha256':hashlib.sha256(json.dumps(safe_payload(evidence,context),sort_keys=True).encode()).hexdigest()}
+                            raw=self.budget.model_call(model,self.base_url,context.get('pid'),([evidence['sha256']] if evidence.get('local') else [])+[r['sha256'] for r in evidence.get('extra_images',[])],self.max_output_tokens,
+                                                       metadata,injected_send)
+                        else:raw=self._request(model,evidence,context) if self.transport==self._request else injected_send()
                         response_received=True
                     if self.continue_model_errors:
                         # Persist through full_ai_metrics.json, including invalid
                         # model output; never rewrite a provider's original reply.
                         event['raw_response']=json.loads(json.dumps(raw))
+                    event['usage_source']=self.budget._model_policy['usage_source'] if self.budget._model_policy else 'FAKE_TRANSPORT'
                     observed_usage=raw.get('usage') if isinstance(raw,dict) else None
                     if isinstance(observed_usage,dict) and all(type(observed_usage.get(k)) is int and observed_usage[k]>=0 for k in ('prompt_tokens','completion_tokens','total_tokens')):
                         tokens=observed_usage['total_tokens']
@@ -251,7 +336,7 @@ class JudgeClient:
                     event.update(failure_details)
                     if isinstance(exc,BudgetExceeded) and not event['called']:
                         event.update(status='BUDGET_BLOCKED',usage_status='BUDGET_BLOCKED')
-                    if token_reservation is not None and not sent:
+                    if token_reservation is not None and not event['called']:
                         self.budget.release_tokens(token_reservation)
                         token_reservation=None
                     if event['called'] and event['usage_status']=='UNKNOWN':
@@ -274,11 +359,14 @@ class JudgeClient:
                     if attempt == self.retries:
                         return {'status':'NEEDS_REVIEW','error':type(exc).__name__,'results':outputs,**failure_details}
                 finally:
+                    self._call_local.event=None
                     event['elapsed_ms']=round((time.perf_counter()-attempt_started)*1000,3)
                     with self._metrics_lock:self.metrics['calls'].append(event)
         if model_errors:
             return {'status':'NEEDS_REVIEW','error':'MODEL_RESPONSE_INVALID','results':outputs,
                     'models':list(self.models),'model_errors':model_errors}
+        if task_type=='image_action_decision':
+            return {'status':'VALIDATED','results':outputs,'models':list(selected)}
         if task_type=='watermark':
             from .watermark_contract import aggregate_watermarks
             spec={k:evidence[k] for k in ('id','dimensions','evidence_ids') if k in evidence}
@@ -294,7 +382,7 @@ class JudgeClient:
             status='CLEAN' if audit['verdict']=='PASS' else 'HIT' if audit['verdict']=='FAIL' else 'REVIEW'
             return {'status':status,'results':outputs,'models':list(self.models),'identity_audit':audit,'evidence_spec':spec}
         classifications=[r.get('classification',r.get('decision')) for r in outputs]
-        review=any(r['abstain'] or r['confidence'] < .9 for r in outputs) or len(set(classifications))!=1 or any(x in {'unknown','UNCERTAIN'} for x in classifications)
+        review=any(r['abstain'] or r['confidence'] < MODEL_CONFIDENCE_MIN for r in outputs) or len(set(classifications))!=1 or any(x in {'unknown','UNCERTAIN'} for x in classifications)
         if task_type=='sku_match':
             # MATCH labels alone cannot establish agreement on the SKU's
             # packaging observations. Keep differing/missing details visible.

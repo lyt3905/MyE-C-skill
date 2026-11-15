@@ -1,3 +1,4 @@
+from model_budget_fixtures import authorize_http_fake,request_with_fake_budget
 import json
 import tempfile
 import unittest
@@ -16,8 +17,8 @@ class WatermarkPromptTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             client = JudgeClient(BudgetManager({'ai_requests': 1}), root)
             with patch.dict('os.environ', {'VLM_API_KEY': 'test-only-placeholder'}), \
-                    patch('urllib.request.urlopen', return_value=response) as request:
-                client._request('test', {'task_type': 'watermark', 'id': 'A'}, {})
+                    patch('ai_judge.client._open_model_request', return_value=response) as request:
+                request_with_fake_budget(client,'test', {'task_type': 'watermark', 'id': 'A'}, {})
             body = json.loads(request.call_args.args[0].data)
         prompt = body['messages'][0]['content'][0]['text']
         self.assertIn('Required top-level fields: schema_version, task_type, item_id, confidence, abstain, image_size', prompt)

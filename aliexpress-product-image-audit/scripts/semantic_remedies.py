@@ -4,7 +4,7 @@ from product_state import canonical_state_hash
 from sku_assignment import packaging,plan_assignments
 from title_rewrite import rewrite_title
 
-def build(product,flags,queue,images,inspector,shop,generated_remedies=(),allow_snapshot_rows=False):
+def build(product,flags,queue,images,inspector,shop,generated_remedies=(),allow_snapshot_rows=False,allowed_actions=None,verified_sku_rows=None):
     candidates=[];handled=set();resolved_items=set()
     def base(item,action,evidence):
         return {'remedy_id':'REM_'+item,'item_id':item,'action':action,'source':{'type':'product_snapshot','sha256':canonical_state_hash(product)},
@@ -13,7 +13,9 @@ def build(product,flags,queue,images,inspector,shop,generated_remedies=(),allow_
     triggers={a.get('type') for a in flags.get('anomalies',[]) if isinstance(a,dict)}
     title_items={r['id'] for r in queue if r['task_type']=='title_semantics'}
     approved={}
-    if triggers&title_anomalies or title_items:
+    if allowed_actions is not None and 'TITLE_REWRITE' not in allowed_actions:
+        handled.update(title_anomalies)
+    if (allowed_actions is None or 'TITLE_REWRITE' in allowed_actions) and (triggers&title_anomalies or title_items):
         generated=rewrite_title(product,shop)
         try:approved=inspector.validate_title(product,generated) if generated.get('ok') and inspector and callable(getattr(inspector,'validate_title',None)) else {}
         except Exception as exc:
@@ -26,7 +28,8 @@ def build(product,flags,queue,images,inspector,shop,generated_remedies=(),allow_
             row.update(title_review_status='NOT_REVIEWED',translation_policy='ONCE_NO_AUTOMATIC_RETRY')
             row['reason_codes']=['SOP_RULES_WITH_SINGLE_TRANSLATION_NO_TITLE_MODEL_REVIEW']
             candidates.append(row);handled.update(title_anomalies);resolved_items.update(title_items)
-    if 'brand_rule' in triggers:
+    if allowed_actions is not None and 'BRAND_CODE' not in allowed_actions:handled.add('brand_rule')
+    if 'brand_rule' in triggers and (allowed_actions is None or 'BRAND_CODE' in allowed_actions):
         generated=rewrite_title(product,shop)
         current=product.get('brandId')
         # Only the explicit integer code field is supported. A separate brand alias is ambiguous.
@@ -47,6 +50,11 @@ def build(product,flags,queue,images,inspector,shop,generated_remedies=(),allow_
     references=[r.get('skuImageUrl') or r.get('imageUrl') or r.get('image') for r in sku_rows]
     sku_items=[r for r in queue if r['task_type']=='sku_match']
     needs_sku=bool(sku_items) or len(references)!=len(set(references)) or any(packaging(r.get('skuName',r.get('name','')))!='unknown' for r in sku_rows)
+    if sku_rows and verified_sku_rows is not None and set(verified_sku_rows)==set(range(len(sku_rows))):
+        # The complete audit already verified each existing reference. No new
+        # assignment is needed merely because the API omits database SKU IDs.
+        resolved_items.update(item['id'] for item in sku_items)
+        needs_sku=False
     if needs_sku:
         # An unaddressable SKU cannot be assigned regardless of visual quality.
         # Reuse the assignment validator before paying for image observations.

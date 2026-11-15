@@ -47,7 +47,7 @@
     {
       "provider": "workbuddy2api-hub",
       "endpoint": "http://127.0.0.1:8788/v1",
-      "model_id": "kimi-k3-1",
+      "model_id": "mimo-v2.6-pro",
       "api": "OpenAI-compatible Chat Completions via WorkBuddy; upstream API version unverified",
       "document_version": "local-source-audit-2026-11-14",
       "valid_until": "2026-12-14",
@@ -79,12 +79,12 @@
         "status": "UNKNOWN",
         "source": "Local WorkBuddy route: no applicable official bound"
       },
-      "usage_schema": "workbuddy:kimi-k3-1",
+      "usage_schema": "workbuddy:mimo-v2.6-pro",
       "blockers": [
         "PROVIDER_ROUTE_UNVERIFIED",
         "USAGE_PROVENANCE_UNVERIFIED"
       ],
-      "official_reference": "https://platform.kimi.ai/docs/api/estimate",
+      "official_reference": "UNKNOWN_NOT_VERIFIED",
       "direct_api_reference_applies_to_current_route": false
     }
   ]

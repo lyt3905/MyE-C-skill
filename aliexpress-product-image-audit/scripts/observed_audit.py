@@ -4,6 +4,7 @@ Default: offline preparation. Actual requests require the separate observed
 execution switch and a recorded user instruction waiving hard token admission.
 No site, writer, recovery, or image-remediation entrypoint is used.
 """
+from policy_engine import MODEL_CONFIDENCE_MIN
 import argparse
 from contextlib import contextmanager
 from copy import deepcopy
@@ -105,14 +106,14 @@ def prepare(output, *, user_statement='', authorize_real=False, source=rv.DEFAUL
     baseline = rv.baseline_check()
     inputs = rv.build_inputs(source)
     config = rv.load_config(config_path)
-    if config['base_url']!='http://127.0.0.1:8788/v1' or config['models']!=['deepseek-v4.1-flash','kimi-k3-1'] or config['retries']!=0:
+    if config['base_url']!='http://127.0.0.1:8788/v1' or config['models']!=['deepseek-v4.1-flash','mimo-v2.6-pro'] or config['retries']!=0:
         raise rv.Blocked('MODEL_PROFILE_NOT_APPROVED')
     if authorize_real and not user_statement.strip(): raise rv.Blocked('REAL_AUTHORIZATION_REQUIRED')
     config=dict(config,max_output_tokens=GENERATION_OPTIONS['max_output_tokens'])
     versions = rv.source_versions()
     if (versions['contracts']['watermark']['schema']!='watermark/v3' or
             versions['contracts']['product_identity']['schema']!='product-identity/v3' or
-            versions['confidence_min']!=.90 or versions['matching']['min_iou']!=.5):
+            versions['confidence_min']!=MODEL_CONFIDENCE_MIN or versions['matching']['min_iou']!=.5):
         raise rv.Blocked('CONTRACT_VERSION_MISMATCH')
     output.mkdir(parents=True,exist_ok=True)
     job = output/('OBSERVED_'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'_'+uuid.uuid4().hex)

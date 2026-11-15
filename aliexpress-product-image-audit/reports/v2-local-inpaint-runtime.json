@@ -1,0 +1,244 @@
+{
+  "model_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\local\\models\\lama\\big-lama.pt",
+  "model_sha256": "7ba7aa7ac37a4d41fdbbeba3a2af7ead18058552997e3a3cd1a3b2210c9e6b4c",
+  "model_bytes": 205803670,
+  "source_url": "https://github.com/enesmsahin/simple-lama-inpainting/releases/download/v0.1.0/big-lama.pt",
+  "model_kind": "complete trained LaMa TorchScript, not a synthetic graph",
+  "input_contract": "IMAGE_MASK_TENSORS",
+  "device": "cpu",
+  "config_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\local\\image-options.v2.local.json",
+  "configuration_frozen_by_existing_job": "JOB_c19f5b5d6f8e412d91ae39591cd1c9bd",
+  "external_image_edit_adapter_required_for_remove_text": false,
+  "synthetic_source_owned": true,
+  "source_unchanged": true,
+  "opencv": {
+    "algorithm": "OPENCV_TELEA",
+    "parameters": {
+      "radius": 3,
+      "dilation": 2,
+      "max_area": 0.25
+    },
+    "mask_ratio": 0.0177890625,
+    "input_sha256": "fb6b4a1d2195512eed2a0bcc4f03091c915d8224e4e048073fd7bc21d7a3f3c7",
+    "output_sha256": "50852ba17be2b3d2fd00abee24381cc9443bb8e01ee30cca9e95366f8648f040",
+    "mask_sha256": "75558f96d8afff04d3bc869245aa81543d203137215180c89fc1fbb55c0ca6ba",
+    "input_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\source.png",
+    "output_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\opencv\\OPENCV_TELEA.png",
+    "mask_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\opencv\\mask.png",
+    "elapsed_ms": 89.209,
+    "deterministic_quality": {
+      "ok": true,
+      "source_sha256": "fb6b4a1d2195512eed2a0bcc4f03091c915d8224e4e048073fd7bc21d7a3f3c7",
+      "candidate_sha256": "50852ba17be2b3d2fd00abee24381cc9443bb8e01ee30cca9e95366f8648f040",
+      "outside_mask_unchanged": true
+    }
+  },
+  "opencv_ns": {
+    "algorithm": "OPENCV_NS",
+    "parameters": {
+      "radius": 3,
+      "dilation": 2,
+      "max_area": 0.25
+    },
+    "mask_ratio": 0.0177890625,
+    "input_sha256": "fb6b4a1d2195512eed2a0bcc4f03091c915d8224e4e048073fd7bc21d7a3f3c7",
+    "output_sha256": "78a6027b29ffedbee0d4e5adf1f1556b79828902c7c3bea68eb1cac8b9be4870",
+    "mask_sha256": "75558f96d8afff04d3bc869245aa81543d203137215180c89fc1fbb55c0ca6ba",
+    "input_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\source.png",
+    "output_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\opencv-ns\\OPENCV_NS.png",
+    "mask_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\opencv-ns\\mask.png",
+    "elapsed_ms": 87.986,
+    "deterministic_quality": {
+      "ok": true,
+      "source_sha256": "fb6b4a1d2195512eed2a0bcc4f03091c915d8224e4e048073fd7bc21d7a3f3c7",
+      "candidate_sha256": "78a6027b29ffedbee0d4e5adf1f1556b79828902c7c3bea68eb1cac8b9be4870",
+      "outside_mask_unchanged": true
+    }
+  },
+  "lama": {
+    "algorithm": "LAMA_INPAINT",
+    "parameters": {
+      "radius": 3,
+      "dilation": 2,
+      "max_area": 0.25
+    },
+    "mask_ratio": 0.0177890625,
+    "input_sha256": "fb6b4a1d2195512eed2a0bcc4f03091c915d8224e4e048073fd7bc21d7a3f3c7",
+    "output_sha256": "7cadaf1f6f17c1a04cfe2d58a50a235f1fb0207a628c645965968296b5be918d",
+    "mask_sha256": "75558f96d8afff04d3bc869245aa81543d203137215180c89fc1fbb55c0ca6ba",
+    "input_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\source.png",
+    "output_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\lama\\LAMA_INPAINT.png",
+    "mask_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\lama\\mask.png",
+    "elapsed_ms": 4180.018,
+    "model_sha256": "7ba7aa7ac37a4d41fdbbeba3a2af7ead18058552997e3a3cd1a3b2210c9e6b4c",
+    "model_contract": "IMAGE_MASK_TENSORS",
+    "deterministic_quality": {
+      "ok": true,
+      "source_sha256": "fb6b4a1d2195512eed2a0bcc4f03091c915d8224e4e048073fd7bc21d7a3f3c7",
+      "candidate_sha256": "7cadaf1f6f17c1a04cfe2d58a50a235f1fb0207a628c645965968296b5be918d",
+      "outside_mask_unchanged": true
+    }
+  },
+  "existing_fake_workflows": [
+    {
+      "job_id": "JOB_6146ea3a3a194e82a99deb10ada22583",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\fake-opencv\\jobs\\JOB_6146ea3a3a194e82a99deb10ada22583",
+      "algorithm": "OPENCV_TELEA",
+      "fake_uploads": 1,
+      "fake_saves": 1,
+      "real_product_writes": 0,
+      "content_validation": {
+        "ok": true,
+        "items": [
+          {
+            "remedy_id": "V2_MAIN_000",
+            "ok": true,
+            "scope": "V2_APPROVED_BYTES_AND_REFERENCE_READBACK",
+            "readback": [
+              {
+                "url": "https://fake/upload1",
+                "observed_sha256": "f408814310e01e5d23594ef3e8139c7f99b319ec48c83ba2aec2f304e2f13f10",
+                "expected_sha256": "f408814310e01e5d23594ef3e8139c7f99b319ec48c83ba2aec2f304e2f13f10"
+              }
+            ]
+          },
+          {
+            "remedy_id": "V2_DETAIL_000",
+            "ok": true,
+            "scope": "V2_APPROVED_BYTES_AND_REFERENCE_READBACK",
+            "readback": [
+              {
+                "url": "https://fake/upload1",
+                "observed_sha256": "f408814310e01e5d23594ef3e8139c7f99b319ec48c83ba2aec2f304e2f13f10",
+                "expected_sha256": "f408814310e01e5d23594ef3e8139c7f99b319ec48c83ba2aec2f304e2f13f10"
+              }
+            ]
+          },
+          {
+            "remedy_id": "V2_SKU",
+            "ok": true,
+            "scope": "V2_APPROVED_BYTES_AND_REFERENCE_READBACK",
+            "readback": []
+          }
+        ],
+        "structure": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "checked_rules": [
+            "IMAGES_REQUIRED",
+            "REQUIRED_POOL",
+            "REQUIRED_POOL",
+            "REQUIRED_POOL",
+            "PROTECTED_IMAGE_POOL",
+            "MAIN_COUNT",
+            "POOL_NOT_EMPTY",
+            "VALID_URL",
+            "VALID_URL",
+            "POOL_NOT_EMPTY",
+            "VALID_URL",
+            "VALID_URL",
+            "POOL_NOT_EMPTY",
+            "VALID_URL",
+            "VALID_URL",
+            "SKU_REFERENCE",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "SKU_PROTECTED_FIELDS",
+            "PROTECTED_FIELD"
+          ]
+        },
+        "description_exact": true
+      },
+      "description_preserved": true
+    },
+    {
+      "job_id": "JOB_05dc932a415d4dabbaec7c5ebbe982a3",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\fake-lama\\jobs\\JOB_05dc932a415d4dabbaec7c5ebbe982a3",
+      "algorithm": "LAMA_INPAINT",
+      "fake_uploads": 1,
+      "fake_saves": 1,
+      "real_product_writes": 0,
+      "content_validation": {
+        "ok": true,
+        "items": [
+          {
+            "remedy_id": "V2_MAIN_000",
+            "ok": true,
+            "scope": "V2_APPROVED_BYTES_AND_REFERENCE_READBACK",
+            "readback": [
+              {
+                "url": "https://fake/upload1",
+                "observed_sha256": "c4c37d94e89664bb87f5ee7c8226b891e2b9bafc53b01fe10cf49c5f4456da7c",
+                "expected_sha256": "c4c37d94e89664bb87f5ee7c8226b891e2b9bafc53b01fe10cf49c5f4456da7c"
+              }
+            ]
+          },
+          {
+            "remedy_id": "V2_DETAIL_000",
+            "ok": true,
+            "scope": "V2_APPROVED_BYTES_AND_REFERENCE_READBACK",
+            "readback": [
+              {
+                "url": "https://fake/upload1",
+                "observed_sha256": "c4c37d94e89664bb87f5ee7c8226b891e2b9bafc53b01fe10cf49c5f4456da7c",
+                "expected_sha256": "c4c37d94e89664bb87f5ee7c8226b891e2b9bafc53b01fe10cf49c5f4456da7c"
+              }
+            ]
+          },
+          {
+            "remedy_id": "V2_SKU",
+            "ok": true,
+            "scope": "V2_APPROVED_BYTES_AND_REFERENCE_READBACK",
+            "readback": []
+          }
+        ],
+        "structure": {
+          "ok": true,
+          "errors": [],
+          "warnings": [],
+          "checked_rules": [
+            "IMAGES_REQUIRED",
+            "REQUIRED_POOL",
+            "REQUIRED_POOL",
+            "REQUIRED_POOL",
+            "PROTECTED_IMAGE_POOL",
+            "MAIN_COUNT",
+            "POOL_NOT_EMPTY",
+            "VALID_URL",
+            "VALID_URL",
+            "POOL_NOT_EMPTY",
+            "VALID_URL",
+            "VALID_URL",
+            "POOL_NOT_EMPTY",
+            "VALID_URL",
+            "VALID_URL",
+            "SKU_REFERENCE",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "PROTECTED_FIELD",
+            "SKU_PROTECTED_FIELDS",
+            "PROTECTED_FIELD"
+          ]
+        },
+        "description_exact": true
+      },
+      "description_preserved": true
+    }
+  ],
+  "elapsed_seconds": 12.671,
+  "new_semantic_model_calls": 0,
+  "new_api_tokens": 0,
+  "online_product_writes": 0,
+  "real_product_semantic_quality_not_evaluated": true,
+  "comparison": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-local-repair-recovery-20261115T134358+0800\\samples\\local-inpaint-comparison.png"
+}

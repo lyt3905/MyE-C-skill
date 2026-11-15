@@ -1,4 +1,5 @@
 """Independent identity observations; missing models remain unverifiable."""
+from policy_engine import MODEL_CONFIDENCE_MIN
 from copy import deepcopy
 import re
 from .watermark_contract import number,refs_valid,reason
@@ -61,7 +62,7 @@ def aggregate_identity(result,declared_model,evidence=None):
             try:validate_identity(row,evidence)
             except (ValueError,KeyError,TypeError) as exc:overall.append(reason('EVIDENCE_INSUFFICIENT',i,'observations',row,str(exc)))
         if row.get('abstain') is not False:overall.append(reason('MODEL_ABSTAIN',i,'abstain',row))
-        if not number(row.get('confidence')) or row['confidence']<.9:overall.append(reason('LOW_CONFIDENCE',i,'confidence',row,row.get('confidence')))
+        if not number(row.get('confidence')) or row['confidence']<MODEL_CONFIDENCE_MIN:overall.append(reason('LOW_CONFIDENCE',i,'confidence',row,row.get('confidence')))
         if row.get('decision') not in ('MATCH','MISMATCH'):overall.append(reason('EVIDENCE_INSUFFICIENT',i,'decision',row,row.get('decision')))
     if len(rows)==2 and rows[0].get('decision')!=rows[1].get('decision'):overall.append(reason('MODEL_DISAGREEMENT',field='decision'))
     if result.get('models') is not None and (len(result['models'])!=2 or len(set(result['models']))!=2):overall.append(reason('MODEL_DISAGREEMENT',field='models'))
@@ -71,7 +72,7 @@ def aggregate_identity(result,declared_model,evidence=None):
             if ob is None:issues.append(reason('REQUIRED_FIELD_MISSING',i,field));continue
             if ob.get('abstain') is not False:issues.append(reason('MODEL_ABSTAIN',i,field+'.abstain',ob))
             if ob.get('confidence') is None:issues.append(reason('REQUIRED_FIELD_MISSING',i,field+'.confidence',ob,'dimension confidence not recorded'))
-            elif not number(ob['confidence']) or ob['confidence']<.9:issues.append(reason('LOW_CONFIDENCE',i,field+'.confidence',ob,ob.get('confidence')))
+            elif not number(ob['confidence']) or ob['confidence']<MODEL_CONFIDENCE_MIN:issues.append(reason('LOW_CONFIDENCE',i,field+'.confidence',ob,ob.get('confidence')))
             allowed=evidence.get('evidence_ids',[]) if evidence else rows[i].get('evidence_ids',[])
             if not refs_valid(ob.get('evidence_ids'),allowed):issues.append(reason('EVIDENCE_INSUFFICIENT',i,field+'.evidence_ids',ob))
             value=ob.get('value')

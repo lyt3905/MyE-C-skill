@@ -1,3 +1,4 @@
+from model_budget_fixtures import authorize_http_fake,request_with_fake_budget
 import io,json,os,re,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -20,8 +21,9 @@ class SkuOutputContractTests(unittest.TestCase):
             budget=BudgetManager({'ai_requests':2});sent=[]
             try:
                 client=JudgeClient(budget,tmp,config=PROFILE,continue_model_errors=True)
+                authorize_http_fake(client)
                 def send(req,timeout):sent.append(json.loads(req.data));return io.BytesIO(json.dumps(raw).encode())
-                with patch('urllib.request.urlopen',side_effect=send):reply=client.classify('sku_match',item,{})
+                with patch('ai_judge.client._open_model_request',side_effect=send):reply=client.classify('sku_match',item,{'pid':1})
                 self.assertEqual(reply['status'],'CLEAN')
                 self.assertEqual(len(sent),2)
                 for body in sent:

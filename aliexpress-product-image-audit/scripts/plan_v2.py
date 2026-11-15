@@ -38,7 +38,7 @@ def validate_plan(plan):
         raise ValueError('forbidden desired fields')
     if automatic:
         actions=set(plan['automation']['actions'])
-        scopes={'titleEn':{'TITLE_REWRITE'},'identityJson':{'TITLE_REWRITE'},'brandId':{'BRAND_CODE'},'images':{'REPLACE_TWIN','REPLACE_LOCAL','CROP_BANNER','BOX_NORMALIZE','ERASE_LOCAL','DELETE_REDUNDANT','SKU_ASSIGN'}}
+        scopes={'titleEn':{'TITLE_REWRITE'},'identityJson':{'TITLE_REWRITE'},'brandId':{'BRAND_CODE'},'images':{'REPLACE_TWIN','REPLACE_LOCAL','CROP_BANNER','BOX_NORMALIZE','ERASE_LOCAL','DELETE_REDUNDANT','SKU_ASSIGN','DELETE','REMOVE_TEXT','AI_REGENERATE'}}
         if any(not actions&scopes[field] for field in desired): raise ValueError('UNAUTHORIZED_FIELD_SCOPE')
         if 'identityJson' in desired:
             from product_state import identity_object
@@ -85,11 +85,11 @@ def validate_plan(plan):
     if 'preserve_reference_urls' in post and (type(post['preserve_reference_urls']) is not list or any(type(url) is not str or not url for url in post['preserve_reference_urls'])):
         raise ValueError('invalid preserved references')
     if 'target_positions' in post:
-        if 'DELETE_REDUNDANT' not in plan['automation']['actions'] or type(post['target_positions']) is not dict:raise ValueError('invalid target positions')
+        if not {'DELETE_REDUNDANT','DELETE'}&set(plan['automation']['actions']) or type(post['target_positions']) is not dict:raise ValueError('invalid target positions')
         for image_id,target in post['target_positions'].items():
             if type(image_id) is not str or type(target) is not dict or set(target)!={'pool','index'} or target['pool'] not in {'main','detail','sku'} or type(target['index']) is not int or target['index']<0 or target['index']>=len(desired.get('images',{}).get(target['pool'],[])):raise ValueError('invalid target position')
     targets = set()
-    if automatic and post.get('uploads') and not set(plan['automation']['actions'])&{'REPLACE_LOCAL','CROP_BANNER','BOX_NORMALIZE','ERASE_LOCAL'}:
+    if automatic and post.get('uploads') and not set(plan['automation']['actions'])&{'REPLACE_LOCAL','CROP_BANNER','BOX_NORMALIZE','ERASE_LOCAL','REMOVE_TEXT','AI_REGENERATE'}:
         raise ValueError('UNAUTHORIZED_UPLOAD_SCOPE')
     if automatic and post.get('translate_title') and ('TITLE_REWRITE' not in plan['automation']['actions'] or 'titleEn' not in desired):
         raise ValueError('UNAUTHORIZED_TRANSLATION_SCOPE')

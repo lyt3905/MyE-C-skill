@@ -1,0 +1,16 @@
+{
+  "incremental": {
+    "git_apply_check_exit": 0,
+    "git_apply_exit": 0,
+    "scope": "temporary copies only",
+    "reconstructed_files": 45,
+    "byte_mismatches": []
+  },
+  "cumulative_application": {
+    "git_apply_check_exit": 0,
+    "git_apply_exit": 0,
+    "scope": "temporary copies only",
+    "reconstructed_files": 300,
+    "byte_mismatches": []
+  }
+}

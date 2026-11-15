@@ -1,3 +1,4 @@
+from model_budget_fixtures import authorize_http_fake,request_with_fake_budget
 """Only Fake HTTP responses; verify main gateway request generation options."""
 import hashlib
 import io
@@ -15,7 +16,7 @@ from test_model_gateway_cli import PROFILE,response
 
 class FullAuditGenerationConfigTests(unittest.TestCase):
     def test_low_effort_and_larger_output_reach_both_models_and_frozen_job(self):
-        profile=dict(PROFILE,base_url='http://127.0.0.1:8788/v1',models=['deepseek-v4.1-flash','kimi-k3-1'],
+        profile=dict(PROFILE,base_url='http://127.0.0.1:8788/v1',models=['deepseek-v4.1-flash','mimo-v2.6-pro'],
                      max_output_tokens=16384,reasoning_effort='low')
         self.assertEqual(validate_config(profile),profile)
         with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,{'VLM_API_KEY':'fake-key'}):
@@ -24,10 +25,11 @@ class FullAuditGenerationConfigTests(unittest.TestCase):
                 manager=JobManager(Path(tmp)/'jobs');job=manager.create(1,7,{},model_config=profile)
                 self.assertEqual(manager.load(job['job_id'])['model_config'],profile)
                 c=JudgeClient(budget,Path(tmp)/'cache',config=profile,continue_model_errors=True)
+                authorize_http_fake(c)
                 def send(req,timeout):
                     sent.append(json.loads(req.data));return io.BytesIO(json.dumps(response({'id':'A','evidence_ids':['A']})).encode())
-                with patch('urllib.request.urlopen',side_effect=send):
-                    result=c.classify('watermark',{'id':'A','task_type':'watermark','dimensions':[800,800],'evidence_ids':['A']},{})
+                with patch('ai_judge.client._open_model_request',side_effect=send):
+                    result=c.classify('watermark',{'id':'A','task_type':'watermark','dimensions':[800,800],'evidence_ids':['A']},{'pid':1})
                 self.assertEqual(result['status'],'CLEAN')
                 self.assertEqual([r['model'] for r in sent],profile['models'])
                 self.assertTrue(all(r['reasoning_effort']=='low' and r['max_tokens']==16384 for r in sent))
@@ -42,10 +44,11 @@ class FullAuditGenerationConfigTests(unittest.TestCase):
             b=BudgetManager({'ai_requests':2});sent=[]
             try:
                 c=JudgeClient(b,tmp,config=PROFILE)
+                authorize_http_fake(c)
                 def send(req,timeout):
                     sent.append(json.loads(req.data));return io.BytesIO(json.dumps(response({'id':'A','evidence_ids':['A']})).encode())
-                with patch('urllib.request.urlopen',side_effect=send):
-                    c.classify('watermark',{'id':'A','task_type':'watermark','dimensions':[800,800],'evidence_ids':['A']},{})
+                with patch('ai_judge.client._open_model_request',side_effect=send):
+                    c.classify('watermark',{'id':'A','task_type':'watermark','dimensions':[800,800],'evidence_ids':['A']},{'pid':1})
                 self.assertEqual(len(sent),2)
                 self.assertTrue(all('reasoning_effort' not in row for row in sent))
             finally:b.close()

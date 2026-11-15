@@ -1,3 +1,4 @@
+from current_source_fixtures import freeze_current_source
 """Synthetic provider capability and durable ledger tests; no inference."""
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
@@ -54,7 +55,7 @@ class CapabilityTests(unittest.TestCase):
             self.assertIsNone(tb.request_upper_bound(cap, image_count=1, mode='FAKE')['request_upper_bound'])
 
     def test_unknown_provider_model_and_current_gateway_are_blocked(self):
-        for model in ('nonexistent-model', 'deepseek-v4.1-flash', 'kimi-k3-1'):
+        for model in ('nonexistent-model', 'deepseek-v4.1-flash', 'mimo-v2.6-pro'):
             cap = tb.provider_capability('http://127.0.0.1:8788/v1', model)
             bound = tb.request_upper_bound(cap, image_count=2)
             self.assertIsNone(bound['request_upper_bound'])
@@ -85,7 +86,7 @@ class CapabilityTests(unittest.TestCase):
         with self.assertRaises(tb.BudgetError): tb.parse_usage('deepseek-direct', kimi)
 
     def test_untagged_gateway_usage_is_not_proven_provider_usage(self):
-        for model in ('deepseek-v4.1-flash', 'kimi-k3-1'):
+        for model in ('deepseek-v4.1-flash', 'mimo-v2.6-pro'):
             with self.assertRaisesRegex(tb.BudgetError, 'USAGE_PROVENANCE_UNVERIFIED'):
                 tb.parse_usage('workbuddy:'+model, usage())
 
@@ -244,6 +245,8 @@ class LedgerTests(unittest.TestCase):
 
 
 class RunnerBudgetIntegrationTests(unittest.TestCase):
+    def setUp(self):freeze_current_source(self)
+
     def test_fake_runner_uses_durable_reservation_before_transport(self):
         import run_8788_real_validation as rv
         from test_8788_real_validation import response

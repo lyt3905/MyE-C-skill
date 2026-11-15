@@ -54,7 +54,7 @@ class StorePolicyConsensusTests(unittest.TestCase):
 
     def test_review_policy_low_confidence_and_abstention_stay_deferred(self):
         for kwargs in ({'second': 'marketing_text'}, {'second': 'chinese_promotion_poster'},
-                       {'confidence': .89}, {'abstain': True}):
+                       {'confidence': .79}, {'abstain': True}):
             with self.subTest(kwargs=kwargs):
                 self.assertEqual(self.classify(**kwargs)['status'], 'REVIEW')
 

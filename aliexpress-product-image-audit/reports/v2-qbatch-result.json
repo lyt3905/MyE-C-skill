@@ -1,0 +1,1448 @@
+{
+  "state": "FINISHED",
+  "images": 24,
+  "elapsed_seconds": 2089.062,
+  "real_model_requests": 47,
+  "new_total_tokens": null,
+  "known_token_subtotal": 350370,
+  "unknown_usage_calls": 1,
+  "usd_cost": null,
+  "models": [
+    "deepseek-v4.1-flash",
+    "mimo-v2.6-pro"
+  ],
+  "raw_valid_responses": 44,
+  "raw_invalid_responses": 3,
+  "validation_errors": {
+    "ValueError:V2_FIELDS": 1,
+    "ValueError:V2_NOT_REMOVABLE": 1,
+    "KeyError:'raw_response'": 1
+  },
+  "final_actions": {
+    "REVIEW": 23,
+    "KEEP": 1
+  },
+  "explicit_delete_truth": 10,
+  "delete_truth_final_delete": 0,
+  "delete_truth_deferred": 10,
+  "delete_truth_other_action": 0,
+  "watermark_fusion_confusion": {
+    "tp": 0,
+    "fp": 2,
+    "tn": 1,
+    "fn": 0,
+    "deferred_positive": 7,
+    "deferred_negative": 6,
+    "unlabelled": 8
+  },
+  "watermark_evaluation_kind": "FROZEN_FIELD_PROJECTION_NOT_NATIVE_THIRD_PARTY_DECISION",
+  "projection_false_positive_cases": [
+    "Q12",
+    "Q22"
+  ],
+  "watermark_scoring_definition": "reports/v2-qbatch-scoring-definition.json",
+  "prompt_hashes_verified": 47,
+  "request_body_hashes_verified": 47,
+  "visual_input_hashes_verified": 47,
+  "description_or_labels_sent": false,
+  "site_reads": 0,
+  "online_writes": 0,
+  "local_remediation": false,
+  "source_test_run_id": "5a454aba647b411b873f86ac8522e154",
+  "source_files_unchanged": true,
+  "statistical_gates_met": false,
+  "full_goal_complete": false,
+  "calls": [
+    {
+      "q": "Q01",
+      "sha256": "32282228868afcd1b185c2cdb796113d309a6072460ad39046676b78191660c1",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": false,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.95,
+      "abstain": false,
+      "actual_tokens": 5131
+    },
+    {
+      "q": "Q01",
+      "sha256": "32282228868afcd1b185c2cdb796113d309a6072460ad39046676b78191660c1",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.78,
+      "abstain": false,
+      "actual_tokens": 4627
+    },
+    {
+      "q": "Q02",
+      "sha256": "eeed0203dd6f78c35cf26e8f50878c2384d227a1f50c7f9ea15e741fe7357a76",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": false,
+      "raw_action": "REMOVE_TEXT",
+      "confidence": 0.88,
+      "abstain": false,
+      "actual_tokens": 7967
+    },
+    {
+      "q": "Q02",
+      "sha256": "eeed0203dd6f78c35cf26e8f50878c2384d227a1f50c7f9ea15e741fe7357a76",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": false,
+      "raw_action": "REVIEW",
+      "confidence": 0.6,
+      "abstain": false,
+      "actual_tokens": 5597
+    },
+    {
+      "q": "Q03",
+      "sha256": "41027d3252f82b09ef580a0cf373ab4b8f250c56f07b2484b3568afa2a05d077",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.74,
+      "abstain": true,
+      "actual_tokens": 11401
+    },
+    {
+      "q": "Q03",
+      "sha256": "41027d3252f82b09ef580a0cf373ab4b8f250c56f07b2484b3568afa2a05d077",
+      "model": "mimo-v2.6-pro",
+      "status": "ERROR",
+      "error_type": "ValueError",
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": "ValueError:V2_FIELDS",
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": null,
+      "confidence": null,
+      "abstain": null,
+      "actual_tokens": 6593
+    },
+    {
+      "q": "Q04",
+      "sha256": "39f75bdff2c43ba37fdc154c6f958fc63b62e5a8d9b46d3cc2ee9443faca6eee",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": false,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.95,
+      "abstain": false,
+      "actual_tokens": 9184
+    },
+    {
+      "q": "Q05",
+      "sha256": "c37b05432fabd79493c1680e388cdef79b72bb9f332d524cec18fbd2d778ddd3",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.8,
+      "abstain": true,
+      "actual_tokens": 8018
+    },
+    {
+      "q": "Q05",
+      "sha256": "c37b05432fabd79493c1680e388cdef79b72bb9f332d524cec18fbd2d778ddd3",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.72,
+      "abstain": false,
+      "actual_tokens": 5799
+    },
+    {
+      "q": "Q06",
+      "sha256": "6f51d61f36a2aef1dea193a5d9f43ee5535372bb544185384bb02c9ce2a05495",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.82,
+      "abstain": true,
+      "actual_tokens": 9532
+    },
+    {
+      "q": "Q06",
+      "sha256": "6f51d61f36a2aef1dea193a5d9f43ee5535372bb544185384bb02c9ce2a05495",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.7,
+      "abstain": false,
+      "actual_tokens": 5899
+    },
+    {
+      "q": "Q07",
+      "sha256": "af9fdf9cd6f4b9626a5a7f82b0e38d9351e44e22caec7bc0857b2391da5c2025",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": null,
+      "raw_action": "REMOVE_TEXT",
+      "confidence": 0.84,
+      "abstain": false,
+      "actual_tokens": 12135
+    },
+    {
+      "q": "Q07",
+      "sha256": "af9fdf9cd6f4b9626a5a7f82b0e38d9351e44e22caec7bc0857b2391da5c2025",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "REVIEW",
+      "confidence": 0.62,
+      "abstain": false,
+      "actual_tokens": 5788
+    },
+    {
+      "q": "Q08",
+      "sha256": "da0990c18a8bb60a437549650b0fcc3aa1a7be449937c18821c7fa4818083ce5",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "REVIEW",
+      "confidence": 0.72,
+      "abstain": true,
+      "actual_tokens": 10680
+    },
+    {
+      "q": "Q08",
+      "sha256": "da0990c18a8bb60a437549650b0fcc3aa1a7be449937c18821c7fa4818083ce5",
+      "model": "mimo-v2.6-pro",
+      "status": "ERROR",
+      "error_type": "ValueError",
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": "ValueError:V2_NOT_REMOVABLE",
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": null,
+      "confidence": null,
+      "abstain": null,
+      "actual_tokens": 7171
+    },
+    {
+      "q": "Q09",
+      "sha256": "64a0f45cd401ffc82602542c44a96d180d38549501fc6b4b5d896808c12530b1",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": null,
+      "raw_action": "REMOVE_TEXT",
+      "confidence": 0.86,
+      "abstain": false,
+      "actual_tokens": 7993
+    },
+    {
+      "q": "Q09",
+      "sha256": "64a0f45cd401ffc82602542c44a96d180d38549501fc6b4b5d896808c12530b1",
+      "model": "mimo-v2.6-pro",
+      "status": "ERROR",
+      "error_type": "TimeoutError",
+      "transport_error": "TimeoutError",
+      "http_status": null,
+      "validation_error": "KeyError:'raw_response'",
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": null,
+      "confidence": null,
+      "abstain": null,
+      "actual_tokens": null
+    },
+    {
+      "q": "Q10",
+      "sha256": "7e504aefb63d3b4387bbaf0ded7bfd4b7413e5a7ab76584be394897f866d536b",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.88,
+      "abstain": false,
+      "actual_tokens": 8597
+    },
+    {
+      "q": "Q10",
+      "sha256": "7e504aefb63d3b4387bbaf0ded7bfd4b7413e5a7ab76584be394897f866d536b",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.78,
+      "abstain": false,
+      "actual_tokens": 6151
+    },
+    {
+      "q": "Q11",
+      "sha256": "96f3faa4b17851cde6577ad72a78bf1d98d78021a2123d31a050b2fd56af3a99",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.86,
+      "abstain": true,
+      "actual_tokens": 9332
+    },
+    {
+      "q": "Q11",
+      "sha256": "96f3faa4b17851cde6577ad72a78bf1d98d78021a2123d31a050b2fd56af3a99",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.62,
+      "abstain": false,
+      "actual_tokens": 4779
+    },
+    {
+      "q": "Q12",
+      "sha256": "00ce68081f3b4fef029d4f38cea0f1574232ebd97dabc65eca89750c3bcd7ea9",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.91,
+      "abstain": false,
+      "actual_tokens": 6645
+    },
+    {
+      "q": "Q12",
+      "sha256": "00ce68081f3b4fef029d4f38cea0f1574232ebd97dabc65eca89750c3bcd7ea9",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.86,
+      "abstain": false,
+      "actual_tokens": 5955
+    },
+    {
+      "q": "Q13",
+      "sha256": "e48a7c9c3ee6f22763993b814a6aa1e591baee87a06500aa7922d4a66ae8be88",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": false,
+      "raw_action": "REVIEW",
+      "confidence": 0.8,
+      "abstain": true,
+      "actual_tokens": 7924
+    },
+    {
+      "q": "Q13",
+      "sha256": "e48a7c9c3ee6f22763993b814a6aa1e591baee87a06500aa7922d4a66ae8be88",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.9,
+      "abstain": false,
+      "actual_tokens": 4145
+    },
+    {
+      "q": "Q14",
+      "sha256": "ba54ba79b10a519529db7c56b611f68882012f0feff98a49d4fedbf326927f6d",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "REVIEW",
+      "confidence": 0.84,
+      "abstain": true,
+      "actual_tokens": 9720
+    },
+    {
+      "q": "Q14",
+      "sha256": "ba54ba79b10a519529db7c56b611f68882012f0feff98a49d4fedbf326927f6d",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "KEEP",
+      "confidence": 0.72,
+      "abstain": false,
+      "actual_tokens": 5194
+    },
+    {
+      "q": "Q15",
+      "sha256": "478693613abfba8802003d847aad1bb61cd8e846204edf1992d755603168cc43",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "REVIEW",
+      "confidence": 0.82,
+      "abstain": true,
+      "actual_tokens": 8904
+    },
+    {
+      "q": "Q15",
+      "sha256": "478693613abfba8802003d847aad1bb61cd8e846204edf1992d755603168cc43",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "REVIEW",
+      "confidence": 0.55,
+      "abstain": false,
+      "actual_tokens": 5051
+    },
+    {
+      "q": "Q16",
+      "sha256": "8d36e8991794639293f4cfe2686d2601acdfdb96601710c82f45896433beb221",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": false,
+      "raw_action": "REVIEW",
+      "confidence": 0.8,
+      "abstain": true,
+      "actual_tokens": 9621
+    },
+    {
+      "q": "Q16",
+      "sha256": "8d36e8991794639293f4cfe2686d2601acdfdb96601710c82f45896433beb221",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": false,
+      "raw_action": "REVIEW",
+      "confidence": 0.6,
+      "abstain": false,
+      "actual_tokens": 5175
+    },
+    {
+      "q": "Q17",
+      "sha256": "dae611ba42d6eff052daed083a385732cccae9f5ad20a6bf786d6358298a4e80",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "REVIEW",
+      "confidence": 0.8,
+      "abstain": true,
+      "actual_tokens": 8377
+    },
+    {
+      "q": "Q17",
+      "sha256": "dae611ba42d6eff052daed083a385732cccae9f5ad20a6bf786d6358298a4e80",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "REVIEW",
+      "confidence": 0.55,
+      "abstain": false,
+      "actual_tokens": 4840
+    },
+    {
+      "q": "Q18",
+      "sha256": "92e9b7769671e109c4800105250680d0639617a54bd34f17c7f3857e78024009",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.84,
+      "abstain": true,
+      "actual_tokens": 9656
+    },
+    {
+      "q": "Q18",
+      "sha256": "92e9b7769671e109c4800105250680d0639617a54bd34f17c7f3857e78024009",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.62,
+      "abstain": false,
+      "actual_tokens": 6029
+    },
+    {
+      "q": "Q19",
+      "sha256": "045583ca19c955a511a32c2ca8eff355222a30b29686f979544eb4ac3249f3d7",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.82,
+      "abstain": true,
+      "actual_tokens": 12090
+    },
+    {
+      "q": "Q19",
+      "sha256": "045583ca19c955a511a32c2ca8eff355222a30b29686f979544eb4ac3249f3d7",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.62,
+      "abstain": false,
+      "actual_tokens": 6006
+    },
+    {
+      "q": "Q20",
+      "sha256": "866c5bb8529359a082e2f9ac0f710ed315cb3e60b7526d0e64993e2e9d7ba619",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "REVIEW",
+      "confidence": 0.78,
+      "abstain": true,
+      "actual_tokens": 14579
+    },
+    {
+      "q": "Q20",
+      "sha256": "866c5bb8529359a082e2f9ac0f710ed315cb3e60b7526d0e64993e2e9d7ba619",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": null,
+      "raw_action": "REVIEW",
+      "confidence": 0.72,
+      "abstain": false,
+      "actual_tokens": 9218
+    },
+    {
+      "q": "Q21",
+      "sha256": "eedd2e2ca3bb71d60d598cb2113eecff31eb1b47401f62b1fe5311c29e8449a7",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": false,
+      "raw_action": "REVIEW",
+      "confidence": 0.86,
+      "abstain": true,
+      "actual_tokens": 10341
+    },
+    {
+      "q": "Q21",
+      "sha256": "eedd2e2ca3bb71d60d598cb2113eecff31eb1b47401f62b1fe5311c29e8449a7",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": false,
+      "raw_action": "REVIEW",
+      "confidence": 0.55,
+      "abstain": false,
+      "actual_tokens": 5336
+    },
+    {
+      "q": "Q22",
+      "sha256": "d341213f7219ccddc87e5addd6cf17d2af966bc8e23c8fab7c6bc0ee33527972",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.88,
+      "abstain": false,
+      "actual_tokens": 9474
+    },
+    {
+      "q": "Q22",
+      "sha256": "d341213f7219ccddc87e5addd6cf17d2af966bc8e23c8fab7c6bc0ee33527972",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": false,
+      "raw_action": "KEEP",
+      "confidence": 0.85,
+      "abstain": false,
+      "actual_tokens": 10400
+    },
+    {
+      "q": "Q23",
+      "sha256": "90729b5b55d0ce0aabea27ab2752c2c372b367a782b42fd8a9b2f52e8f0b79ff",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": true,
+      "raw_action": "REMOVE_TEXT",
+      "confidence": 0.89,
+      "abstain": false,
+      "actual_tokens": 8386
+    },
+    {
+      "q": "Q23",
+      "sha256": "90729b5b55d0ce0aabea27ab2752c2c372b367a782b42fd8a9b2f52e8f0b79ff",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": null,
+      "watermark_ground_truth": true,
+      "raw_action": "REVIEW",
+      "confidence": 0.6,
+      "abstain": false,
+      "actual_tokens": 5190
+    },
+    {
+      "q": "Q24",
+      "sha256": "31e27d16dad8653ee6f4a40325f40f962d6505f3121228c83780b692d80eb7f6",
+      "model": "deepseek-v4.1-flash",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": null,
+      "raw_action": "DELETE",
+      "confidence": 0.88,
+      "abstain": false,
+      "actual_tokens": 5935
+    },
+    {
+      "q": "Q24",
+      "sha256": "31e27d16dad8653ee6f4a40325f40f962d6505f3121228c83780b692d80eb7f6",
+      "model": "mimo-v2.6-pro",
+      "status": "VALIDATED",
+      "error_type": null,
+      "transport_error": null,
+      "http_status": null,
+      "validation_error": null,
+      "watermark_prediction": true,
+      "watermark_ground_truth": null,
+      "raw_action": "DELETE",
+      "confidence": 0.92,
+      "abstain": false,
+      "actual_tokens": 3805
+    }
+  ],
+  "observations": [
+    {
+      "q": "Q01",
+      "pid": 4049,
+      "image_sha256": "32282228868afcd1b185c2cdb796113d309a6072460ad39046676b78191660c1",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4049\\imgs\\main_0_a4637f4965.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_ba67970de7db4346a98c6fd8a2ac754e",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "KEEP",
+        "KEEP"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": false,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "preserve_regions"
+      ],
+      "context_available": true
+    },
+    {
+      "q": "Q02",
+      "pid": 4050,
+      "image_sha256": "eeed0203dd6f78c35cf26e8f50878c2384d227a1f50c7f9ea15e741fe7357a76",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4050\\imgs\\detail_0_d197965bcb.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_5a0af1450528473b85fd7239a0fa9f31",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REMOVE_TEXT",
+        "REVIEW"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": false,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "TEXT_OWNERSHIP_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "decision",
+        "product_identity",
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q03",
+      "pid": 4556,
+      "image_sha256": "41027d3252f82b09ef580a0cf373ab4b8f250c56f07b2484b3568afa2a05d077",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4556\\imgs\\main_0_0bbfe34111.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_545f0f69750d40e2a23ff83ccebdda9d",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        null
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": true,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "INVALID_MODEL_RESPONSE",
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED"
+      ],
+      "independent_difference_fields": [],
+      "context_available": true
+    },
+    {
+      "q": "Q04",
+      "pid": 4557,
+      "image_sha256": "39f75bdff2c43ba37fdc154c6f958fc63b62e5a8d9b46d3cc2ee9443faca6eee",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4557\\imgs\\main_1_70a7d2b53f.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_f6d68f412d144693a215c33448f9e7e1",
+      "final_action": "KEEP",
+      "raw_model_actions": [
+        "KEEP"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": false,
+      "watermark_fused_prediction": false,
+      "diagnostic_reasons": [],
+      "independent_difference_fields": [],
+      "context_available": true
+    },
+    {
+      "q": "Q05",
+      "pid": 4558,
+      "image_sha256": "c37b05432fabd79493c1680e388cdef79b72bb9f332d524cec18fbd2d778ddd3",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4558\\imgs\\main_0_4c54901d1a.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_1413d4fa3df440db8a6af339b1e4cdaf",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": true,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "TEXT_OWNERSHIP_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": true
+    },
+    {
+      "q": "Q06",
+      "pid": 4559,
+      "image_sha256": "6f51d61f36a2aef1dea193a5d9f43ee5535372bb544185384bb02c9ce2a05495",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4559\\imgs\\detail_0_210d732302.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_026d3974d8b9417593e60ee1020b7bee",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": true,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "RETAIL_BOX_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "box_relation",
+        "product_identity",
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": true
+    },
+    {
+      "q": "Q07",
+      "pid": 4560,
+      "image_sha256": "af9fdf9cd6f4b9626a5a7f82b0e38d9351e44e22caec7bc0857b2391da5c2025",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4560\\imgs\\main_0_ec610beda2.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_7802b9c0121a4bc08dfaf201a1cc50da",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REMOVE_TEXT",
+        "REVIEW"
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": null,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "TEXT_OWNERSHIP_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "decision",
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": true
+    },
+    {
+      "q": "Q08",
+      "pid": 4561,
+      "image_sha256": "da0990c18a8bb60a437549650b0fcc3aa1a7be449937c18821c7fa4818083ce5",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4561\\imgs\\detail_0_2c9659defa.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_803dce971b4245e39f1f57ec490e8895",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        null
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": null,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "INVALID_MODEL_RESPONSE",
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED"
+      ],
+      "independent_difference_fields": [],
+      "context_available": true
+    },
+    {
+      "q": "Q09",
+      "pid": 4562,
+      "image_sha256": "64a0f45cd401ffc82602542c44a96d180d38549501fc6b4b5d896808c12530b1",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4562\\imgs\\main_0_63ca0ec98d.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_25d7132a85e64cf3a1fbbfe0af1147c8",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REMOVE_TEXT",
+        null
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": null,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "INVALID_MODEL_RESPONSE",
+        "MODEL_REQUEST_ERROR",
+        "PRODUCT_IDENTITY_UNRESOLVED"
+      ],
+      "independent_difference_fields": [],
+      "context_available": true
+    },
+    {
+      "q": "Q10",
+      "pid": 4563,
+      "image_sha256": "7e504aefb63d3b4387bbaf0ded7bfd4b7413e5a7ab76584be394897f866d536b",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4563\\imgs\\detail_1_01d72d55d0.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_541d3754d12349468239c0c0403ae5bc",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "KEEP",
+        "KEEP"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": false,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": true
+    },
+    {
+      "q": "Q11",
+      "pid": 4564,
+      "image_sha256": "96f3faa4b17851cde6577ad72a78bf1d98d78021a2123d31a050b2fd56af3a99",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4564\\imgs\\main_1_d8e1306bef.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_3e12e666d8e54491b4bea574d5acfe44",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": true,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "visual_class",
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": true
+    },
+    {
+      "q": "Q12",
+      "pid": 4565,
+      "image_sha256": "00ce68081f3b4fef029d4f38cea0f1574232ebd97dabc65eca89750c3bcd7ea9",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4565\\imgs\\detail_0_c492acb398.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_75f99f4cbc06484d9010bd35b1a33d0a",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "KEEP",
+        "KEEP"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": false,
+      "watermark_fused_prediction": true,
+      "diagnostic_reasons": [
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q13",
+      "pid": 4566,
+      "image_sha256": "e48a7c9c3ee6f22763993b814a6aa1e591baee87a06500aa7922d4a66ae8be88",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4566\\imgs\\main_1_3042701bb1.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_623aabe3c9b745ad9b04a6f82c1592c4",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "KEEP"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": false,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "decision",
+        "product_identity",
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": true
+    },
+    {
+      "q": "Q14",
+      "pid": 4567,
+      "image_sha256": "ba54ba79b10a519529db7c56b611f68882012f0feff98a49d4fedbf326927f6d",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4567\\imgs\\detail_0_0cc501ce85.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_0b9b5e38657c433c8c6291a01c68601a",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "KEEP"
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": null,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "TEXT_OWNERSHIP_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "decision",
+        "visual_class",
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q15",
+      "pid": 4568,
+      "image_sha256": "478693613abfba8802003d847aad1bb61cd8e846204edf1992d755603168cc43",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4568\\imgs\\main_0_b22e90037b.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_0d252f6c0f3c46d9969602d33ce533b1",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": null,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "TEXT_OWNERSHIP_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q16",
+      "pid": 4569,
+      "image_sha256": "8d36e8991794639293f4cfe2686d2601acdfdb96601710c82f45896433beb221",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4569\\imgs\\detail_1_e06177d149.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_e334ffa81b27452a8c75a0a01bd9bb83",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": false,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "TEXT_OWNERSHIP_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": true
+    },
+    {
+      "q": "Q17",
+      "pid": 4570,
+      "image_sha256": "dae611ba42d6eff052daed083a385732cccae9f5ad20a6bf786d6358298a4e80",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4570\\imgs\\main_0_a877b809ad.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_bbe7094c143a466093257fede7427c26",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": null,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "product_identity",
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q18",
+      "pid": 4571,
+      "image_sha256": "92e9b7769671e109c4800105250680d0639617a54bd34f17c7f3857e78024009",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4571\\imgs\\detail_0_74e17414fc.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_f9f3a52863e64f53b4e010fbf4eff267",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": true,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": true
+    },
+    {
+      "q": "Q19",
+      "pid": 4572,
+      "image_sha256": "045583ca19c955a511a32c2ca8eff355222a30b29686f979544eb4ac3249f3d7",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4572\\imgs\\main_0_a93bc43e97.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_999b08e196b0439b8f231e5625eec4c0",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": true,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "RETAIL_BOX_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "box_relation",
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q20",
+      "pid": 4574,
+      "image_sha256": "866c5bb8529359a082e2f9ac0f710ed315cb3e60b7526d0e64993e2e9d7ba619",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4574\\imgs\\detail_0_8c881e4f96.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_6dbc2b88b39e40bbade707e2adce843a",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": null,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q21",
+      "pid": 4644,
+      "image_sha256": "eedd2e2ca3bb71d60d598cb2113eecff31eb1b47401f62b1fe5311c29e8449a7",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4644\\imgs\\main_0_6818ce6bbc.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_7b11fef4daee4c6abf6e35e57d1a2984",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REVIEW",
+        "REVIEW"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": false,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "MODEL_ABSTAINED",
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q22",
+      "pid": 4645,
+      "image_sha256": "d341213f7219ccddc87e5addd6cf17d2af966bc8e23c8fab7c6bc0ee33527972",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4645\\imgs\\detail_0_5a24feff4f.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_333f856c30a74529bfde4314d07eb83f",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "KEEP",
+        "KEEP"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": false,
+      "watermark_fused_prediction": true,
+      "diagnostic_reasons": [
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q23",
+      "pid": 4646,
+      "image_sha256": "90729b5b55d0ce0aabea27ab2752c2c372b367a782b42fd8a9b2f52e8f0b79ff",
+      "image_type": "MAIN",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4646\\imgs\\main_0_8bb6bb064e.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_b8b9f70374684e02b085d4831ed1c7b0",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "REMOVE_TEXT",
+        "REVIEW"
+      ],
+      "explicit_action_truth": null,
+      "watermark_truth": true,
+      "watermark_fused_prediction": null,
+      "diagnostic_reasons": [
+        "CONFIDENCE_BELOW_080",
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "decision",
+        "product_identity",
+        "watermarks",
+        "preserve_regions"
+      ],
+      "context_available": false
+    },
+    {
+      "q": "Q24",
+      "pid": 4647,
+      "image_sha256": "31e27d16dad8653ee6f4a40325f40f962d6505f3121228c83780b692d80eb7f6",
+      "image_type": "DETAIL",
+      "source_image": "D:\\GitHub\\MyE-C-skill\\ae-img-audit\\work\\pp_4647\\imgs\\detail_0_4faeb7fa15.jpg",
+      "job_path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\work\\v2-q01-q24-shadow-20261115T151139+0800\\real\\jobs\\JOB_9a183de00f774027900d4603379a6391",
+      "final_action": "REVIEW",
+      "raw_model_actions": [
+        "DELETE",
+        "DELETE"
+      ],
+      "explicit_action_truth": "DELETE",
+      "watermark_truth": null,
+      "watermark_fused_prediction": true,
+      "diagnostic_reasons": [
+        "PRODUCT_IDENTITY_UNRESOLVED",
+        "INDEPENDENT_OBSERVATIONS_DIFFER"
+      ],
+      "independent_difference_fields": [
+        "watermarks"
+      ],
+      "context_available": true
+    }
+  ]
+}

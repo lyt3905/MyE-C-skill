@@ -1,0 +1,475 @@
+{
+  "schema": "v2-shadow-quality/v1",
+  "status": "INCOMPLETE_REAL_EVIDENCE",
+  "real": {
+    "unique_images": 29,
+    "actions": {
+      "KEEP": {
+        "proposed": 1,
+        "labeled": 0,
+        "unlabeled_proposed": 1,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 1,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      },
+      "DELETE": {
+        "proposed": 0,
+        "labeled": 0,
+        "unlabeled_proposed": 0,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 0,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      },
+      "REMOVE_TEXT": {
+        "proposed": 0,
+        "labeled": 0,
+        "unlabeled_proposed": 0,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 0,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      },
+      "AI_REGENERATE": {
+        "proposed": 0,
+        "labeled": 0,
+        "unlabeled_proposed": 0,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 0,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      },
+      "REVIEW": {
+        "proposed": 28,
+        "labeled": 10,
+        "unlabeled_proposed": 18,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 28,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      }
+    },
+    "retail_box": {
+      "present_samples": 0,
+      "absent_samples": 0,
+      "present_decided": 0,
+      "absent_decided": 0,
+      "present_as_absent": 0,
+      "absent_as_present": 0,
+      "deferred": 0,
+      "unlabeled": 29,
+      "present_as_absent_rate": null,
+      "absent_as_present_rate": null
+    },
+    "sku_selection": {
+      "WITH_RETAIL_BOX": {
+        "reviewed": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      "WITHOUT_RETAIL_BOX": {
+        "reviewed": 0,
+        "correct": 0,
+        "accuracy": null
+      }
+    },
+    "deferred": 28,
+    "deferred_rate": 0.9655172413793104,
+    "decided_errors": 0
+  },
+  "synthetic": {
+    "unique_images": 0,
+    "actions": {
+      "KEEP": {
+        "proposed": 0,
+        "labeled": 0,
+        "unlabeled_proposed": 0,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 0,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      },
+      "DELETE": {
+        "proposed": 0,
+        "labeled": 0,
+        "unlabeled_proposed": 0,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 0,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      },
+      "REMOVE_TEXT": {
+        "proposed": 0,
+        "labeled": 0,
+        "unlabeled_proposed": 0,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 0,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      },
+      "AI_REGENERATE": {
+        "proposed": 0,
+        "labeled": 0,
+        "unlabeled_proposed": 0,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 0,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      },
+      "REVIEW": {
+        "proposed": 0,
+        "labeled": 0,
+        "unlabeled_proposed": 0,
+        "correct": 0,
+        "precision": null,
+        "severe_reviewed": 0,
+        "severe_errors": 0,
+        "severe_unknown": 0,
+        "severe_error_rate": null,
+        "repair_reviewed": 0,
+        "repair_passed": 0,
+        "repair_pass_rate": null
+      }
+    },
+    "retail_box": {
+      "present_samples": 0,
+      "absent_samples": 0,
+      "present_decided": 0,
+      "absent_decided": 0,
+      "present_as_absent": 0,
+      "absent_as_present": 0,
+      "deferred": 0,
+      "unlabeled": 0,
+      "present_as_absent_rate": null,
+      "absent_as_present_rate": null
+    },
+    "sku_selection": {
+      "WITH_RETAIL_BOX": {
+        "reviewed": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      "WITHOUT_RETAIL_BOX": {
+        "reviewed": 0,
+        "correct": 0,
+        "accuracy": null
+      }
+    },
+    "deferred": 0,
+    "deferred_rate": null,
+    "decided_errors": 0
+  },
+  "duplicates_merged": 0,
+  "gates": {
+    "DELETE": {
+      "met": false,
+      "minimum_independent_images": 30,
+      "threshold": 0.98
+    },
+    "REMOVE_TEXT": {
+      "met": false,
+      "minimum_independent_images": 30,
+      "threshold": null
+    },
+    "AI_REGENERATE": {
+      "met": false,
+      "minimum_independent_images": 30,
+      "threshold": null
+    },
+    "RETAIL_BOX": {
+      "met": false,
+      "minimum_decided_per_group": 30
+    },
+    "SKU_SELECTION": {
+      "met": false,
+      "minimum_reviewed_per_group": 30
+    }
+  },
+  "statistical_gates_met": false,
+  "release_authorized": false,
+  "real_provenance_independently_verified": false,
+  "notes": [
+    "Only declared real samples with matching local image bytes and human-confirmed labels count toward real statistics.",
+    "This tool cannot authenticate human/provider provenance or authorize Shadow, Canary or production.",
+    "REVIEW is an abstention; unavailable labels/outcomes/rates remain unknown.",
+    "Box/SKU checks conservatively require 30 decided/reviewed samples per group and no observed wrong mapping; this is not a population-error guarantee.",
+    "Registry watermark labels are inventoried only; only explicit DELETE instructions supply action truth. Missing predictions are never generated."
+  ],
+  "label_registry": {
+    "path": "D:\\GitHub\\MyE-C-skill\\aliexpress-product-image-audit\\reports\\v1.3-confirmed-label-registry.json",
+    "sha256": "f54e8cb7e508bd79756a5050b1291176dbf9e0b2b4a420480ddf87ad3463cf51",
+    "unique_images": 47,
+    "binary_watermark_labels": 39,
+    "explicit_delete_labels": 11,
+    "matched_prediction_images": 27,
+    "matched_real_prediction_images": 27,
+    "matched_explicit_action_images": 10,
+    "matched_real_binary_watermark_images": 19,
+    "matched_labels": [
+      {
+        "image_sha256": "00ce68081f3b4fef029d4f38cea0f1574232ebd97dabc65eca89750c3bcd7ea9",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q12"
+        ]
+      },
+      {
+        "image_sha256": "045583ca19c955a511a32c2ca8eff355222a30b29686f979544eb4ac3249f3d7",
+        "third_party_watermark": true,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q19"
+        ]
+      },
+      {
+        "image_sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "R01"
+        ]
+      },
+      {
+        "image_sha256": "31e27d16dad8653ee6f4a40325f40f962d6505f3121228c83780b692d80eb7f6",
+        "third_party_watermark": null,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q24"
+        ]
+      },
+      {
+        "image_sha256": "32282228868afcd1b185c2cdb796113d309a6072460ad39046676b78191660c1",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q01"
+        ]
+      },
+      {
+        "image_sha256": "39f75bdff2c43ba37fdc154c6f958fc63b62e5a8d9b46d3cc2ee9443faca6eee",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q04"
+        ]
+      },
+      {
+        "image_sha256": "41027d3252f82b09ef580a0cf373ab4b8f250c56f07b2484b3568afa2a05d077",
+        "third_party_watermark": true,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q03"
+        ]
+      },
+      {
+        "image_sha256": "478693613abfba8802003d847aad1bb61cd8e846204edf1992d755603168cc43",
+        "third_party_watermark": null,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q15"
+        ]
+      },
+      {
+        "image_sha256": "64a0f45cd401ffc82602542c44a96d180d38549501fc6b4b5d896808c12530b1",
+        "third_party_watermark": null,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q09"
+        ]
+      },
+      {
+        "image_sha256": "6f51d61f36a2aef1dea193a5d9f43ee5535372bb544185384bb02c9ce2a05495",
+        "third_party_watermark": true,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q06"
+        ]
+      },
+      {
+        "image_sha256": "7e504aefb63d3b4387bbaf0ded7bfd4b7413e5a7ab76584be394897f866d536b",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q10"
+        ]
+      },
+      {
+        "image_sha256": "866c5bb8529359a082e2f9ac0f710ed315cb3e60b7526d0e64993e2e9d7ba619",
+        "third_party_watermark": null,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q20"
+        ]
+      },
+      {
+        "image_sha256": "8d36e8991794639293f4cfe2686d2601acdfdb96601710c82f45896433beb221",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q16"
+        ]
+      },
+      {
+        "image_sha256": "90729b5b55d0ce0aabea27ab2752c2c372b367a782b42fd8a9b2f52e8f0b79ff",
+        "third_party_watermark": true,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q23"
+        ]
+      },
+      {
+        "image_sha256": "92e9b7769671e109c4800105250680d0639617a54bd34f17c7f3857e78024009",
+        "third_party_watermark": true,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q18"
+        ]
+      },
+      {
+        "image_sha256": "96f3faa4b17851cde6577ad72a78bf1d98d78021a2123d31a050b2fd56af3a99",
+        "third_party_watermark": true,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q11"
+        ]
+      },
+      {
+        "image_sha256": "af9fdf9cd6f4b9626a5a7f82b0e38d9351e44e22caec7bc0857b2391da5c2025",
+        "third_party_watermark": null,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q07"
+        ]
+      },
+      {
+        "image_sha256": "ba54ba79b10a519529db7c56b611f68882012f0feff98a49d4fedbf326927f6d",
+        "third_party_watermark": null,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q14"
+        ]
+      },
+      {
+        "image_sha256": "c37b05432fabd79493c1680e388cdef79b72bb9f332d524cec18fbd2d778ddd3",
+        "third_party_watermark": true,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q05"
+        ]
+      },
+      {
+        "image_sha256": "d341213f7219ccddc87e5addd6cf17d2af966bc8e23c8fab7c6bc0ee33527972",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q22"
+        ]
+      },
+      {
+        "image_sha256": "da0990c18a8bb60a437549650b0fcc3aa1a7be449937c18821c7fa4818083ce5",
+        "third_party_watermark": null,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q08"
+        ]
+      },
+      {
+        "image_sha256": "dae611ba42d6eff052daed083a385732cccae9f5ad20a6bf786d6358298a4e80",
+        "third_party_watermark": null,
+        "explicit_action": "DELETE",
+        "confirmation_ids": [
+          "Q17"
+        ]
+      },
+      {
+        "image_sha256": "e48a7c9c3ee6f22763993b814a6aa1e591baee87a06500aa7922d4a66ae8be88",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q13"
+        ]
+      },
+      {
+        "image_sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "R06"
+        ]
+      },
+      {
+        "image_sha256": "eedd2e2ca3bb71d60d598cb2113eecff31eb1b47401f62b1fe5311c29e8449a7",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q21"
+        ]
+      },
+      {
+        "image_sha256": "eeed0203dd6f78c35cf26e8f50878c2384d227a1f50c7f9ea15e741fe7357a76",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "Q02"
+        ]
+      },
+      {
+        "image_sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6",
+        "third_party_watermark": false,
+        "explicit_action": null,
+        "confirmation_ids": [
+          "R05"
+        ]
+      }
+    ],
+    "images_without_real_predictions": 20,
+    "binary_labels_projected_to_actions": false
+  }
+}

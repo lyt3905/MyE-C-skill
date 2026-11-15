@@ -40,7 +40,14 @@ class RemedyPlanner:
                     'decision':'AUTO_CONDITIONAL','required_checks':'independent_candidate_quality'}
         self.conditional.append(transition)
         atomic_json(self.root/'conditional_decisions.json',{'items':self.conditional})
-        checked=self.quality_gate.validate(self._path(item),path,context,source.get('sha256'))
+        scope=None
+        if item.get('full_confirmed_findings') and action in {'CROP_BANNER','ERASE_LOCAL'}:
+            scope={'type':'CONFIRMED_MARK_REPAIR','action':action,'phase':'PREPARE',
+                   'boxes':[r['bbox_xyxy'] for r in item['full_confirmed_findings'] if r.get('bbox_xyxy')],
+                   'source_sha256':source.get('original_sha256')}
+        quality_context=dict(context,_image_repair=scope) if scope else context
+        checked=self.quality_gate.validate(self._path(item),path,quality_context,source.get('sha256'))
+        if scope:checked['validation_scope']=scope
         allowed=self.allowed_actions is None or action in self.allowed_actions
         self.conditional.append(dict(transition,decision='AUTO_CONDITIONAL' if checked['ok'] and allowed else 'DEFERRED',quality_passed=bool(checked['ok']),
                                      evidence_ids=checked.get('evidence_ids',[]),reason=checked.get('reason') if allowed else 'ACTION_NOT_AUTHORIZED'))
@@ -49,11 +56,13 @@ class RemedyPlanner:
         atomic_json(self.root/'candidate_quality.json',{'items':self.quality})
         if not checked['ok']: return None
         if self.allowed_actions is not None and action not in self.allowed_actions:return None
-        return dict(remedy_id='REM_'+item['id'],item_id=item['id'],action=action,
+        candidate=dict(remedy_id='REM_'+item['id'],item_id=item['id'],action=action,
                     target={'pool':item['pool'],'index':item['index'],'image_id':item['image_id']},
                     source=source,candidate_asset=asset,
                     evidence_ids=item['evidence_ids']+checked['evidence_ids'],checks=checked['checks'],
                     reason_codes=[action+'_QUALITY_VERIFIED'])
+        if scope:candidate['validation_scope']=scope
+        return candidate
 
     def plan_box(self,item,context):
         if self.allowed_actions is None or 'BOX_NORMALIZE' not in self.allowed_actions:return None
@@ -104,7 +113,7 @@ class RemedyPlanner:
                 valid=all(type(v) is int for v in crop_box+subject_box) and 0<=x0<=sx0<sx1<=x1<=w and 0<=y0<=sy0<sy1<=y1<=h
                 # Only a single edge strip, at most 28%; never a general interior crop.
                 valid=valid and ((x0==0 and x1==w and (y0==0 or y1==h)) or (y0==0 and y1==h and (x0==0 or x1==w)))
-                valid=valid and (x1-x0)*(y1-y0)>=.72*w*h and min(x1-x0,y1-y0)>=800
+                valid=valid and (x1-x0)*(y1-y0)>=.72*w*h and max(x1-x0,y1-y0)>=800
                 if valid:
                     from clean_band import crop_border
                     image=cv2.imdecode(np.frombuffer(original.read_bytes(),np.uint8),cv2.IMREAD_COLOR)

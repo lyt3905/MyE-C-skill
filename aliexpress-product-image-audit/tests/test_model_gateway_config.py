@@ -10,7 +10,7 @@ from model_config import fingerprint, load_config, validate_config
 
 def profile():
     return {'schema': 'model-gateway/v1', 'base_url': 'http://127.0.0.1:3425/v1',
-            'models': ['workbuddy/deepseek-v4.1-flash', 'workbuddy/kimi-k3-1'],
+            'models': ['workbuddy/deepseek-v4.1-flash', 'workbuddy/mimo-v2.6-pro'],
             'max_output_tokens': 4096, 'retries': 0, 'timeout': 90}
 
 

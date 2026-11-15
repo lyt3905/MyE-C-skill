@@ -1,3 +1,4 @@
+from current_source_fixtures import freeze_current_source
 """Observed mode defers token verification, never schema/evidence verification."""
 import json
 import io
@@ -13,6 +14,8 @@ from test_8788_real_validation import response
 
 
 class ObservedAuditTests(unittest.TestCase):
+    def setUp(self):freeze_current_source(self)
+
     def prepare(self, directory):
         return oa.prepare(Path(directory), user_statement='先不管预算，先把程序跑通',
                           authorize_real=False)
@@ -31,7 +34,7 @@ class ObservedAuditTests(unittest.TestCase):
             self.assertEqual(body['reasoning_effort'], 'low')
             self.assertEqual(rv.canonical(body), rv.read(job/'request-plan.json')[0]['body_sha256'])
 
-    def test_http_uses_exact_prepared_generation_options(self):
+    def test_legacy_http_cannot_bypass_budget_with_prepared_generation_options(self):
         captured=[]
         def send(request, timeout):
             captured.append(json.loads(request.data)); return io.BytesIO(b'{"ok":true}')
@@ -39,8 +42,9 @@ class ObservedAuditTests(unittest.TestCase):
         prepared=dict(model=config['models'][0],messages=[],max_tokens=16384,reasoning_effort='low')
         with patch.dict('os.environ',{'VLM_API_KEY':'FAKE_TEST_ONLY'}), \
                 patch('urllib.request.build_opener',return_value=SimpleNamespace(open=send)):
-            rv._http_transport(config,config['models'][0],{}, {},body=prepared)
-        self.assertEqual(captured,[prepared])
+            with self.assertRaisesRegex(rv.Blocked,'LEGACY_MODEL_ENTRY_DISABLED'):
+                rv._http_transport(config,config['models'][0],{}, {},body=prepared)
+        self.assertEqual(captured,[])
 
     def test_empty_output_length_is_diagnosed_and_not_used_as_result(self):
         with tempfile.TemporaryDirectory() as tmp:

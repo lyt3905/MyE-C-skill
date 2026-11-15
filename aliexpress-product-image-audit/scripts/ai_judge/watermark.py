@@ -17,4 +17,9 @@ PROMPT = ('Classify ALL visible marks on the first original image. Return one JS
           'unresolved_items is an array of {reason_code,location,evidence_ids}; preserve observed marks even when abstaining. '
           'All root/mark/unresolved evidence_ids must reference supplied evidence. '
           'Preserve photographer credits, social signatures, manufacturer brands, product printing, copyright and packaging. '
+          'Text physically printed on a product or retail box is product_print/manufacturer_branding unless there is evidence of an added seller overlay; '
+          'illegible package fine print or an unknown manufacturer name alone is not an unresolved seller-watermark finding. '
+          'A copyright line such as All Rights Reserved / copyright / photographed by plus a studio or photographer name is a protected photographer_credit; '
+          'do not require a studio name to be proven a store before preserving an evident photographic credit. '
+          'A studio name without credit context may still be uncertain: inspect the original pixels and OCR crops, never guess ownership. '
           'Auxiliary OCR/highpass views support localization; they do not transfer a reference image mark to the target.')

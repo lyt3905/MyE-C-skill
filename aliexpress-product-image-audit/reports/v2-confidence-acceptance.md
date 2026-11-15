@@ -1,0 +1,15 @@
+# V2 置信度输出契约修复验收
+
+最新源码完整离线回归799项通过，失败/错误/跳过0；run_id=6166f1566b284e8b87f1015c3e68a725。测试期间源码不变、网络尝试0。当前仅离线修复：新模型输出只允许confidence，不再要求decision_confidence；旧输入兼容校验仍拒绝别名冲突。20条旧回复离线回放仍3条有效、17条无效，5份独立图仍REVIEW；55份原Job文件未变。本次新增真实请求/Token/线上读写均0，历史20次请求及133163网关Token不重复累计。新提示词尚未真实复验，完整目标未完成。
+
+实际问题：此前发送给模型的Schema包含可选decision_confidence，但运行校验又要求它与confidence相同；模型按两个不同概念分别估计，导致复验6条AMBIGUOUS_CONFIDENCE，另1条额外字段。此次从规范的模型输出Schema中去掉该可选别名，提示词明确confidence是选定动作的唯一置信度，解释只写reason；零售盒及玩具的置信度仍各自保留。
+
+既有运行校验不放宽：旧输入的相同别名可兼容，冲突别名、额外字段及缺失字段继续拒绝；不取较高值、不补填旧回复、不降低0.80门槛。Prompt已有完整Schema嵌入，修改自动进入实际请求Prompt哈希和缓存键，无需新Runner、客户端或账本。
+
+新增3项回归：规范输出拒绝别名；旧输入匹配别名保持原值且冲突拒绝；主模型两种置信度冲突时，第二模型成功也不能授权动作。新测试先观察失败，再修复通过；相关33项定向通过，完整回归含新增测试。
+
+离线回放两轮20条保存的原始模型回复，经现有JudgeClient和decide重走Fake传输：两轮均保持5份独立图REVIEW，原先17条无效回复仍无效，55份原任务文件哈希未变。Fake回放中携带的历史usage不计为新真实Token或新供应商费用。见v2-confidence-replay.json。
+
+证明范围：IMPLEMENTED / FAKE_VERIFIED。未新增真实请求，不能证明模型下一次必然遵守格式；商品身份、结构、颜色和文字归属未知仍待真实证据/人工真值。没有执行线上Canary或自动整改，未达到PRODUCTION_READY。
+
+变更仅prompts/image_action_decision.v2.md、scripts/config/schemas/image-action-decision.v2.schema.json、tests/test_v2_vision.py及对应报告。旧Job、原始响应和账本保留；历史796项源码检查点不再用来证明当前源码。Git补丁使用Git生成并在临时副本实际应用后逐字节核对。

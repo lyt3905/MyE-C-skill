@@ -1,4 +1,5 @@
 """Automatic remediation after the existing machine audit and candidate pipeline."""
+from policy_engine import MODEL_CONFIDENCE_MIN
 import json
 from pathlib import Path
 from candidate_quality import CandidateQualityGate
@@ -17,7 +18,7 @@ def deferral_reasons(item, judgement, disposition):
         reasons.append('WATERMARK_OWNERSHIP_UNVERIFIED')
         results=judgement.get('results',[])
         if not results:reasons.append('MODEL_RESULTS_MISSING')
-        if any(row.get('confidence',0)<.9 for row in results):
+        if any(row.get('confidence',0)<MODEL_CONFIDENCE_MIN for row in results):
             reasons.append('MODEL_CONFIDENCE_BELOW_THRESHOLD')
         if any(row.get('abstain') for row in results):reasons.append('MODEL_ABSTAINED')
         if len({row.get('classification') for row in results})>1:
@@ -27,10 +28,19 @@ def deferral_reasons(item, judgement, disposition):
     return reasons or ['NO_VERIFIED_REMEDY']
 
 def prepare(directory,job,policy,quality_gate=None):
+    if job.get('image_workflow')=='v2':
+        from v2_remediation import prepare as prepare_v2
+        return prepare_v2(directory,job,policy,quality_gate)
     root=Path(directory)
     read=lambda name:json.loads((root/name).read_text(encoding='utf-8'))
-    product=read('audit_product.json'); queue=read('ai_queue.json')['items']
-    judgements=read('ai_judgements.json'); images=read('audit_raw.json')['images']
+    product=read('audit_product.json')
+    full_deferred=[]
+    if job.get('audit_scope')=='full' or (root/'full_audit_report.json').exists() or (root/'full_audit_evidence_manifest.json').exists():
+        from full_product_audit import remediation_inputs
+        queue,judgements,full_deferred=remediation_inputs(root,job)
+    else:
+        queue=read('ai_queue.json')['items'];judgements=read('ai_judgements.json')
+    images=read('audit_raw.json')['images']
     images=[r for r in images if r.get('kind') in {'main','detail','sku'}]
     queue=[r for r in queue if r.get('task_type')!='watermark' or r.get('pool') in {'main','detail','sku'}]
     from automation_policy import ACTIONS
@@ -42,15 +52,23 @@ def prepare(directory,job,policy,quality_gate=None):
         if not index.is_absolute():index=getattr(policy,'path',root/'policy.json').parent/index
         local_pool=load_official_pool(index)
     candidates=[];pending=[]
+    if policy.permits('DELETE_REDUNDANT') and policy.config.get('delete_decorated_composites') is True:
+        from auto_deletions import plan_decorated_cleanup
+        candidates.extend(plan_decorated_cleanup(root,product,images,planner.quality_gate.inspector))
+    composite_targets={(r['target']['pool'],r['target']['index']) for r in candidates if r.get('validation_scope',{}).get('type')=='AUTHORIZED_DECORATED_COMPOSITE_REMOVAL'}
     for item in queue:
+        if (item.get('pool'),item.get('index')) in composite_targets:continue
         judgement=judgements.get(item['id'],{})
         disposition=evaluate(judgement)
+        if item.get('full_confirmed_findings') and item.get('full_identity_status')!='FAIL' and item['task_type']=='watermark':
+            disposition='REMOVE_CANDIDATE'
         if disposition=='KEEP': continue
         candidate=None
         if item['task_type']=='watermark' and disposition=='REMOVE_CANDIDATE' and not item.get('reference_only') and item.get('pool') in {'main','detail','sku'}:
-            proposal={}
+            from full_product_audit import confirmed_edge_proposal
+            proposal=confirmed_edge_proposal(item) if policy.permits('CROP_BANNER') else {}
             inspector=planner.quality_gate.inspector
-            if (policy.permits('CROP_BANNER') or policy.permits('ERASE_LOCAL')) and inspector and callable(getattr(inspector,'propose',None)):
+            if not proposal and (policy.permits('CROP_BANNER') or policy.permits('ERASE_LOCAL')) and inspector and callable(getattr(inspector,'propose',None)):
                 try:proposal=inspector.propose(Path(item['local']),product) or {}
                 except Exception:proposal={}
             candidate=planner.plan(item,images,product,crop_box=proposal.get('crop_box'),subject_box=proposal.get('subject_box'),erase_box=proposal.get('erase_box'),local_pool=local_pool)
@@ -106,8 +124,14 @@ def prepare(directory,job,policy,quality_gate=None):
     for row in generated:
         if row.get('candidate_asset'):
             row['candidate_asset']['path']=str((root/row['candidate_asset']['path']).resolve())
+    verified_sku_rows=None
+    if (root/'full_audit_report.json').is_file():
+        full=read('full_audit_report.json')
+        verified_sku_rows={row['sku_row_index']:row.get('evidence_ids',[]) for row in full['occurrences']
+                           if row['target_type']=='sku_reference' and row.get('checks',{}).get('sku_packaging')=='PASS'}
     semantic,handled,resolved=build_semantic(product,flags,queue,images,planner.quality_gate.inspector,job['shop_id'],generated_remedies=generated,
-                                          allow_snapshot_rows=policy.config.get('allow_snapshot_sku_rows') is True and policy.permits('SKU_ASSIGN'))
+                                          allow_snapshot_rows=policy.config.get('allow_snapshot_sku_rows') is True and policy.permits('SKU_ASSIGN'),
+                                          allowed_actions={action for action in ACTIONS if policy.permits(action)},verified_sku_rows=verified_sku_rows)
     from product_state import canonical_state_hash
     atomic_json(root/'semantic_validation.json',{'source_product_sha256':canonical_state_hash(product),'candidates':semantic})
     candidates=[r for r in candidates if r['item_id'] not in resolved]+semantic
@@ -154,9 +178,22 @@ def prepare(directory,job,policy,quality_gate=None):
     atomic_json(root/'web_pending.json',{'items':pending,'external_search_enabled':False})
     atomic_json(root/'before.json',product)
     atomic_json(root/'automation_policy_summary.json',{'sha256':policy.sha256,'config':policy.config})
+    if full_deferred:
+        full_deferred=[r for r in full_deferred if (r.get('target',{}).get('pool'),r.get('target',{}).get('index')) not in composite_targets]
+        blocked={r['item_id'] for r in full_deferred}
+        targets={(r['target'].get('pool'),r['target'].get('index')) for r in full_deferred if r['target']}
+        sku_unknown=any(r['item_id'].startswith('FULL_SKU_ROW_') for r in full_deferred)
+        from full_product_audit import localized_confirmed_repair
+        from auto_deletions import validated_composite_deletion
+        candidates=[r for r in candidates if validated_composite_deletion(root,r) or localized_confirmed_repair(root,r) or (not (sku_unknown and r['action']=='SKU_ASSIGN') and r['item_id'] not in blocked and
+                    (r.get('target',{}).get('pool'),r.get('target',{}).get('index')) not in targets)]+full_deferred
     return compile_auto_plan(root,job,candidates,policy)
 
 def verify_content(root,plan,writer,gate):
+    job_path=Path(root)/'job.json'
+    if job_path.is_file() and json.loads(job_path.read_text(encoding='utf-8')).get('image_workflow')=='v2':
+        from v2_remediation import verify_content as verify_v2
+        return verify_v2(root,plan,writer)
     """Fetch saved bytes and independently inspect every changed image."""
     root=Path(root)
     rows=json.loads((root/'auto_decisions.json').read_text(encoding='utf-8'))['items']
@@ -172,6 +209,16 @@ def verify_content(root,plan,writer,gate):
             valid=after['images'][pool]==expected['images'][pool] and len(after['images'][pool])==len(before['images'][pool])-count
             reference=row['source'].get('reference')
             scope='deletion_readback_and_bound_original_quality'
+            retained=row['source'].get('retained_references',[])
+            if retained:
+                from candidate_quality import sha256
+                try:
+                    for number,ref in enumerate(retained):
+                        path=root/('readback_retained_'+row['target']['image_id']+'_'+str(number)+'.img')
+                        path.write_bytes(writer.fetch_image(ref['url']))
+                        valid=valid and ref['url'] in after['images'][ref['pool']] and sha256(path)==ref['sha256']
+                except Exception:valid=False
+                scope='composite_removed_and_retained_material_byte_readback'
             if reference:
                 from candidate_quality import sha256
                 try:
@@ -245,7 +292,26 @@ def verify_content(root,plan,writer,gate):
                 raw=json.loads((root/'audit_raw.json').read_text(encoding='utf-8'))['images']
                 expected=Path(next(r['file'] for r in raw if r['url']==row['source']['url']))
                 if not expected.is_absolute(): expected=Path(__file__).parent/expected
-            checked=gate.validate(expected,path,after,expected_sha256=row['source']['sha256'])
+            approved=None
+            if row.get('validation_scope',{}).get('type')=='CONFIRMED_MARK_REPAIR' and source:
+                from candidate_quality import sha256
+                from remedy_schema import COMMON_CHECKS,ACTION_CHECKS
+                quality_path=root/'candidate_quality.json'
+                ref=next((v for v in plan.get('evidence_refs',[]) if v['path']=='candidate_quality.json'),None)
+                if ref and sha256(quality_path)==ref['sha256'] and sha256(expected)==sha256(path)==row['source']['sha256']:
+                    required=COMMON_CHECKS|ACTION_CHECKS.get(row['action'],set())
+                    proofs=json.loads(quality_path.read_text(encoding='utf-8')).get('items',[])
+                    approved=next((v for v in proofs if v.get('item_id')==row['item_id'] and v.get('action')==row['action'] and v.get('ok') is True
+                        and v.get('candidate_sha256')==row['source']['sha256'] and v.get('source_sha256')==row['source'].get('original_sha256')
+                        and all(v.get('checks',{}).get(k) is True for k in required) and v.get('evidence_ids')),None)
+            if approved:
+                checked={'ok':True,'source_sha256':row['source']['sha256'],'candidate_sha256':row['source']['sha256'],
+                         'evidence_ids':approved['evidence_ids'],'checks':approved['checks'],
+                         'scope':'BYTE_EXACT_READBACK_OF_QUALITY_APPROVED_CANDIDATE','validation_scope':row['validation_scope'],
+                         'model_recheck':'NOT_REQUIRED_IDENTICAL_CONTENT'}
+            else:
+                validation_context=dict(after,_image_repair=dict(row['validation_scope'],phase='POST_WRITE_READBACK')) if row.get('validation_scope') else after
+                checked=gate.validate(expected,path,validation_context,expected_sha256=row['source']['sha256'])
         except Exception as exc: checked={'ok':False,'reason':str(exc)}
         items.append(dict(remedy_id=row['remedy_id'],url=url,**checked))
     result={'ok':bool(items) and all(i['ok'] for i in items),'items':items,'scope':'saved_image_bytes'}

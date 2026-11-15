@@ -1,0 +1,27 @@
+# 修订提示词真实只读验证交付
+
+业务代码未改；保留799项测试源码绑定。
+
+- AGENTS.md (modified)
+- docs/PROJECT_STATE.md (modified)
+- reports/v2-action-accuracy.md (modified)
+- reports/v2-action-executor.md (modified)
+- reports/v2-call-graph.md (modified)
+- reports/v2-confidence-shadow-history-verification.json (added)
+- reports/v2-confidence-shadow-quality.json (added)
+- reports/v2-confidence-shadow-report.md (added)
+- reports/v2-confidence-shadow-result.json (added)
+- reports/v2-controlled-shadow-report.md (modified)
+- reports/v2-current-state.md (modified)
+- reports/v2-end-to-end-fake-report.md (modified)
+- reports/v2-final-acceptance.md (modified)
+- reports/v2-gap-matrix.md (modified)
+- reports/v2-production-readiness.md (modified)
+- reports/v2-quality-verification.md (modified)
+- reports/v2-retail-box-classification-accuracy.md (modified)
+- reports/v2-single-product-live-canary.md (modified)
+- reports/v2-sku-retail-box-selection.md (modified)
+- reports/v2-token-cost-report.md (modified)
+- reports/v2-vision-decision-contract.md (modified)
+- reports/v2-vision-prompt-evaluation.md (modified)
+- reports/v2-watermark-removal.md (modified)

@@ -1,0 +1,16 @@
+{
+  "run_id": "5a454aba647b411b873f86ac8522e154",
+  "state": "FINISHED",
+  "tests": 805,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "elapsed_seconds": 631.953,
+  "blocked_network_attempts": 0,
+  "network_guard_scope": "test process; child integration tests use Fake executors and local named pipes/SQLite only",
+  "real_model_calls": 0,
+  "new_model_tokens": 0,
+  "production_network_writes": 0,
+  "source_files_unchanged_during_tests": true,
+  "exit_code": 0
+}

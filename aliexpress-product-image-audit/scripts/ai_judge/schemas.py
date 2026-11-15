@@ -1,8 +1,16 @@
 """Task-specific result contracts with strict identity and evidence bindings."""
 CLASSES={'official_marketing_text','third_party_store_banner','chinese_promotion_poster','third_party_store_logo','social_account_signature','manufacturer_branding','product_print','marketing_text','photographer_credit','unknown'}
-TASKS={'watermark','sku_match','product_identity','title_semantics','remedy_quality','remedy_geometry','deletion_quality'}
+TASKS={'watermark','sku_match','product_identity','title_semantics','remedy_quality','remedy_geometry','deletion_quality','image_quality_v2'}
 def validate_result(result, task, item, evidence=None, *, allow_legacy=True):
+    if task=='image_action_decision':
+        from .image_action_decision import validate
+        return validate(result,evidence or {'id':item})
     if task not in TASKS or not isinstance(result,dict): raise ValueError('unsupported task/result')
+    if task=='image_quality_v2':
+        import math
+        from .image_quality_v2 import CHECKS
+        checks=result.get('checks')
+        if not isinstance(checks,dict) or set(checks)!=CHECKS or any(type(v) is not bool for v in checks.values()) or type(result.get('confidence')) not in (int,float) or not math.isfinite(result['confidence']):raise ValueError('V2_QUALITY_CHECKS')
     if task=='product_identity':
         # Shape aliases only: keep original observations and confidence, and
         # reject contradictory fields instead of selecting the convenient one.

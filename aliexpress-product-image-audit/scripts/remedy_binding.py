@@ -5,6 +5,9 @@ from candidate_quality import sha256
 from product_state import canonical_state_hash
 
 def verify(root,row,product):
+    if row.get('v2_contract'):
+        from v2_remediation import verify as verify_v2
+        return verify_v2(root,row,product)
     root=Path(root)
     def read(name):return json.loads((root/name).read_text(encoding='utf-8'))
     if row['action'] in {'TITLE_REWRITE','SKU_ASSIGN','BRAND_CODE'}:
@@ -35,9 +38,17 @@ def verify(root,row,product):
         records=read('deletion_validation.json').get('items',[])
         proof=next((r for r in records if r.get('candidate')==proposed and r.get('source_sha256')==original_sha),None)
         if not proof or row['source']['sha256']!=original_sha or row['source'].get('url')!=original.get('url'):raise ValueError('DELETION_VALIDATION_UNBOUND')
-        if any(r.get('url')==original.get('url') and (r.get('is_box') is True or r.get('image_type') in {'box','packaging'}) for r in raw):raise ValueError('BOX_DELETION_FORBIDDEN')
+        from auto_deletions import validated_composite_deletion
+        composite=validated_composite_deletion(root,row)
+        if not composite and any(r.get('url')==original.get('url') and (r.get('is_box') is True or r.get('image_type') in {'box','packaging'}) for r in raw):raise ValueError('BOX_DELETION_FORBIDDEN')
         observed=proof.get('observation',{})
-        if observed.get('ok') is not True or observed.get('is_box') is not False or observed.get('is_official') is not False or observed.get('information_preserved') is not True:raise ValueError('DELETION_QUALITY_CONFLICT')
+        if observed.get('ok') is not True or (not composite and observed.get('is_box') is not False) or observed.get('is_official') is not False or observed.get('information_preserved') is not True:raise ValueError('DELETION_QUALITY_CONFLICT')
+        if composite:
+            references=row['source'].get('retained_references',[])
+            if not references:raise ValueError('COMPOSITE_RETAINED_REFERENCE_MISSING')
+            for reference in references:
+                sibling=next((r for r in raw if r.get('kind')==reference['pool'] and r.get('index')==reference['index'] and r.get('url')==reference['url']),None)
+                if sibling is None or sha256(actual_path(sibling['file']))!=reference['sha256']:raise ValueError('COMPOSITE_RETAINED_REFERENCE_CHANGED')
         reference=row['source'].get('reference')
         if reference:
             sibling=next((r for r in raw if r.get('kind')==reference['pool'] and r.get('index')==reference['index'] and r.get('url')==reference['url']),None)

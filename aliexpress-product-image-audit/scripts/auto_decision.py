@@ -14,11 +14,13 @@ def decide(candidates, policy, *, pid, shop, integrity_ok=True, execution=True):
         else:
             try:
                 validate_candidate(row)
+                if row.get('validation_scope',{}).get('type')=='AUTHORIZED_DECORATED_COMPOSITE_REMOVAL' and policy.config.get('delete_decorated_composites') is not True:
+                    raise ValueError('COMPOSITE_DELETION_NOT_ENABLED')
                 accepted={r['remedy_id'] for r in results if r.get('decision')=='AUTO_SAFE'}
                 if not set(row.get('requires_remedy_ids',[]))<=accepted:
                     raise ValueError('REMEDY_DEPENDENCY_NOT_AUTHORIZED')
                 next_assets=set(upload_assets)
-                if row['action'] in {'REPLACE_LOCAL','CROP_BANNER','BOX_NORMALIZE','ERASE_LOCAL'}:
+                if row['action'] in {'REPLACE_LOCAL','CROP_BANNER','BOX_NORMALIZE','ERASE_LOCAL','REMOVE_TEXT','AI_REGENERATE'}:
                     asset=row.get('candidate_asset') or {}
                     digest=asset.get('sha256') or (row.get('source') or {}).get('sha256')
                     if not digest:

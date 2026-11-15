@@ -1,0 +1,26 @@
+{
+  "source_files_checked": 296,
+  "source_files_unchanged": true,
+  "original_images_checked": 24,
+  "original_images_unchanged": true,
+  "historical_label_files_checked": 8,
+  "historical_model_job_files_checked": 35,
+  "historical_changes": [],
+  "dispatches": 47,
+  "unique_sha_model_dispatches": 47,
+  "per_model_requests": {
+    "deepseek-v4.1-flash": 24,
+    "mimo-v2.6-pro": 23
+  },
+  "automatic_retries": 0,
+  "prompt_hashes_verified": 47,
+  "request_body_hashes_verified": 47,
+  "visual_input_hashes_verified": 47,
+  "labels_or_description_sent": false,
+  "site_reads": 0,
+  "uploads": 0,
+  "saves": 0,
+  "online_deletes": 0,
+  "local_remediation": 0,
+  "test_run_id": "5a454aba647b411b873f86ac8522e154"
+}

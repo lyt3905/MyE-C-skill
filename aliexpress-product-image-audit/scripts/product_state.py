@@ -38,34 +38,8 @@ SERVER_DERIVED_SKU_FIELDS = frozenset({'discountPrice', 'shippingFee'})
 
 
 def description_content_preserved(expected, observed, *, source_title=None, saved_title=None):
-    """Allow only the site's confirmed generated top-title synchronization.
-
-    This is a save-contract comparison, never an audit/URL extraction operation.
-    Collected content and every other attribute must remain unchanged.
-    """
-    if type(expected) is not type(observed):
-        return False
-    if expected == observed:
-        return True
-    if not isinstance(source_title, str) or not source_title or not isinstance(saved_title, str) or not saved_title:
-        return False
-    try:
-        left = json.loads(expected) if isinstance(expected, str) else deepcopy(expected)
-        right = json.loads(observed) if isinstance(observed, str) else deepcopy(observed)
-        if not isinstance(left, list) or not isinstance(right, list) or not left or not right:
-            return False
-        old, new = left[0], right[0]
-        if old.get('type') != 'text' or new.get('type') != 'text':
-            return False
-        a, b = old['texts'][0], new['texts'][0]
-        if a.get('class') != 'title' or b.get('class') != 'title':
-            return False
-        if a.get('content') != source_title or b.get('content') != saved_title:
-            return False
-        a['content'] = saved_title
-        return canonical_json(left) == canonical_json(right)
-    except (ValueError, TypeError, KeyError, IndexError, AttributeError):
-        return False
+    """Opaque protected field: exact type/value only, never parse Description."""
+    return type(expected) is type(observed) and expected == observed
 
 
 def saved_state_matches(expected: dict[str, Any], observed: dict[str, Any], *, source=None) -> bool:
@@ -86,12 +60,6 @@ def saved_state_matches(expected: dict[str, Any], observed: dict[str, Any], *, s
                         sku.pop(field, None)
         return state
     left, right = projection(expected), projection(observed)
-    if source is not None and description_content_preserved(
-            expected.get('descriptionJson'), observed.get('descriptionJson'),
-            source_title=source.get('titleEn'), saved_title=expected.get('titleEn')):
-        # Preserve field presence and type; normalize only a validated header change.
-        if ('descriptionJson' in expected) == ('descriptionJson' in observed):
-            right['descriptionJson'] = deepcopy(left['descriptionJson'])
     return canonical_json(left) == canonical_json(right)
 
 

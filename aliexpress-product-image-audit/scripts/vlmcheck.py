@@ -1,12 +1,12 @@
 # 注意：本文件是 ae-img-audit/vlmcheck.py 的通用副本，运行依赖同目录的 site_client.py。
 # 项目专属的重型工具（pipeline.py 的 scan/apply/verify/OCR 判据库）不在 skill 里。
 # -*- coding: utf-8 -*-
-"""视觉大模型水印复核（SOP §W9）：cv 初筛之后的可疑图，交 glm-5v-turbo 首判 + kimi-k3-1 复核。
+"""视觉大模型水印复核（SOP §W9）：cv 初筛之后的可疑图，交 deepseek-v4.1-flash 首判 + mimo-v2.6-pro 复核。
 
 用法：
     python vlmcheck.py 4758                        # 现行全部图（main+detail+sku）
     python vlmcheck.py 4758 --kind main            # 只看主图
-    python vlmcheck.py 4758 --models glm-5v-turbo  # 只跑一个模型（省一半时间）
+    python vlmcheck.py 4758 --models deepseek-v4.1-flash  # 只跑一个模型（省一半时间）
     python vlmcheck.py --dir work/pp_4758/imgs     # 本地目录（不看站点）
 
 口径（见 SOP §W9，别改）：
@@ -53,6 +53,8 @@ BOX_PROMPT = "\n".join([
 
 
 def call(model, b64, retries=2, prompt=None, max_tokens=2000):
+    from budget_manager import BudgetExceeded
+    raise BudgetExceeded("LEGACY_MODEL_ENTRY_DISABLED_USE_BOUND_WORKFLOW")
     body = json.dumps({
         "model": model,
         "temperature": 0,
@@ -110,7 +112,7 @@ def verdict(rs):
     return "CLEAN", ""
 
 
-def kind_of(b64, model="glm-5v-turbo", retries=1):
+def kind_of(b64, model="deepseek-v4.1-flash", retries=1):
     """SKU 图是盒照还是本体照 —— 返回 "box" / "figure" / None（判不出或网关不可用）。"""
     try:
         _r, _dt, txt = call(model, b64, retries=retries, prompt=BOX_PROMPT, max_tokens=800)
@@ -133,7 +135,7 @@ def kind_of(b64, model="glm-5v-turbo", retries=1):
     return None
 
 
-def kind_of_file(path, model="glm-5v-turbo"):
+def kind_of_file(path, model="deepseek-v4.1-flash"):
     try:
         import base64
         with open(path, "rb") as f:
@@ -181,7 +183,7 @@ def legacy_main(argv):
     kind = None
     d = None
     pids = None
-    models = ["glm-5v-turbo", "kimi-k3-1"]
+    models = ["deepseek-v4.1-flash", "mimo-v2.6-pro"]
     i = 1
     while i < len(argv):
         a = argv[i]

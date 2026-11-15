@@ -208,7 +208,7 @@ class IdentityDimensionTests(unittest.TestCase):
         self.assertIn('COLOR_CONFLICT',result['dimensions']['color']['reason_codes'])
 
     def test_low_dimension_confidence_cannot_be_promoted(self):
-        a=identity_result();a['observations']['packaging']['confidence']=.89
+        a=identity_result();a['observations']['packaging']['confidence']=.79
         self.assertEqual(self.aggregate(a)['verdict'],'UNKNOWN')
 
     def test_bound_complete_identity_passes(self):

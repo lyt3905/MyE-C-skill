@@ -79,3 +79,12 @@ def fingerprint(config):
     """Hash the canonical normalized JSON representation of a valid profile."""
     canonical = json.dumps(validate_config(config), sort_keys=True, separators=(',', ':'))
     return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
+
+DEFAULT_MODELS = ("deepseek-v4.1-flash", "mimo-v2.6-pro")
+
+
+def require_enabled_model(model):
+    """Apply the current user-selected pair at the actual HTTP dispatch boundary."""
+    if model not in DEFAULT_MODELS and model not in {"workbuddy/" + m for m in DEFAULT_MODELS}:
+        raise ValueError("MODEL_DISABLED_BY_PROJECT_SELECTION")

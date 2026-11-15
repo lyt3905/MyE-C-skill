@@ -1,0 +1,165 @@
+{
+  "schema": "shadow-quality/v1.3",
+  "groups": [
+    {
+      "image_type": "detail",
+      "category": "third_party_watermark",
+      "detector": "V2_SELECTED_MODEL_FUSION",
+      "samples": 11,
+      "labeled": 7,
+      "deferred": 8,
+      "usage_status_counts": {
+        "ACTUAL_REPORTED": 11
+      },
+      "reported_token_subtotal": 173000,
+      "confusion": {
+        "tp": 0,
+        "fp": 2,
+        "fn": 0,
+        "tn": 0,
+        "undecided_positive": 2,
+        "undecided_negative": 3
+      },
+      "precision": 0.0,
+      "recall_decided": null,
+      "recall_lower_bound": 0.0,
+      "false_clean_rate": null,
+      "deferred_rate": 0.7272727272727273,
+      "actual_tokens": 173000
+    },
+    {
+      "image_type": "detail",
+      "category": "third_party_watermark",
+      "detector": "deepseek-v4.1-flash",
+      "samples": 11,
+      "labeled": 7,
+      "deferred": 6,
+      "usage_status_counts": {
+        "ACTUAL_REPORTED": 11
+      },
+      "reported_token_subtotal": 102406,
+      "confusion": {
+        "tp": 0,
+        "fp": 4,
+        "fn": 0,
+        "tn": 0,
+        "undecided_positive": 2,
+        "undecided_negative": 1
+      },
+      "precision": 0.0,
+      "recall_decided": null,
+      "recall_lower_bound": 0.0,
+      "false_clean_rate": null,
+      "deferred_rate": 0.5454545454545454,
+      "actual_tokens": 102406
+    },
+    {
+      "image_type": "detail",
+      "category": "third_party_watermark",
+      "detector": "mimo-v2.6-pro",
+      "samples": 11,
+      "labeled": 7,
+      "deferred": 8,
+      "usage_status_counts": {
+        "ACTUAL_REPORTED": 11
+      },
+      "reported_token_subtotal": 70594,
+      "confusion": {
+        "tp": 0,
+        "fp": 2,
+        "fn": 0,
+        "tn": 0,
+        "undecided_positive": 2,
+        "undecided_negative": 3
+      },
+      "precision": 0.0,
+      "recall_decided": null,
+      "recall_lower_bound": 0.0,
+      "false_clean_rate": null,
+      "deferred_rate": 0.7272727272727273,
+      "actual_tokens": 70594
+    },
+    {
+      "image_type": "main",
+      "category": "third_party_watermark",
+      "detector": "V2_SELECTED_MODEL_FUSION",
+      "samples": 13,
+      "labeled": 9,
+      "deferred": 12,
+      "usage_status_counts": {
+        "ACTUAL_REPORTED": 12,
+        "UNKNOWN": 1
+      },
+      "reported_token_subtotal": 169377,
+      "confusion": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1,
+        "undecided_positive": 5,
+        "undecided_negative": 3
+      },
+      "precision": null,
+      "recall_decided": null,
+      "recall_lower_bound": 0.0,
+      "false_clean_rate": 0.0,
+      "deferred_rate": 0.9230769230769231,
+      "actual_tokens": null
+    },
+    {
+      "image_type": "main",
+      "category": "third_party_watermark",
+      "detector": "deepseek-v4.1-flash",
+      "samples": 13,
+      "labeled": 9,
+      "deferred": 8,
+      "usage_status_counts": {
+        "ACTUAL_REPORTED": 13
+      },
+      "reported_token_subtotal": 119216,
+      "confusion": {
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2,
+        "undecided_positive": 4,
+        "undecided_negative": 2
+      },
+      "precision": 1.0,
+      "recall_decided": 1.0,
+      "recall_lower_bound": 0.2,
+      "false_clean_rate": 0.0,
+      "deferred_rate": 0.6153846153846154,
+      "actual_tokens": 119216
+    },
+    {
+      "image_type": "main",
+      "category": "third_party_watermark",
+      "detector": "mimo-v2.6-pro",
+      "samples": 12,
+      "labeled": 8,
+      "deferred": 12,
+      "usage_status_counts": {
+        "ACTUAL_REPORTED": 11,
+        "UNKNOWN": 1
+      },
+      "reported_token_subtotal": 58154,
+      "confusion": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0,
+        "undecided_positive": 5,
+        "undecided_negative": 3
+      },
+      "precision": null,
+      "recall_decided": null,
+      "recall_lower_bound": 0.0,
+      "false_clean_rate": null,
+      "deferred_rate": 1.0,
+      "actual_tokens": null
+    }
+  ],
+  "release_authorized": false,
+  "release_gate": "30 confirmed samples/action, precision >=98%, no severe protected-content damage"
+}

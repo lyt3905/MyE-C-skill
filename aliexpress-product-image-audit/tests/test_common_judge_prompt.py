@@ -1,3 +1,4 @@
+from model_budget_fixtures import authorize_http_fake,request_with_fake_budget
 import json
 import tempfile
 import unittest
@@ -13,8 +14,8 @@ class CommonPromptTests(unittest.TestCase):
         response.__enter__.return_value.read.return_value = b'{}'
         with tempfile.TemporaryDirectory() as root:
             client = JudgeClient(BudgetManager({'ai_requests': 1}), root)
-            with patch.dict('os.environ', {'VLM_API_KEY': 'test-placeholder'}), patch('urllib.request.urlopen', return_value=response) as request:
-                client._request('test', {'task_type': 'title_semantics', 'id': 'A', 'evidence_ids': ['E']}, {})
+            with patch.dict('os.environ', {'VLM_API_KEY': 'test-placeholder'}), patch('ai_judge.client._open_model_request', return_value=response) as request:
+                request_with_fake_budget(client,'test', {'task_type': 'title_semantics', 'id': 'A', 'evidence_ids': ['E']}, {})
             prompt = json.loads(request.call_args.args[0].data)['messages'][0]['content'][0]['text']
         for text in ('confidence must be a JSON number from 0 to 1, not a string or percentage',
                      'abstain must be a JSON boolean', 'evidence_ids must be a non-empty array',
