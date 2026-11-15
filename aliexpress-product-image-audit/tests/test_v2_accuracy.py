@@ -46,10 +46,11 @@ class V2AccuracyTests(unittest.TestCase):
         self.assertEqual(synthetic['decided_errors'],1)
         self.assertEqual(synthetic['actions']['DELETE']['precision'],0)
 
-    def test_low_confidence_or_abstention_cannot_count_as_automatic_action(self):
+    def test_low_confidence_is_record_only_but_abstention_is_deferred(self):
         report=shadow_evaluate.v2_quality_metrics([sample(confidence=.79),sample('b'*64,abstain=True)])
-        self.assertEqual(report['synthetic']['deferred_rate'],1)
-        self.assertEqual(report['synthetic']['actions']['DELETE']['proposed'],0)
+        self.assertEqual(report['synthetic']['deferred_rate'],.5)
+        self.assertEqual(report['synthetic']['actions']['DELETE']['proposed'],1)
+        self.assertEqual(report['confidence_policy'],'RECORD_ONLY')
 
     def test_synthetic_perfect_samples_never_satisfy_real_gate(self):
         rows=[sample(hashlib.sha256(str(n).encode()).hexdigest(),human_confirmed=True) for n in range(40)]

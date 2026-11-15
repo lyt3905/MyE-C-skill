@@ -89,7 +89,7 @@ class V2CompletionTests(unittest.TestCase):
             scenario=self.retained_box_scenario(directory,corrupt='retained_bytes')
             self.assertEqual(scenario['writer'].saves,1)
             self.assertFalse(scenario['result']['content_validation']['ok'])
-            self.assertEqual(scenario['result']['status'],'CONTENT_REVIEW_REQUIRED')
+            self.assertEqual(scenario['result']['status'],'REVIEW_REQUIRED')
             observed=[value for item in scenario['result']['content_validation']['items'] for value in item['readback']]
             self.assertTrue(any(value['observed_sha256']!=value['expected_sha256'] for value in observed))
 
@@ -124,28 +124,38 @@ class V2CompletionTests(unittest.TestCase):
             self.assertNotEqual(first['root'],second['root'])
             self.assertEqual(first['writer'].saves,1)
             self.assertEqual(second['writer'].saves,0)
-            self.assertEqual(second['result']['status'],'DEFERRED')
+            self.assertEqual(second['result']['status'],'REVIEW_REQUIRED')
+            self.assertEqual(second['result']['technical_status'],'DEFERRED')
             self.assertEqual(second['result']['reason'],'DUPLICATE_OPERATION')
             self.assertEqual((first['root']/'full_audit_evidence_manifest.json').read_bytes(),sealed)
 
-    def test_possible_same_product_box_stays_review_after_second_model(self):
+    def test_possible_same_product_relation_is_record_only_and_uncertain_box_still_reviews(self):
         import test_v2_vision as vision
         helper=vision.VisionTests();helper.setUp()
         try:
             client,calls=helper.client(lambda m,i:observation(i,visual_class='TOY_WITH_RETAIL_BOX',retail_box_status='PRESENT',retail_box_bbox=[.1,.1,.3,.4],box_relation='POSSIBLY_SAME_PRODUCT'))
+            result=helper.decide(client)
+            self.assertEqual(result['decision'],'KEEP')
+            self.assertEqual(result['results'][0]['box_relation'],'POSSIBLY_SAME_PRODUCT')
+            self.assertEqual(len(calls),1)
+            helper.item['purpose']='uncertain-packaging-control'
+            client,calls=helper.client(lambda m,i:observation(i,retail_box_status='UNCERTAIN',box_relation='POSSIBLY_SAME_PRODUCT'))
             self.assertEqual(helper.decide(client)['decision'],'REVIEW')
-            self.assertEqual(len(calls),2)
+            self.assertEqual(len(calls),1)
         finally:helper.doCleanups()
 
-    def test_protected_text_keeps_and_unknown_ownership_reviews_with_v2_client(self):
+    def test_protected_and_unknown_text_keep_unchanged_with_v2_client(self):
         import test_v2_vision as vision
         for kind in ('MANUFACTURER_LOGO','PRODUCT_PRINT','PACKAGING_PRINT','CREATOR_CREDIT','UNKNOWN_TEXT'):
             with self.subTest(kind=kind):
                 helper=vision.VisionTests();helper.setUp()
                 try:
                     client,calls=helper.client(lambda m,i:observation(i,watermarks=[dict(kind=kind,bbox=[.1,.1,.2,.2],confidence=.95,preserve_overlap_risk='LOW')]))
-                    self.assertEqual(helper.decide(client)['decision'],'REVIEW' if kind=='UNKNOWN_TEXT' else 'KEEP')
-                    self.assertEqual(len(calls),2 if kind=='UNKNOWN_TEXT' else 1)
+                    result=helper.decide(client)
+                    self.assertEqual(result['decision'],'KEEP')
+                    self.assertEqual(result['observation']['watermarks'],[dict(kind=kind,bbox=[.1,.1,.2,.2],confidence=.95,preserve_overlap_risk='LOW')])
+                    self.assertEqual([row['watermarks'] for row in result['results']],[result['observation']['watermarks']])
+                    self.assertEqual(len(calls),1)
                 finally:helper.doCleanups()
 
     def test_failed_regeneration_identity_never_uploads_or_repeats_edit(self):
@@ -295,7 +305,7 @@ def edit_image(source,context,observation,destination):
     image.save(output)
     return {"candidate_path":str(output),"usage":{"prompt_tokens":6,"completion_tokens":4,"total_tokens":10}}
 ''',encoding='utf-8')
-            spec={'adapter_path':str(adapter),'model':'mimo-v2.6-pro'}
+            spec={'adapter_path':str(adapter),'model':'deepseek-v4.1-flash'}
             scenario=fixtures.V2WorkflowTests().scenario(directory,['AI_REGENERATE','KEEP'],image_options={'image_edit':spec})
             self.assertEqual(scenario['writer'].uploads,1)
             self.assertTrue(scenario['result']['content_validation']['ok'])

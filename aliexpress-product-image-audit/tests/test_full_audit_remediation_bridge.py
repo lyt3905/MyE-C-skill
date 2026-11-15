@@ -39,7 +39,7 @@ class FullAuditRemediationBridgeTests(unittest.TestCase):
         return product,raw,Reader(),auditor,Judge(),template
     def complete(self,root,unknown=False):
         product,raw,reader,auditor,judge,template=self.fixture(root,unknown)
-        result=run_full_audit(Path(root)/'jobs',1,7,reader,judge=judge,auditor=auditor,template_config=template)
+        result=run_full_audit(Path(root)/'jobs',1,7,reader,judge=judge,auditor=auditor,template_config=template,image_workflow='legacy')
         manager=JobManager(Path(root)/'jobs');job=manager.load(result['job_id']);directory=manager.directory(job['job_id'])
         return directory,job,judge
     def test_all_business_positions_project_without_second_audit(self):
@@ -167,7 +167,7 @@ class FullAuditRemediationBridgeTests(unittest.TestCase):
             for row in judge.results[key]['results']:
                 row['decision']='MISMATCH';row['model']='OTHER-01'
                 row['observations']['model_identity'].update(value='OTHER-01',decision='MISMATCH')
-            report=run_full_audit(Path(root)/'jobs',1,7,reader,judge=judge,auditor=auditor,template_config=template)
+            report=run_full_audit(Path(root)/'jobs',1,7,reader,judge=judge,auditor=auditor,template_config=template,image_workflow='legacy')
             self.assertEqual(report['compliance_status'],'NON_COMPLIANT')
             manager=JobManager(Path(root)/'jobs');job=manager.load(report['job_id']);d=manager.directory(job['job_id'])
             result=prepare(d,job,AutomationPolicy(CONFIG),CandidateQualityGate(Inspector()))

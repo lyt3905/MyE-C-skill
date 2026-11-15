@@ -42,7 +42,7 @@ class Confidence080Tests(unittest.TestCase):
                                confidence=confidence, abstain=False, evidence_ids=item['evidence_ids'])
                     return {'choices': [{'message': {'content': json.dumps(row)}}]}
                 try:
-                    result = JudgeClient(budget, directory, transport=transport).classify(
+                    result = JudgeClient(budget, directory, models=('legacy-a','legacy-b'), transport=transport).classify(
                         'title_semantics', {'id': 'T', 'evidence_ids': ['T']}, {})
                     self.assertEqual(result['status'] == 'CLEAN', expected)
                     self.assertEqual(evaluate(result) == 'KEEP', expected)

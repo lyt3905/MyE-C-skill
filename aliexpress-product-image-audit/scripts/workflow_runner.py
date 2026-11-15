@@ -71,7 +71,11 @@ def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quali
         result.update(run_id=run_id,total_elapsed_ms=round((time.perf_counter()-started)*1000,3))
         return report(root,job,status,result,writer=writer,inspector=quality_gate.inspector if quality_gate else None)
     if manager.load(job['job_id'])!=job:raise ValueError('job binding mismatch')
-    use_full_audit=auditor is None or full_audit_reader is not None
+    use_full_audit=job.get('image_workflow')=='v2' or auditor is None or full_audit_reader is not None
+    if job.get('image_workflow')=='v2' and auditor is not None and full_audit_reader is None:
+        readonly=getattr(writer,'readonly_client',None)
+        full_audit_reader=readonly() if callable(readonly) else writer
+        if full_audit_reader is None:raise ValueError('V2_EXPLICIT_READER_REQUIRED')
     if auditor is None:
         if writer is None:
             from site_client import ReadOnlySiteClient
@@ -138,13 +142,20 @@ def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quali
             update_metrics(root,'remedy_plan_ms',round((time.perf_counter()-phase)*1000,3))
             status=compiled['status']; result=compiled
             if not compiled['ok'] or compiled['read_only']:
+                if compiled['ok'] and compiled['read_only'] and job.get('image_workflow')=='v2':
+                    from v2_remediation import verify_content as verify_v2
+                    plan=json.loads((root/'plan.v2.json').read_text(encoding='utf-8'))
+                    atomic_json(root/'expected_after.json',json.loads((root/'audit_product.json').read_text(encoding='utf-8')))
+                    checked=verify_v2(root,plan,writer)
+                    if not checked['ok']:status='CONTENT_REVIEW_REQUIRED'
+                    result.update(site_save_calls=0,upload_calls=0,translate_calls=0,status_calls=0,verification_ok=checked['ok'],content_validation=checked)
                 if status=='CLEAN' and job.get('image_workflow')!='v2':
                     from audit_coverage import complete_readonly
                     content=complete_readonly(root,job,writer)
                     result.update(site_save_calls=0,upload_calls=0,translate_calls=0,status_calls=0,verification_ok=True,content_validation=content)
                 manager.finish_automatic(job['job_id'],status)
                 emit(status,result)
-                return dict(result,status=status)
+                return dict(result,status=result.get('status',status))
             manager.automatic_plan_ready(job['job_id'],compiled)
             if job['mode']=='audit':
                 emit(status,result)
@@ -153,7 +164,7 @@ def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quali
             dry=live_dry_run(manager,job['job_id'],writer)
             if job['mode']=='dry_run':
                 emit('DRY_RUN_PASSED',dry)
-                return dict(dry,status='DRY_RUN_PASSED')
+                return dict(dry,status=dry.get('status','DRY_RUN_PASSED'))
             atomic_json(root/'auto_authorization.json',{'policy_sha256':policy.sha256,'plan_sha256':dry['plan_sha256'],'job_id':job['job_id'],'pid':job['pid'],'shop':job['shop_id']})
             plan=json.loads((root/'plan.v2.json').read_text(encoding='utf-8'))
             from execution_ledger import ExecutionLedger,operation_digest
@@ -191,7 +202,18 @@ def run_automatic(manager,job,policy,*,writer=None,auditor=None,judge=None,quali
             if ledger:ledger.close()
             if owned_inspector: owned_inspector.close()
 
-def run(manager, job, auditor=None, judge=None):
+def run(manager, job, auditor=None, judge=None, reader=None):
+    if job.get('image_workflow')=='v2':
+        directory=manager.directory(job['job_id'])
+        if (directory/'full_audit_report.json').exists():
+            return json.loads((directory/'full_audit_report.json').read_text(encoding='utf-8'))
+        if reader is None:
+            from site_client import ReadOnlySiteClient
+            config=os.environ.get('AE_READONLY_SITE_CFG')
+            if not config:raise ValueError('V2_EXPLICIT_READER_REQUIRED')
+            reader=ReadOnlySiteClient(json.loads(Path(config).read_text(encoding='utf-8-sig')))
+        from full_product_audit import run_full_audit
+        return run_full_audit(manager.root,job['pid'],job['shop_id'],reader,manager=manager,job=job,judge=judge,auditor=auditor)
     if auditor is None:
         from audit_one import audit
         auditor = audit
@@ -244,7 +266,7 @@ def run(manager, job, auditor=None, judge=None):
             handle.close()
             lock.unlink(missing_ok=True)
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', type=Path, default=Path(__file__).parent / 'work' / 'v2')
     sub = parser.add_subparsers(dest='command', required=True)
@@ -305,7 +327,7 @@ def main():
     execute.add_argument('--request', required=True, type=Path)
     for child in sub.choices.values():
         child.add_argument('--root',type=Path,default=argparse.SUPPRESS)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.command=='full-audit':
         from model_config import load_config
         from site_client import ReadOnlySiteClient
@@ -314,6 +336,7 @@ def main():
         reader=ReadOnlySiteClient(json.loads(args.site_config.read_text(encoding='utf-8-sig')))
         options={'model_budget':json.loads(args.model_budget_config.read_text(encoding='utf-8-sig'))} if args.model_budget_config else {'model_budget':{'mode':'RECORD_ONLY','usage_source':'GATEWAY_REPORTED_UNVERIFIED'}}
         if args.image_workflow=='v2':options.update(image_workflow='v2',image_options=json.loads(args.image_options.read_text(encoding='utf-8-sig')) if args.image_options else None)
+        else:options['image_workflow']='legacy'
         result=run_full_audit(args.root,args.pid,args.shop,reader,model_config=profile,template_config=args.template_config,**options)
         print(json.dumps({key:result.get(key) for key in ('job_id','audit_complete','audit_status','compliance_status','unresolved_count')},ensure_ascii=False))
         return
@@ -396,6 +419,9 @@ def main():
         print(json.dumps(submit(manager,args.job,json.loads(args.review.read_text(encoding='utf-8-sig')))))
         return
     if args.command == 'run':
+        # New V2 apply jobs use the same policy-authorized writer as auto_apply.
+        # The standalone apply subcommand still consumes an explicit confirmation.
+        if args.image_workflow=='v2' and args.mode=='apply':args.mode='auto_apply'
         model_options={}
         if args.model_config:
             from model_config import load_config
@@ -409,6 +435,18 @@ def main():
             reader=ReadOnlySiteClient(json.loads(args.site_config.read_text(encoding='utf-8-sig')))
             pids=select_pending_products(reader,args.shop,args.pending)
             if not pids:print(json.dumps({'status':'NO_PRODUCTS','read_only':True}));return
+        if args.image_workflow=='v2' and args.mode=='read_only':
+            from site_client import ReadOnlySiteClient
+            from full_product_audit import run_full_audit
+            config_path=args.site_config or os.environ.get('AE_READONLY_SITE_CFG')
+            if not config_path:raise ValueError('--site-config required for V2 read_only')
+            reader=ReadOnlySiteClient(json.loads(Path(config_path).read_text(encoding='utf-8-sig')))
+            options=json.loads(args.image_options.read_text(encoding='utf-8-sig')) if args.image_options else None
+            for pid in pids:
+                job=manager.create(pid,args.shop,limits,'read_only',image_workflow='v2',image_options=options,**model_options)
+                result=run_full_audit(args.root,pid,args.shop,reader,manager=manager,job=job)
+                print(json.dumps(result,ensure_ascii=False))
+            return
         if args.mode in {'audit','dry_run','auto_apply'}:
             from automation_policy import AutomationPolicy
             policy_path=args.automation_config
@@ -541,6 +579,29 @@ def local_apply(manager, job_id, writer, confirmation):
         raise ValueError('live dry run required')
     if (plan['job_id'],plan['pid'],plan['shop'])!=(job_id,job['pid'],job['shop_id']):
         raise ValueError('plan binding mismatch')
+    if job.get('image_workflow')=='v2':
+        expected=dict(confirmed=True,job_id=job_id,pid=job['pid'],shop=job['shop_id'],plan_sha256=plan_hash(plan))
+        if confirmation!=expected:raise ValueError('explicit confirmation required')
+        from automation_policy import AutomationPolicy
+        from v2_remediation import verify_content
+        from auto_workflow import report
+        policy=AutomationPolicy(json.loads((root/'automation_policy_summary.json').read_text(encoding='utf-8'))['config'])
+        if policy.sha256!=plan['automation']['policy_sha256']:raise ValueError('AUTOMATION_POLICY_CHANGED_OR_MISSING')
+        try:
+            receipt=LocalExecutor(writer,root).execute_auto(plan,policy)
+            checked=verify_content(root,plan,writer)
+            compiled=json.loads((root/'compiled_plan.json').read_text(encoding='utf-8'))
+            status=('PARTIALLY_AUTO_FIXED' if compiled.get('deferred_count') else 'AUTO_VERIFIED') if checked['ok'] else 'CONTENT_REVIEW_REQUIRED'
+            receipt.update(status=status,content_validation=checked,content_review_status='CONTENT_REVIEWED' if checked['ok'] else 'NOT_VERIFIED')
+            manager.finish_automatic(job_id,status)
+            atomic_json(root/'executor_receipt.json',receipt)
+            report(root,job,status,receipt,writer=writer)
+            return receipt
+        except Exception as exc:
+            journal=json.loads((root/'local_execution.json').read_text(encoding='utf-8')) if (root/'local_execution.json').exists() else {}
+            status='APPLY_UNKNOWN' if journal.get('state')=='APPLY_UNKNOWN' else 'PREWRITE_FAILED'
+            manager.finish_automatic(job_id,status);report(root,job,status,dict(ok=False,error_type=type(exc).__name__),writer=writer)
+            raise
     receipt=LocalExecutor(writer,root).execute(plan,confirmation,dry_run=False)
     receipt=dict(receipt,job_id=job_id,plan_sha256=plan_hash(plan),ok=True)
     atomic_json(root/'apply_receipt.json',receipt)

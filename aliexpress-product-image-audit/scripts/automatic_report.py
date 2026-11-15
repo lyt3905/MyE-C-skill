@@ -35,6 +35,17 @@ def image_observations(directory):
     def read(name,default=None):
         path=root/name
         return json.loads(path.read_text(encoding='utf-8')) if path.exists() else ({} if default is None else default)
+    if read('job.json').get('image_workflow')=='v2':
+        inventory=read('full_inventory.json');judgements=read('full_ai_judgements.json');metrics=read('full_ai_metrics.json')
+        items=[]
+        for occurrence in inventory.get('occurrences',[]):
+            digest=occurrence.get('sha256');decision=judgements.get(digest,{})
+            calls=[{k:c.get(k) for k in ('model','called','status','usage_status','total_tokens','elapsed_ms','error_type')} for c in metrics.get('calls',[]) if c.get('item_id')=='IMG_'+str(digest)]
+            items.append(dict(occurrence,vision=decision,model_events=calls,semantic_source='AI_VISION_ONLY'))
+        names=['full_inventory.json','full_ai_judgements.json','full_ai_metrics.json','full_audit_protocol.json','full_visual_versions.json','v2_quality.json','v2_sku_selection.json']
+        return dict(schema='image-observations/v2',pid=read('job.json').get('pid'),image_count=len(items),images=items,
+            visual_versions=read('full_visual_versions.json'),remediation_priority=['EXISTING_CLEAN_VERSION','LARGE_PROMOTIONAL_FRAME_DELETE','LOCAL_OVERLAY_REPAIR'],
+            sources=[dict(path=n,sha256=hashlib.sha256((root/n).read_bytes()).hexdigest()) for n in names if (root/n).exists()],warnings=[],duplicate_image_ids=[])
     raw=read('audit_raw.json');flags=read('audit_flags.json');queue=read('ai_queue.json').get('items',[])
     judgements=read('ai_judgements.json');metrics=read('ai_metrics.json')
     templates=read('template_scan.json');residuals=read('residual_manifest.json').get('items',[])
@@ -155,7 +166,7 @@ def write(directory,job,status,result,writer=None,inspector=None):
                 new=at(after,position['pool'],position['index']) if after else 'UPLOAD_TOKEN:'+row['candidate_asset']['sha256'][:16] if row.get('candidate_asset') else row['source'].get('url')
         elif row['action'] in {'TITLE_REWRITE','BRAND_CODE'}:
             field='titleEn' if row['action']=='TITLE_REWRITE' else 'brandId';old=before.get(field);new=after.get(field,plan.get('desired',{}).get(field))
-        elif row['action']=='SKU_ASSIGN':new=row.get('assignments')
+        elif row['action']=='SKU_ASSIGN':new=row.get('row_assignments') or row.get('assignments')
         details.append({'item_id':row['item_id'],'action':row['action'],'target':target,'before':old,'after':new,'source':row['source'],'evidence_ids':row['evidence_ids'],'checks':row['checks']})
     run_times=metrics.setdefault('timing_ms_by_run',{})
     if result.get('run_id') and type(result.get('total_elapsed_ms')) in (int,float):run_times[result['run_id']]=result['total_elapsed_ms']
@@ -171,7 +182,7 @@ def write(directory,job,status,result,writer=None,inspector=None):
                 model_budget={'scope':scope,'requests':[{'request_id':r[0],'state':r[1],'reserved_tokens':r[2],'reserved_usd':r[3],'reported_tokens':r[4],'reported_usd':r[5],'raw_usage':json.loads(r[6]) if r[6] else None,'metadata':json.loads(r[7])} for r in entries], 'SPEND_CAP_GUARANTEED':False}
                 atomic_json(root/'model_budget_summary.json',model_budget)
         finally:connection.close()
-    data={'schema':'automatic-report/v1','status':status,'identity':{'pid':job['pid'],'shop':job['shop_id'],'job_id':job['job_id'],'automation_policy_sha256':read('automation_policy_summary.json').get('sha256')},
+    data={'schema':'automatic-report/v1','status':status,'technical_status':result.get('technical_status',status),'identity':{'pid':job['pid'],'shop':job['shop_id'],'job_id':job['job_id'],'automation_policy_sha256':read('automation_policy_summary.json').get('sha256')},
           'audit':{'image_occurrences':sum(r.get('kind') in {'main','detail','sku'} for r in raw.get('images',[])),'machine_anomalies':len(flags.get('anomalies',[])),'deferred_items':len(deferred),
                    'image_observations':'image_observations.json','full_audit_status':full.get('audit_status'),
                    'full_compliance_status':full.get('compliance_status'),'full_unresolved_count':full.get('unresolved_count'),
@@ -186,6 +197,27 @@ def write(directory,job,status,result,writer=None,inspector=None):
           'verification':{'structure':read('final_check.json',read('verification.json')),'content':read('content_validation.json'),'recovery':read('recovery_readback.json'),'overall_status':status},
           'unverified_items':(['PROVIDER_USAGE_UNKNOWN'] if actual is None else [])+
               (['MODEL_METRICS_INCOMPLETE'] if coverage=='INCOMPLETE' else [])}
+    if job.get('image_workflow')=='v2':
+        inventory=read('full_inventory.json');judgements=read('full_ai_judgements.json');quality_records=read('v2_quality.json').get('items',[])
+        occurrences=inventory.get('occurrences',[]);valid_refs=[o for o in occurrences if o.get('sha256')]
+        by_model={}
+        for source in sources:
+            for call in source.get('calls',[]):
+                if not call.get('called'):continue
+                row=by_model.setdefault(call['model'],dict(requests=0,known_total_tokens=0,unknown_usage_calls=0,total_tokens=0))
+                row['requests']+=1
+                if type(call.get('total_tokens')) is int:row['known_total_tokens']+=call['total_tokens']
+                else:row['unknown_usage_calls']+=1
+        for row in by_model.values():row['total_tokens']=None if row['unknown_usage_calls'] else row['known_total_tokens']
+        data['ai']['by_model']=by_model
+        data['v2_workflow']=dict(pools=dict(Counter(o['pool'] for o in occurrences if o.get('target_type')=='image_slot')),
+            sku_references=sum(o.get('target_type')=='sku_reference' for o in occurrences),unique_images=len(inventory.get('contents',{})),
+            duplicate_references=len(valid_refs)-len(inventory.get('contents',{})),source_unavailable=sum(not o.get('sha256') for o in occurrences),
+            audit_actions=dict(Counter(r['decision'] for r in judgements.values())),
+            quality_attempts=quality_records,sku=read('v2_sku_selection.json'),uploads=read('upload_receipts.json'),
+            visual_rule_adjustments=[dict(sha256=digest,adjustments=row['policy_adjustments']) for digest,row in judgements.items() if row.get('policy_adjustments')],
+            content_groups=plan.get('post_actions',{}).get('content_groups',[]),
+            save=read('save_attempt.json'),readback=read('content_validation.json'),non_image_fields_protected=read('content_validation.json').get('protected_fields_exact'))
     metrics.update(automatic_report=data,executor=executor,timing=timing)
     metrics.setdefault('ai',{}).update(requests=requests,total_tokens=actual,usage_available=actual is not None)
     atomic_json(root/'run_metrics.json',metrics);atomic_json(root/'report_data.json',data)

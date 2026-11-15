@@ -33,7 +33,7 @@ class JudgeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             image=Path(root)/'a.jpg'; Image.new('RGB',(800,800),'white').save(image)
             result={'task_type':'watermark','item_id':'A','classification':'product_print','owner':'manufacturer','location':'center','confidence':.95,'abstain':False,'evidence_ids':['A']}
-            c=JudgeClient(BudgetManager({'ai_requests':45,'full_resolution_images':1}),Path(root)/'cache',transport=lambda *a:{'choices':[{'message':{'content':json.dumps(exhaustive(result))}}]})
+            c=JudgeClient(BudgetManager({'ai_requests':45,'full_resolution_images':1}),Path(root)/'cache',models=('legacy-a','legacy-b'),transport=lambda *a:{'choices':[{'message':{'content':json.dumps(exhaustive(result))}}]})
             self.assertEqual(c.classify('watermark',{'task_type':'watermark','id':'A','local':str(image),'evidence_ids':['A']},{})['status'],'CLEAN')
             self.assertEqual(c.metrics['requests'],2)
             self.assertFalse(c.metrics['usage_available'])

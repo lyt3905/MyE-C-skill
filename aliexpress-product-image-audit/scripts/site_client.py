@@ -114,7 +114,7 @@ class _SiteTransport:
     def status(self, pid, value):
         return self.call("/api/admin/products/%s/status" % pid, {"status": value})
 
-    def save(self, pid, images=None, desc=None, extra=None, *, expected_state_hash=None):
+    def save(self, pid, images=None, desc=None, extra=None, *, expected_state_hash=None, description_image_deletions=None, description_image_replacements=None):
         """等价于控制台「保存」按钮：PUT /api/admin/products/{id}?autoSave=true
         与不带 autoSave 的 PUT 有本质区别（实测 2026-11-07）：
           - 带 autoSave：不改状态、不重新分配图片 id、不插 AI 封面。
@@ -140,7 +140,7 @@ class _SiteTransport:
                 raise RuntimeError("Site.save precondition failed: expected state %s, got %s" %
                                    (expected_state_hash, actual_state_hash))
         body = {k: p.get(k) for k in ('titleEn', 'titleTranslationZh', 'descriptionJson',
-                                      'skus', 'price', 'weight', 'identityJson') if k in p}
+                                      'skus', 'price', 'weight', 'identityJson', 'presale') if k in p}
         imgs = dict(p.get('images') or {})
         if images:
             imgs.update(images)
@@ -149,9 +149,14 @@ class _SiteTransport:
             body['descriptionJson'] = desc
         if extra:
             body.update(extra)
+        approved_description=p.get('descriptionJson')
+        if description_image_deletions or description_image_replacements:
+            if expected_state_hash is None:raise ValueError('DESCRIPTION_IMAGE_STATE_BINDING_REQUIRED')
+            from description_images import edit_body_images
+            approved_description=edit_body_images(approved_description,description_image_deletions or [],description_image_replacements or {})
         if (('descriptionJson' in body) != ('descriptionJson' in p)
-                or type(body.get('descriptionJson')) is not type(p.get('descriptionJson'))
-                or body.get('descriptionJson') != p.get('descriptionJson')):
+                or type(body.get('descriptionJson')) is not type(approved_description)
+                or body.get('descriptionJson') != approved_description):
             raise ValueError('DESCRIPTION_MUTATION_FORBIDDEN')
         if isinstance(body.get('identityJson'),dict):
             body['identityJson']=json.dumps(body['identityJson'],ensure_ascii=False)

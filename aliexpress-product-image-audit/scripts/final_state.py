@@ -46,6 +46,7 @@ def simulate_final_snapshot(before_snapshot, plan, uploaded_urls=None):
    for field in ('skuImageUrl','imageUrl','image'):
     if field in sku: sku[field]=replace_known(sku[field])
  for ref,url in zip((plan.get('post_actions') or {}).get('uploads',[]),uploaded_urls or []):
+  if ref['pool']=='description':continue
   old=result['images'][ref['pool']][ref['index']]
   if old in (plan.get('post_actions') or {}).get('preserve_reference_urls',[]):
    result['images'][ref['pool']][ref['index']]=url
@@ -59,6 +60,9 @@ def simulate_final_snapshot(before_snapshot, plan, uploaded_urls=None):
   for sku in result.get('skus') or []:
    for field in ('skuImageUrl','imageUrl','image'):
     if sku.get(field)==old: sku[field]=url
+ if (plan.get('post_actions') or {}).get('content_groups'):
+  from image_content_plan import apply_groups
+  result=apply_groups(before_snapshot,result,plan,uploaded_urls)
  return result
 
 def validate_final_snapshot(final_snapshot, policy=None, context=None):
@@ -118,6 +122,13 @@ def validate_final_snapshot(final_snapshot, policy=None, context=None):
   description_ok=(type(final_snapshot.get('descriptionJson')) is type(before.get('descriptionJson')) and final_snapshot.get('descriptionJson')==before.get('descriptionJson'))
   if context.get('saved_readback') is True:
    description_ok=description_content_preserved(before.get('descriptionJson'),final_snapshot.get('descriptionJson'),source_title=before.get('titleEn'),saved_title=final_snapshot.get('titleEn'))
+  if (context.get('plan',{}).get('post_actions') or {}).get('content_groups'):
+   from image_content_plan import uploaded_from_snapshot
+   try:
+    expected=simulate_final_snapshot(before,context['plan'],uploaded_from_snapshot(before,context['plan'],final_snapshot))
+    description_ok=type(final_snapshot.get('descriptionJson')) is type(expected.get('descriptionJson')) and final_snapshot.get('descriptionJson')==expected.get('descriptionJson')
+    check('CONTENT_ALIAS_SYNC','images',final_snapshot.get('images'),expected.get('images'),final_snapshot.get('images')==expected.get('images'))
+   except (KeyError,IndexError,ValueError,TypeError):description_ok=False
   check('PROTECTED_FIELD','descriptionJson',final_snapshot.get('descriptionJson'),before.get('descriptionJson'),
         ('descriptionJson' in final_snapshot)==('descriptionJson' in before) and description_ok)
  errors.sort(key=lambda error: 0 if error['rule_id']=='PROTECTED_FIELD' else 1)

@@ -42,17 +42,18 @@ class VisionTests(unittest.TestCase):
         from ai_judge.image_action_decision import decide
         return decide(client,self.item,{'pid':1,'descriptionJson':'EXCLUDED'})
 
-    def test_keep_uses_one_primary(self):
+    def test_keep_uses_only_deepseek(self):
         client,calls=self.client(lambda m,i:observation(i))
         self.assertEqual(self.decide(client)['decision'],'KEEP')
-        self.assertEqual(len(calls),1)
+        self.assertEqual([m for m,_ in calls],['deepseek-v4.1-flash'])
         self.assertNotIn('descriptionJson',calls[0][1])
 
-    def test_delete_needs_independent_second_and_conflict_defers(self):
+    def test_delete_uses_deepseek_without_second_reviewer(self):
         client,calls=self.client(lambda m,i:observation(i,'DELETE' if m==client.models[0] else 'KEEP'))
-        self.assertEqual(self.decide(client)['decision'],'REVIEW')
+        self.assertEqual(self.decide(client)['decision'],'DELETE')
         self.assertEqual([c[0] for c in calls],list(client.models))
-        self.assertNotIn('primary_result',calls[1][1])
+        self.assertNotIn('primary_result',calls[0][1])
+        self.assertEqual(len(calls),1)
 
     def test_bad_sha_and_coordinates_rejected(self):
         from ai_judge.image_action_decision import validate
@@ -62,11 +63,11 @@ class VisionTests(unittest.TestCase):
     def test_invalid_primary_second_does_not_authorize_deletion(self):
         client,calls=self.client(lambda m,i: {} if m==client.models[0] else observation(i,'DELETE'))
         self.assertEqual(self.decide(client)['decision'],'REVIEW')
-        self.assertEqual(len(calls),2)
+        self.assertEqual(len(calls),1)
 
-    def test_uncertain_box_gets_one_second_but_conflict_stays_review(self):
+    def test_uncertain_box_stays_review_without_second_model(self):
         client,calls=self.client(lambda m,i:observation(i,retail_box_status='UNCERTAIN') if m==client.models[0] else observation(i))
-        self.assertEqual(self.decide(client)['decision'],'REVIEW');self.assertEqual(len(calls),2)
+        self.assertEqual(self.decide(client)['decision'],'REVIEW');self.assertEqual(len(calls),1)
 
     def test_factory_print_not_removable(self):
         from ai_judge.image_action_decision import validate
@@ -89,7 +90,7 @@ class VisionTests(unittest.TestCase):
         self.assertEqual(decide(client,self.item,{})['decision'],'REVIEW')
         self.assertEqual(calls,list(client.models))
 
-    def test_threshold_point_eight_and_unknown_never_keep(self):
+    def test_numeric_score_recorded_and_unknown_class_never_keep(self):
         client,calls=self.client(lambda m,i:observation(i,confidence=.8))
         self.assertEqual(self.decide(client)['decision'],'KEEP');self.assertEqual(len(calls),1)
         client.result_cache.root=self.root/'other'
@@ -122,7 +123,7 @@ class VisionTests(unittest.TestCase):
         decision=self.decide(client)
         self.assertEqual(decision['decision'],'REVIEW')
         self.assertEqual(calls[0][0],client.models[0])
-        self.assertEqual(len(calls),2)
+        self.assertEqual(len(calls),1)
 
     def test_model_prompt_contains_complete_authoritative_output_schema(self):
         from ai_judge.image_action_decision import PROMPT

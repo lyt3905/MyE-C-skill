@@ -5,7 +5,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image
-from ai_judge.image_action_decision import region
+from ai_judge.image_action_decision import region,mark_disposition
 from job_manager import atomic_json
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -37,19 +37,39 @@ def configured_image_edit(config,source,context,observation,destination):
 def pixels(path):
     with Image.open(path) as im:im.load();return np.array(im.convert('RGB'))
 
-def mask_for(size,observation,*,max_area=.25,dilation=2):
+def mask_for(size,observation,*,max_area=.25,dilation=2,image=None):
     width,height=size;mask=np.zeros((height,width),np.uint8);protected=mask.copy()
     def fill(target,row):
         points=region(row)
         coords=np.array([[min(width-1,int(x*width)),min(height-1,int(y*height))] for x,y in points],np.int32)
         cv2.fillPoly(target,[coords],255)
+    glyph_mode=any(mark_disposition(row)=='REMOVABLE' and row.get('repair_mode')=='BACKGROUND_GLYPHS' for row in observation['watermarks'])
+    background=None
+    if glyph_mode:
+        if image is None:raise ValueError('BACKGROUND_PIXELS_REQUIRED')
+        low=image.min(axis=2);high=image.max(axis=2)
+        bright=((low>=225)&((high.astype(int)-low.astype(int))<=20)).astype(np.uint8)
+        _,labels,_,_=cv2.connectedComponentsWithStats(bright,8)
+        boundary=set(np.concatenate([labels[0],labels[-1],labels[:,0],labels[:,-1]]).tolist())-{0}
+        background=np.isin(labels,list(boundary))
     for row in observation['watermarks']:
-        if row['kind'] in {'STORE_WATERMARK','PROMOTIONAL_TEXT'}:
-            if row['preserve_overlap_risk']!='LOW' or row['confidence']<.8:raise ValueError('REGION_RISK')
-            fill(mask,row)
+        if mark_disposition(row)=='REMOVABLE':
+            if row.get('repair_mode')=='BACKGROUND_GLYPHS':
+                roi=np.zeros((height,width),np.uint8);fill(roi,row)
+                selected=(roi>0)&background&(low<254)
+                mask[selected]=255
+            else:
+                if row['preserve_overlap_risk']!='LOW':raise ValueError('REGION_RISK')
+                fill(mask,row)
         else:fill(protected,row)
-    for row in observation['preserve_regions']:fill(protected,row)
+    for row in observation['preserve_regions']:
+        part=np.zeros((height,width),np.uint8);fill(part,row)
+        if (glyph_mode and row.get('scope')=='PRODUCT_FOREGROUND' and observation.get('toy_present') is True and
+            observation.get('retail_box_status')=='ABSENT' and observation.get('background_complexity')=='SMOOTH'):
+            part[background]=0
+        protected=np.maximum(protected,part)
     if dilation:mask=cv2.dilate(mask,np.ones((2*dilation+1,2*dilation+1),np.uint8))
+    if glyph_mode:mask[protected>0]=0
     ratio=float(np.count_nonzero(mask)/mask.size)
     if not 0<ratio<=max_area:raise ValueError('MASK_AREA')
     if np.any((mask>0)&(protected>0)):raise ValueError('PROTECTED_REGION_OVERLAP')
@@ -84,7 +104,7 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
     if rights!='OWNED_OR_LICENSED':raise ValueError('RIGHTS_NOT_AUTHORIZED')
     root=Path(directory);root.mkdir(parents=True,exist_ok=True);source=Path(source)
     start=time.perf_counter();digest=sha(source);image=pixels(source);h,w=image.shape[:2]
-    mask,ratio=mask_for((w,h),observation,max_area=max_area)
+    mask,ratio=mask_for((w,h),observation,max_area=max_area,image=image)
     algorithm=algorithm or ('OPENCV_TELEA' if ratio<=.04 and observation['background_complexity']=='SMOOTH' else 'LAMA_INPAINT')
     if algorithm=='LAMA_INPAINT':
         if lama is None:raise ValueError('LAMA_UNAVAILABLE')
@@ -100,8 +120,7 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
     with Image.open(source) as original:
         alpha=np.array(original.convert('RGBA').getchannel('A')) if original.mode=='RGBA' or 'transparency' in original.info else None
     if alpha is not None:
-        repaired_alpha=cv2.inpaint(alpha,mask,3,cv2.INPAINT_NS if algorithm=='OPENCV_NS' else cv2.INPAINT_TELEA)
-        repaired_alpha[mask==0]=alpha[mask==0]
+        repaired_alpha=alpha.copy()
         Image.fromarray(np.dstack([output,repaired_alpha])).save(output_path)
     else:Image.fromarray(output).save(output_path)
     if sha(source)!=digest:raise ValueError('ORIGINAL_CHANGED')

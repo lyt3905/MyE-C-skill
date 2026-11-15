@@ -107,7 +107,7 @@ def _same_store_remove_consensus(outputs, models):
     return owners[0]==owners[1] and owners[0] not in placeholders
 
 class JudgeClient:
-    def __init__(self, budget, cache_dir, transport=None, models=('deepseek-v4.1-flash','mimo-v2.6-pro'), retries=2, timeout=150, config=None, *, continue_model_errors=False):
+    def __init__(self, budget, cache_dir, transport=None, models=('deepseek-v4.1-flash',), retries=2, timeout=150, config=None, *, continue_model_errors=False):
         self.continue_model_errors=continue_model_errors
         self.config_sha256=None
         self.base_url=os.environ.get('VLM_BASE','http://127.0.0.1:8788/v1')
@@ -196,10 +196,11 @@ class JudgeClient:
             return adapter()
         try:
             raw=self.budget.model_call(model,self.base_url,context.get('pid'),[item['sha256']],self.max_output_tokens,
-                dict(task_type='image_edit_v2',item_id=item['id'],schema_version='image-edit-adapter/v2',prompt_sha256=item['prompt_sha256']),send)
+                dict(task_type='image_edit_v2',item_id=item['id'],schema_version='image-edit-adapter/v2',prompt_sha256=item['prompt_sha256'],observation_sha256=item.get('observation_sha256'),context_sha256=hashlib.sha256(json.dumps(context,sort_keys=True,ensure_ascii=False).encode()).hexdigest()),send)
+            event['raw_response']=raw
             usage=raw.get('usage') if isinstance(raw,dict) else None
             if isinstance(usage,dict) and all(type(usage.get(k)) is int and usage[k]>=0 for k in ('prompt_tokens','completion_tokens','total_tokens')) and usage['prompt_tokens']+usage['completion_tokens']==usage['total_tokens']:
-                event.update(status='RESPONSE_RECEIVED',usage_status='ACTUAL_REPORTED',total_tokens=usage['total_tokens'])
+                event.update(status='RESPONSE_RECEIVED',usage_status='ACTUAL_REPORTED',prompt_tokens=usage['prompt_tokens'],completion_tokens=usage['completion_tokens'],total_tokens=usage['total_tokens'])
                 with self._metrics_lock:
                     if self.metrics['usage_available']:
                         for key in ('prompt_tokens','completion_tokens','total_tokens'):self.metrics[key]+=usage[key]
@@ -218,6 +219,11 @@ class JudgeClient:
 
     def classify(self, task_type, evidence, context, *, models=None, attempts=None):
         selected=self.models if models is None else tuple(models)
+        if task_type in {'image_action_decision','image_quality_v2'}:
+            from model_config import review_models
+            selected=review_models(self.models)
+            if models is not None and tuple(models)!=selected:raise ValueError('MODEL_DISABLED_BY_PROJECT_SELECTION')
+            self.metrics['active_review_models']=list(selected)
         if not selected or any(m not in self.models for m in selected):raise ValueError('MODEL_SELECTION_NOT_CONFIGURED')
         if self.budget._model_policy is not None:self.retries=0
         outputs=[]
@@ -382,7 +388,7 @@ class JudgeClient:
             status='CLEAN' if audit['verdict']=='PASS' else 'HIT' if audit['verdict']=='FAIL' else 'REVIEW'
             return {'status':status,'results':outputs,'models':list(self.models),'identity_audit':audit,'evidence_spec':spec}
         classifications=[r.get('classification',r.get('decision')) for r in outputs]
-        review=any(r['abstain'] or r['confidence'] < MODEL_CONFIDENCE_MIN for r in outputs) or len(set(classifications))!=1 or any(x in {'unknown','UNCERTAIN'} for x in classifications)
+        review=any(r['abstain'] or (task_type!='image_quality_v2' and r['confidence'] < MODEL_CONFIDENCE_MIN) for r in outputs) or len(set(classifications))!=1 or any(x in {'unknown','UNCERTAIN'} for x in classifications)
         if task_type=='sku_match':
             # MATCH labels alone cannot establish agreement on the SKU's
             # packaging observations. Keep differing/missing details visible.
@@ -394,7 +400,7 @@ class JudgeClient:
                 values=[r.get(field) for r in outputs]
                 review=review or any(type(v) is not bool for v in values) or len(set(values))!=1
         status='REVIEW' if review else 'HIT' if classifications[0]=='MISMATCH' else 'CLEAN'
-        return {'status':status,'results':outputs}
+        return {'status':status,'results':outputs,**({'models':list(selected)} if task_type=='image_quality_v2' else {})}
     def process_queue(self, queue, context):
         if queue.get('schema') != 'ai-queue/v2' or queue.get('pid') != context.get('pid'): raise ValueError('invalid queue')
         def run(item):

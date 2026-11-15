@@ -1,3 +1,16 @@
+# 2026-11-16 同一原图不同版本：替换优先（本地实施）
+
+- 用户最新规则：已有审核KEEP且干净、尺寸格式可用的同一照片版本优先REPLACE_TWIN；没有可替换版本时，大面积店铺宣传边框整图DELETE，其余明确覆盖字局部修复。原始AI回复不改写，报告分别保留初审和最终整改动作。
+- 正式V2全图审核后输出full_visual_versions.json，采用SIFT/RANSAC、有效画面覆盖、中心主体与稠密像素对齐证明同照片；不是目录同款/配色判断，模型置信度仍仅记录。仅同背景或同商品不同姿势不匹配。候选限当前商品已有KEEP干净图，未外部找图。
+- 复用既有REPLACE_TWIN执行器和SHA内容组；同步主图/详情/正文商品图/SKU池与可定位SKU引用、受限保存、独立字节回读。替换使用已有URL零上传，不运行擦除质量模型；已有全图初审作为候选干净依据。footer、正文文字/样式、其他业务字段继续保护。
+- 大边框根据AI已有店铺/促销覆盖区域的联合面积和边缘分布组合识别，不再仅依赖OTHER_STORE_FRAME标签；可用照片上的小店铺标记不因该标签直接整删；旧观察只圈文字时，明确边框的宣传拼图也按底部店铺/促销横幅的跨度判断，保留5085已确认删除案例。无法证明可替换不等于证明不同照片，回落原整改流程。
+- 本轮只做本地开发、离线原图验证和Fake闭环；新真实模型调用、线上读取/上传/保存均NOT_RUN，未部署、未commit/push，旧Jobs/响应/账本保留。外部AI重绘仍后置，其他历史语义偏差未在本轮解决。
+- 证据入口：reports/v2-visual-versions.md；work/v2-visual-versions-20261116。下方历史授权/规则按各自时间和范围理解。
+
+> 最新规则（2026-11-15，4086/5085经验复用）：正式V2仅DeepSeek；置信度、Token及同款关系仅记录。纯店铺介绍/须知图删除，明确其他店铺边框整图删除，明确后加淡水印进入本地修复；普通归属不明文字仍保留。正文商品图片进入同一审核/计划/保存/回读，尾部附加内容豁免。相同内容SHA的不同链接同步处理，正文文字和其他业务字段保护。固定8张原图及人工纠正用于离线回归。[本轮实施与验证](reports/v2-reusable-image-rules.md)。下方旧规则和数字按历史阶段理解。
+
+> 历史V2闭环入口与验收：[完整业务流程报告](reports/v2-full-workflow-acceptance.md)。完整LaMa已安装并真实本地推理，AI编辑仅已配置适配器才调用。本轮仅本地/Fake；真实模型与线上访问/写入遵循用户独立授权。
+
 > 当前提交版本：[SKU 双模型状态一致性修复与验证](reports/sku-consensus-20261114.md)，672项完整离线测试通过。此前真实只读验证累计30次；最新状态补丁通过离线回放，不宣称整件商品审核已全部通过。
 
 > 最新本地补丁：[SKU 输出字段契约修复](reports/sku-output-contract-20261114.md)，668 项离线测试通过。此补丁在下方真实验收之后开发，未追加真实调用，不把旧结果当作新提示已验证。
@@ -10,7 +23,7 @@
 
 > 当前优先事项（2026-11-14）：先稳定自动审核执行主流程。现有六张历史图片的只读验收入口为 `scripts/complete_observed_audit.py`，单项格式异常记录后继续，支持本地进度查询；准确率优化、完整新商品接入和自动整改后置。[本轮开发与 Windows 使用说明](reports/audit-mainflow-stability-20261114.md)。下方各轮测试数字和入口说明属于对应历史阶段。
 
-> 当前有效范围：[仅主图、详情图、SKU图；Description原值保护](references/当前有效审核范围.md)。此规则覆盖下文历史Description联动口径。
+> 当前有效范围：[V2图片池、SKU引用与正文商品图片；尾部和正文文字保护](references/当前有效审核范围.md)。此规则覆盖下文历史Description整体排除口径。
 
 > 最新状态（2026-11-14）：[单件全量审核结果与未完成项](reports/full-product-audit-8788-result.md)。534项完整回归通过；14个语义任务均有双模型结果，两条SKU包装匹配通过，整件商品仍有未确认项，尚未达到完整自动审核验收条件。本轮只读续跑未写商品。下方较早验收记录仅保留为历史。
 
@@ -81,9 +94,9 @@ Job位于work/v2/JOB_*，保留before/after、计划、上传回执、执行日�
 最新标题策略：[不做模型复核，每次自动处理翻译一次](reports/v1.3-title-single-translation-scope.md)；[Shop7/PID3527真实1保存1翻译回读结果](reports/v1.3-single-translation-3527-result.md)。425项完整回归通过，其他图片不确定项继续暂缓。
 # V2.0 本地开发入口（2026-11-15）
 
-标准 `scripts/workflow_runner.py run` 与 `full-audit` 默认使用统一视觉决策策略（`--image-workflow v2`），旧内部 Job 和 `--image-workflow legacy` 保持兼容。V2 只处理主图、详情图、SKU 图与真实 SKU 图片引用，不调用 OCR/CV 语义分类，不读取 Description 中的内容。
+标准 `scripts/workflow_runner.py run` 与 `full-audit` 默认使用统一视觉决策策略（`--image-workflow v2`），旧内部 Job 和 `--image-workflow legacy` 保持兼容。V2 处理主图、详情图、SKU 图、真实 SKU 图片引用及正文商品图片；正文文字不进入模型提示，shopFooter及之后的附加内容豁免。语义判断由DeepSeek完成，本地CV仅执行已确定目标的像素掩膜和修复。
 
-新增配置样例：`scripts/config/automation.v2.example.json`（执行默认关闭）、`scripts/config/image-options.v2.example.json`（默认 RIGHTS_UNKNOWN）；通过 `--automation-config` 与 `--image-options` 指定。没有素材处理授权时不擦除；没有本地 LaMa 权重或图片编辑后端时明确暂缓。只支持 DeepSeek/MiMo，置信度门槛 0.80，Token 默认仅记录。
+配置样例：`scripts/config/automation.v2.example.json`（执行默认关闭）、`scripts/config/image-options.v2.example.json`（默认 RIGHTS_UNKNOWN）；通过 `--automation-config` 与 `--image-options` 指定。没有素材处理授权时不擦除；LaMa或重绘后端缺失分别记录，外部AI重绘仍后置。正式V2仅DeepSeek，置信度和Token仅记录。
 
 站点每个 SKU 目前只证明支持单一图片 URL。无盒分支选两张独立 SHA 的逻辑候选；实际映射首图，并报告未能写入第二张的限制，不假造接口字段或 SKU ID。
 

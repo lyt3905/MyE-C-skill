@@ -171,7 +171,6 @@ def v2_quality_metrics(rows,*,remove_text_min_pass_rate=None,label_registry=None
     import math
     import re
     from PIL import Image
-    from policy_engine import MODEL_CONFIDENCE_MIN
     actions=('KEEP','DELETE','REMOVE_TEXT','AI_REGENERATE','REVIEW')
     automatic=('DELETE','REMOVE_TEXT','AI_REGENERATE')
     box_values={'PRESENT','ABSENT','UNKNOWN'}
@@ -207,7 +206,7 @@ def v2_quality_metrics(rows,*,remove_text_min_pass_rate=None,label_registry=None
             duplicates+=1;continue
         row['prediction_retail_box']=row.get('prediction_retail_box','UNKNOWN')
         if row['prediction_retail_box']=='UNCERTAIN':row['prediction_retail_box']='UNKNOWN'
-        if row['abstain'] or row['confidence']<MODEL_CONFIDENCE_MIN:row['prediction_action']='REVIEW'
+        if row['abstain']:row['prediction_action']='REVIEW'
         unique[digest]={'row':row,'fingerprint':fingerprint}
 
     def ratio(n,d):return n/d if d else None
@@ -262,7 +261,7 @@ def v2_quality_metrics(rows,*,remove_text_min_pass_rate=None,label_registry=None
     gates['SKU_SELECTION']={'met':all(group['reviewed']>=30 and group['correct']==group['reviewed'] for group in real['sku_selection'].values()),'minimum_reviewed_per_group':30}
     passed=all(gate['met'] for gate in gates.values())
     status='NOT_EVALUATED' if not unique else 'SYNTHETIC_ONLY' if not real['unique_images'] else 'STATISTICS_COMPUTED' if passed else 'INCOMPLETE_REAL_EVIDENCE'
-    report=dict(schema='v2-shadow-quality/v1',status=status,real=real,synthetic=synthetic,duplicates_merged=duplicates,
+    report=dict(schema='v2-shadow-quality/v1',status=status,confidence_policy='RECORD_ONLY',real=real,synthetic=synthetic,duplicates_merged=duplicates,
         gates=gates,statistical_gates_met=passed,release_authorized=False,real_provenance_independently_verified=False,
         notes=['Only declared real samples with matching local image bytes and human-confirmed labels count toward real statistics.',
                'This tool cannot authenticate human/provider provenance or authorize Shadow, Canary or production.',

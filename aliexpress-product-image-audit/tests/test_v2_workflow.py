@@ -18,19 +18,21 @@ from workflow_runner import run_automatic
 
 
 class V2WorkflowTests(unittest.TestCase):
-    def scenario(self,root,actions,mode='auto_apply',rights='OWNED_OR_LICENSED',quality_fail=False,edit_backend=False,save_timeout=False,box=False,corrupt_readback=None,image_options=None,product_id=1,ledger_path=None,reference_only=False,sku_on_first=False,missing_sku_id=False):
+    def scenario(self,root,actions,mode='auto_apply',rights='OWNED_OR_LICENSED',quality_fail=False,edit_backend=False,save_timeout=False,box=False,corrupt_readback=None,image_options=None,product_id=1,ledger_path=None,reference_only=False,sku_on_first=False,missing_sku_id=False,upload_fail=False,watermark_color='red',snapshot_sku_rows=False,two_sku_rows=False,product_transform=None,asset_images=None,observation_transform=None):
         from full_product_audit import download_only
         assets={};digest_actions={}
         for n,action in enumerate(actions):
             im=Image.new('RGB',(800,800),'white');draw=ImageDraw.Draw(im)
             draw.rectangle((250,200,550,600),fill=(20+n*30,70,140))
-            if action=='REMOVE_TEXT':draw.text((20,740),'STORE',fill='red')
-            b=io.BytesIO();im.save(b,format='PNG');assets['https://fake/'+str(n)]=b.getvalue();digest_actions[hashlib.sha256(b.getvalue()).hexdigest()]=action
+            if action=='REMOVE_TEXT':draw.text((20,740),'STORE',fill=watermark_color)
+            b=io.BytesIO();im.save(b,format='PNG');data=Path(asset_images[n]).read_bytes() if asset_images and n in asset_images else b.getvalue()
+            assets['https://fake/'+str(n)]=data;digest_actions[hashlib.sha256(data).hexdigest()]=action
         urls=list(assets)
         product=dict(id=product_id,shopId=7,status='READY_TO_PUBLISH',price=20,weight=.2,
             descriptionJson={'opaque':['https://must-not-download/description']},
             images={'main':urls.copy(),'detail':urls.copy(),'sku':[urls[-1]],'scene':['https://must-not-download/scene']},
             skus=[{'skuId':'real1','skuName':'Without Box','skuImageUrl':urls[-1],'price':10}])
+        if two_sku_rows:product['skus'].append(dict(skuId='real2',skuName='With Retail Box',skuImageUrl=urls[-1],originalBox=True,price=20))
         original=copy.deepcopy(product)
         if box:
             product['skus'][0].update(skuName='With Retail Box',skuImageUrl=urls[0]);product['images']['sku']=[urls[0]]
@@ -43,7 +45,11 @@ class V2WorkflowTests(unittest.TestCase):
             product['images']['sku']=[urls[0]];product['skus'][0]['skuImageUrl']=urls[0]
             original=copy.deepcopy(product)
         if missing_sku_id:
-            product['skus'][0].pop('skuId');original=copy.deepcopy(product)
+            for sku in product['skus']:sku.pop('skuId',None)
+            original=copy.deepcopy(product)
+        if product_transform:
+            product_transform(product,assets,urls)
+            original=copy.deepcopy(product)
         class Writer:
             saves=0;uploads=0
             def product(self,pid):return copy.deepcopy(product)
@@ -52,14 +58,17 @@ class V2WorkflowTests(unittest.TestCase):
             def fetch_image(self,url):return assets[url]
             def save(self,pid,desired,**kwargs):
                 self.saves+=1
-                if save_timeout:raise TimeoutError('fake unknown save')
+                if save_timeout and save_timeout!='after':raise TimeoutError('fake unknown save')
                 product.clear();product.update(copy.deepcopy(desired))
+                if save_timeout=='after':raise TimeoutError('fake saved but response lost')
                 if corrupt_readback=='description':product['descriptionJson']={'changed':True}
                 elif corrupt_readback=='sku':product['skus'][0]['skuImageUrl']='https://fake/wrong'
                 elif corrupt_readback=='retained_bytes':
                     buffer=io.BytesIO();Image.new('RGB',(800,800),'green').save(buffer,format='PNG');assets[urls[-1]]=buffer.getvalue()
             def upload(self,path):
-                self.uploads+=1;url='https://fake/upload'+str(self.uploads);assets[url]=Path(path).read_bytes();return url
+                self.uploads+=1
+                if upload_fail:raise OSError('fake upload unavailable')
+                url='https://fake/upload'+str(self.uploads);assets[url]=Path(path).read_bytes();return url
         writer=Writer();manager=JobManager(Path(root)/'jobs')
         options={'rights':rights};options.update(image_options or {})
         job=manager.create(product_id,7,{'ai_requests':80,'full_resolution_images':40},mode=mode,image_workflow='v2',image_options=options,model_budget={'mode':'RECORD_ONLY','usage_source':'FAKE_TRANSPORT'})
@@ -78,6 +87,7 @@ class V2WorkflowTests(unittest.TestCase):
                     result.update(visual_class='TOY_WITH_RETAIL_BOX',retail_box_status='PRESENT',retail_box_bbox=[.6,.1,.9,.6],retail_box_confidence=.8,box_relation='SAME_PRODUCT')
                     result['sku_suitability'].update(is_retail_box_photo=True,recommended_group='WITH_RETAIL_BOX')
                 if action=='REMOVE_TEXT':result['watermarks']=[dict(kind='STORE_WATERMARK',bbox=[.02,.92,.12,.95],confidence=.95,preserve_overlap_risk='LOW')]
+                if observation_transform:result=observation_transform(result,item)
             return {'choices':[{'message':{'content':json.dumps(result)}}],'usage':{'prompt_tokens':20,'completion_tokens':20,'total_tokens':40}}
         judge=JudgeClient(budget,directory/'cache',transport=transport,retries=0)
         from visual_quality import VisualQualityInspector
@@ -87,11 +97,14 @@ class V2WorkflowTests(unittest.TestCase):
                 self.assertNotIn('descriptionJson',context)
                 im=Image.open(source).convert('RGB');ImageDraw.Draw(im).rectangle((0,740,100,790),fill='white');ImageDraw.Draw(im).point((1,1),fill='gray')
                 path=dest/'edited.png';im.save(path)
-                return {'candidate_path':str(path),'usage':{'prompt_tokens':5,'completion_tokens':5,'total_tokens':10}}
-            inspector.image_edit_backend=edit;inspector.image_edit_model='mimo-v2.6-pro'
+                result={'candidate_path':str(path),'usage':{'prompt_tokens':5,'completion_tokens':5,'total_tokens':10}}
+                if edit_backend=='unknown_usage':result.pop('usage')
+                return result
+            inspector.image_edit_backend=edit;inspector.image_edit_model='deepseek-v4.1-flash'
         def downloader(url,path):Path(path).write_bytes(assets[url])
         def auditor(pid,shop,output_dir,site):return download_only(pid,shop,output_dir=output_dir,site=site,downloader=downloader)
         config=copy.deepcopy(CONFIG);config['allow_actions'].update({a:True for a in ('DELETE','REMOVE_TEXT','AI_REGENERATE','SKU_ASSIGN')})
+        if snapshot_sku_rows:config['allow_snapshot_sku_rows']=True
         policy=AutomationPolicy(config)
         from execution_ledger import ExecutionLedger
         try:
@@ -103,8 +116,11 @@ class V2WorkflowTests(unittest.TestCase):
                 except ValueError as exc:
                     if not corrupt_readback or str(exc)!='post-write verification failed':raise
                     result=json.loads((directory/'automatic_result.json').read_text())
+                except RuntimeError:
+                    if not upload_fail:raise
+                    result=json.loads((directory/'automatic_result.json').read_text())
         finally:budget.close()
-        return dict(result=result,writer=writer,product=product,original=original,root=directory,calls=calls,manager=manager,policy=policy)
+        return dict(result=result,writer=writer,product=product,original=original,root=directory,calls=calls,manager=manager,policy=policy,transport=transport,auditor=auditor)
 
     def test_delete_keep_and_independent_deferred_one_save(self):
         with tempfile.TemporaryDirectory() as root:
@@ -113,7 +129,7 @@ class V2WorkflowTests(unittest.TestCase):
             self.assertEqual(s['result']['status'],'PARTIALLY_AUTO_FIXED')
             self.assertEqual(len(s['product']['images']['main']),2)
             self.assertEqual(s['product']['descriptionJson'],s['original']['descriptionJson'])
-            self.assertEqual(s['calls'].count('image_action_decision'),4)
+            self.assertEqual(s['calls'].count('image_action_decision'),3)
 
     def test_remove_text_dedup_upload_and_readback(self):
         with tempfile.TemporaryDirectory() as root:

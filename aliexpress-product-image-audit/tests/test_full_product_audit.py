@@ -182,7 +182,7 @@ class FullProductAuditTests(unittest.TestCase):
                     return expected
             templates=Path(root)/'templates.json'
             atomic_json(templates,{'required_shop_ids':[],'no_applicable_shop_ids':[7],'templates':[]})
-            result=run_full_audit(Path(root)/'jobs',1,7,Reader(),judge=Judge(),auditor=auditor,template_config=templates)
+            result=run_full_audit(Path(root)/'jobs',1,7,Reader(),judge=Judge(),auditor=auditor,template_config=templates,image_workflow='legacy')
             self.assertTrue(result['audit_complete'])
             self.assertEqual(result['image_and_reference_count'],7)
             self.assertEqual(result['site_save_calls'],0)

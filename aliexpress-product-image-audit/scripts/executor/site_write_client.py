@@ -21,14 +21,16 @@ class SiteWriteClient:
     def readonly_client(self):
         from site_client import ReadOnlySiteClient
         return ReadOnlySiteClient.from_transport(self.site)
-    def save(self,pid,product,*,expected_state_sha256):
+    def save(self,pid,product,*,expected_state_sha256,description_image_deletions=None,description_image_replacements=None):
         if self.metrics['site_save_calls'] >= 1:
             raise ValueError('save limit exceeded')
         self.metrics['site_save_calls'] += 1
         # Site.save performs one final GET and state hash check internally.
         self.metrics['site_get_calls'] += 1
-        extra={k:product[k] for k in ('titleEn','titleTranslationZh','skus','price','weight','identityJson','brandId') if k in product}
-        return self.site.save(pid,images=product.get('images'),desc=product.get('descriptionJson'),extra=extra,expected_state_hash=expected_state_sha256)
+        extra={k:product[k] for k in ('titleEn','titleTranslationZh','skus','price','weight','identityJson','brandId','presale') if k in product}
+        scoped={'description_image_deletions':description_image_deletions} if description_image_deletions else {}
+        if description_image_replacements:scoped['description_image_replacements']=description_image_replacements
+        return self.site.save(pid,images=product.get('images'),desc=product.get('descriptionJson'),extra=extra,expected_state_hash=expected_state_sha256,**scoped)
     def upload(self,path):
         self.metrics['upload_calls'] += 1
         return self.site.upload(path)

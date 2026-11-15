@@ -35,15 +35,17 @@ class VisualQualityInspector:
         item['purpose']=action
         item['extra_images']=[dict(path=str(source),image_id='SOURCE',sha256=sha256(source))]
         item['evidence_ids'].append('SOURCE')
-        result=self.judge.classify('image_quality_v2',item,safe_payload({},context)['context'],attempts=1)
+        from model_config import review_models
+        models=review_models(self.judge.models)
+        result=self.judge.classify('image_quality_v2',item,safe_payload({},context)['context'],models=models,attempts=1)
         rows=result.get('results',[])
-        ok=(result.get('status')=='CLEAN' and len(rows)==2 and all(r.get('decision')=='MATCH' and not r.get('abstain') and r.get('confidence',0)>=MODEL_CONFIDENCE_MIN and all(r['checks'].values()) for r in rows))
+        ok=(result.get('status')=='CLEAN' and len(rows)==1 and result.get('models')==list(models) and all(r.get('decision')=='MATCH' and not r.get('abstain') and all(r['checks'].values()) for r in rows))
         status='PASS' if ok else 'FAIL_UNKNOWN'
-        if not ok and len(rows)==2 and all(not r.get('abstain') and r.get('confidence',0)>=MODEL_CONFIDENCE_MIN for r in rows):
+        if not ok and len(rows)==1 and all(not r.get('abstain') for r in rows):
             if any(not all(r['checks'][k] for k in ('identity_preserved','packaging_preserved','protected_print_preserved')) for r in rows):status='FAIL_IDENTITY'
             elif any(not r['checks']['overlay_removed'] for r in rows):status='FAIL_WATERMARK_REMAINS'
             elif any(not r['checks']['no_new_artifacts'] for r in rows):status='FAIL_RETRYABLE'
-        output=dict(checked,ok=ok,quality_status=status,judgement=result,evidence_ids=item['evidence_ids'])
+        output=dict(checked,ok=ok,quality_status=status,judgement=result,confidence_policy='RECORD_ONLY',evidence_ids=item['evidence_ids'])
         atomic_json(self.evidence/(item['id']+'.json'),output)
         return output
 

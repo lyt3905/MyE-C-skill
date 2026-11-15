@@ -19,7 +19,7 @@ class DecoratedCompositeTests(unittest.TestCase):
                 original_auditor(pid, shop, output_dir, site)
                 atomic_json(output_dir/'run_metrics.json', {'machine_audit_ms': 1})
             result = run_full_audit(Path(directory)/'jobs', 1, 7, reader, judge=judge,
-                                    auditor=auditor, template_config=template)
+                                    auditor=auditor, template_config=template,image_workflow='legacy')
             manager = JobManager(Path(directory)/'jobs')
             job = manager.load(result['job_id']); root = manager.directory(job['job_id'])
             atomic_json(root/'run_metrics.json', {'machine_audit_ms': 1, 'remedy_plan_ms': 2})

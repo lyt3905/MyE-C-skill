@@ -1,0 +1,14 @@
+{
+  "run_id": "16b49c10ece04426bfcca02304f17ed9",
+  "tests": 54,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "elapsed_seconds": 22.547,
+  "source_unchanged": true,
+  "source_files": 462,
+  "blocked_network_attempts": 0,
+  "real_model_calls": 0,
+  "production_writes": 0,
+  "exit_code": 0
+}

@@ -755,9 +755,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--shop", type=int, default=7)
     parser.add_argument("--no-ocr", action="store_true", help="skip RapidOCR passes")
     parser.add_argument("--force", action="store_true", help="redownload cached images")
+    parser.add_argument('--image-workflow',choices=['v2','legacy'],default='v2')
+    parser.add_argument('--site-config',type=Path)
+    parser.add_argument('--model-config',type=Path)
+    parser.add_argument('--root',type=Path,default=Path(__file__).parent/'work'/'v2')
     args = parser.parse_args(argv)
     if args.shop <= 0:
         parser.error("--shop must be a positive shop id")
+    if args.image_workflow=='v2':
+        from workflow_runner import main as workflow_main
+        forwarded=['run','--pid',str(args.pid),'--shop',str(args.shop),'--mode','read_only','--root',str(args.root)]
+        for flag,value in (('--site-config',args.site_config),('--model-config',args.model_config)):
+            if value is not None:forwarded.extend([flag,str(value)])
+        workflow_main(forwarded)
+        return 0
     started = time.time()
     try:
         flags = audit(args.pid, args.shop, no_ocr=args.no_ocr, force=args.force)

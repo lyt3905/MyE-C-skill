@@ -57,7 +57,7 @@ def validate_plan(plan):
     post = plan['post_actions']
     if post == []:  # Legacy empty representation, accepted only when empty.
         post = {}
-    allowed_post={'uploads','translate_title'} | ({'url_replacements','sku_assignments','sku_row_assignments','preserve_reference_urls','target_positions'} if automatic else set())
+    allowed_post={'uploads','translate_title'} | ({'url_replacements','sku_assignments','sku_row_assignments','preserve_reference_urls','target_positions','content_groups'} if automatic else set())
     if type(post) is not dict or set(post) - allowed_post or type(post.get('translate_title',False)) is not bool or type(post.get('uploads',[])) is not list:
         raise ValueError('invalid post actions')
     if 'url_replacements' in post:
@@ -89,6 +89,20 @@ def validate_plan(plan):
         for image_id,target in post['target_positions'].items():
             if type(image_id) is not str or type(target) is not dict or set(target)!={'pool','index'} or target['pool'] not in {'main','detail','sku'} or type(target['index']) is not int or target['index']<0 or target['index']>=len(desired.get('images',{}).get(target['pool'],[])):raise ValueError('invalid target position')
     targets = set()
+    if 'content_groups' in post:
+        groups=post['content_groups'];seen_urls=set();seen_sha=set()
+        if not isinstance(groups,list) or not groups:raise ValueError('INVALID_CONTENT_GROUPS')
+        for group in groups:
+            keys={'source_sha256','urls','action','candidate_sha256'}|({'replacement_url'} if group.get('action')=='REPLACE_TWIN' else set()) if isinstance(group,dict) else set()
+            if (not isinstance(group,dict) or set(group)!=keys or not _digest(group['source_sha256']) or
+                group['source_sha256'] in seen_sha or group['action'] not in {'DELETE','REMOVE_TEXT','AI_REGENERATE','REPLACE_TWIN'} or group['action'] not in plan['automation']['actions'] or
+                not isinstance(group['urls'],list) or not group['urls'] or any(not isinstance(u,str) or not u.startswith(('http://','https://')) or u in seen_urls for u in group['urls'])):raise ValueError('INVALID_CONTENT_GROUP')
+            if group['action']=='DELETE':
+                if group['candidate_sha256'] is not None:raise ValueError('INVALID_CONTENT_DELETE')
+            elif group['action']=='REPLACE_TWIN':
+                if not _digest(group['candidate_sha256']) or not isinstance(group['replacement_url'],str) or not group['replacement_url'].startswith(('https://','http://')):raise ValueError('UNBOUND_CONTENT_TWIN')
+            elif not _digest(group['candidate_sha256']) or group['candidate_sha256'] not in {r.get('sha256') for r in post.get('uploads',[])}:raise ValueError('UNBOUND_CONTENT_UPLOAD')
+            seen_urls.update(group['urls']);seen_sha.add(group['source_sha256'])
     if automatic and post.get('uploads') and not set(plan['automation']['actions'])&{'REPLACE_LOCAL','CROP_BANNER','BOX_NORMALIZE','ERASE_LOCAL','REMOVE_TEXT','AI_REGENERATE'}:
         raise ValueError('UNAUTHORIZED_UPLOAD_SCOPE')
     if automatic and post.get('translate_title') and ('TITLE_REWRITE' not in plan['automation']['actions'] or 'titleEn' not in desired):
@@ -97,10 +111,10 @@ def validate_plan(plan):
         if type(upload) is not dict or set(upload) != {'path','sha256','pool','index'}:
             raise ValueError('invalid upload action')
         _reference({k: upload[k] for k in ('path','sha256')})
-        if upload['pool'] not in ('main','detail','sku') or type(upload['index']) is not int or upload['index'] < 0:
+        if upload['pool'] not in (('main','detail','sku','description') if automatic and post.get('content_groups') else ('main','detail','sku')) or type(upload['index']) is not int or upload['index'] < 0:
             raise ValueError('invalid upload target')
         target = (upload['pool'], upload['index'])
-        if target in targets or upload['index'] >= len(desired.get('images',{}).get(upload['pool'],[])):
+        if target in targets or (upload['pool']!='description' and upload['index'] >= len(desired.get('images',{}).get(upload['pool'],[]))):
             raise ValueError('duplicate or missing upload target')
         targets.add(target)
     for key in ('evidence_refs','ai_judgement_refs'):

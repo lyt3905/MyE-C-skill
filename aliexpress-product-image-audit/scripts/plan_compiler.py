@@ -78,6 +78,16 @@ def compile_auto_plan(directory, job, candidates, policy):
             from remedy_binding import verify as verify_binding
             verify_binding(root,row,product)
             action=row['action']; target=row['target']
+            if row.get('v2_contract') and target.get('pool')=='description' and action in {'DELETE','REMOVE_TEXT','AI_REGENERATE','REPLACE_TWIN'}:
+                from description_images import body_image_nodes
+                index=target['index'];body={r['index']:r['url'] for r in body_image_nodes(product.get('descriptionJson'))}
+                if index not in body or body[index]!=row['source'].get('original_url',row['source']['url']) or ('description',index) in used:raise ValueError('INVALID_DESCRIPTION_TARGET')
+                used.add(('description',index))
+                if action not in {'DELETE','REPLACE_TWIN'}:
+                    asset=row['candidate_asset'];path=(root/asset['path']).resolve()
+                    if (asset['pool'],asset['index'])!=('description',index) or not path.is_relative_to(root.resolve()) or hashlib.sha256(path.read_bytes()).hexdigest()!=asset['sha256']:raise ValueError('ASSET_HASH_MISMATCH')
+                    uploads.append({k:asset[k] for k in ('path','sha256','pool','index')})
+                continue
             if action in {'REPLACE_TWIN','REPLACE_LOCAL','CROP_BANNER','BOX_NORMALIZE','ERASE_LOCAL','REMOVE_TEXT','AI_REGENERATE'}:
                 pool,index=target['pool'],target['index']
                 if row.get('v2_append_sku'):
@@ -89,8 +99,13 @@ def compile_auto_plan(directory, job, candidates, policy):
                 if target.get('image_id')!=pool.upper()+'_'+str(index).zfill(3): raise ValueError('IMAGE_ID_MISMATCH')
                 if action=='REPLACE_TWIN':
                     url=row['source']['url']
-                    if not any(url in urls for urls in images.values()): raise ValueError('SOURCE_NOT_IN_PRODUCT_POOL')
-                    original_url=images[pool][index]
+                    from description_images import body_image_nodes
+                    known={u for urls in images.values() if isinstance(urls,list) for u in urls}
+                    if row.get('v2_contract'):
+                        known.update(r['url'] for r in body_image_nodes(product.get('descriptionJson')))
+                        known.update(s.get('skuImageUrl') or s.get('imageUrl') or s.get('image') for s in product.get('skus',[]))
+                    if url not in known: raise ValueError('SOURCE_NOT_IN_PRODUCT_POOL')
+                    original_url=row['source'].get('original_url',images[pool][index])
                     images[pool][index]=url
                     if original_url not in protected_urls:mappings[original_url]=url
                 else:
@@ -105,9 +120,20 @@ def compile_auto_plan(directory, job, candidates, policy):
                 if pool not in ({'main','detail','sku'} if action=='DELETE' else {'main','detail'}) or type(index) is not int or not 0<=index<len(images.get(pool,[])) or (pool,index) in used or target.get('image_id')!=pool.upper()+'_'+str(index).zfill(3):raise ValueError('INVALID_DELETION_TARGET')
                 used.add((pool,index));deletions.append((pool,index,product['images'][pool][index]))
             elif action=='SKU_ASSIGN':
-                if row.get('v2_contract') and row['source'].get('reference_deletions'):
+                if row.get('v2_contract') and (row['source'].get('reference_deletions') or row['source'].get('snapshot_reference_deletions')):
                     policy.authorize(job['pid'],job['shop_id'],['DELETE'],execution=execution)
                     if 'DELETE' not in plan['automation']['actions']:plan['automation']['actions'].append('DELETE')
+                if row.get('v2_contract') and row.get('sku_pool_urls'):
+                    # images.sku is an existing supported list; this does not
+                    # invent a second image field on an individual SKU row.
+                    allowed_urls={url for urls in (product.get('images') or {}).values() if isinstance(urls,list) for url in urls}
+                    allowed_urls.update(s.get('skuImageUrl') or s.get('imageUrl') or s.get('image') for s in product.get('skus',[]))
+                    if row.get('v2_contract'):
+                        from description_images import body_image_nodes
+                        allowed_urls.update(r['url'] for r in body_image_nodes(product.get('descriptionJson')))
+                    if any(url not in allowed_urls for url in row['sku_pool_urls']):raise ValueError('SKU_POOL_SOURCE_NOT_IN_PRODUCT')
+                    for url in row['sku_pool_urls']:
+                        if url not in images.setdefault('sku',[]):images['sku'].append(url)
                 if row.get('row_assignments'):
                     from snapshot_sku import validate_assignments
                     assignments=validate_assignments(product,row['row_assignments'])
@@ -119,14 +145,6 @@ def compile_auto_plan(directory, job, candidates, policy):
                     plan['post_actions']['sku_row_assignments']=deepcopy(assignments)
                     continue
                 assignments=row['assignments']
-                if row.get('v2_contract') and row.get('sku_pool_urls'):
-                    # images.sku is an existing supported list; this does not
-                    # invent a second image field on an individual SKU row.
-                    allowed_urls={url for urls in (product.get('images') or {}).values() if isinstance(urls,list) for url in urls}
-                    allowed_urls.update(s.get('skuImageUrl') or s.get('imageUrl') or s.get('image') for s in product.get('skus',[]))
-                    if any(url not in allowed_urls for url in row['sku_pool_urls']):raise ValueError('SKU_POOL_SOURCE_NOT_IN_PRODUCT')
-                    for url in row['sku_pool_urls']:
-                        if url not in images.setdefault('sku',[]):images['sku'].append(url)
                 known={str(s.get('skuId',s.get('id',''))) for s in product.get('skus',[])}
                 if not assignments or not set(assignments)<=known or set(assignments)!=set(target['sku_ids']):
                     raise ValueError('UNKNOWN_SKU_ASSIGNMENT')
@@ -169,6 +187,8 @@ def compile_auto_plan(directory, job, candidates, policy):
                 if row.get('v2_contract') and row['action']=='DELETE':
                     for sku_id,url in row['source'].get('sku_replacements',{}).items():
                         if plan['post_actions'].get('sku_assignments',{}).get(sku_id)!=url:raise ValueError('V2_DELETE_SKU_REPLACEMENT_NOT_IN_PLAN')
+                    for bound in row['source'].get('snapshot_sku_replacements',[]):
+                        if bound not in plan['post_actions'].get('sku_row_assignments',[]):raise ValueError('V2_DELETE_SKU_REPLACEMENT_NOT_IN_PLAN')
                 for reference in row.get('source',{}).get('retained_references',[]):
                     if (reference['pool'],reference['index']) in deleted_positions:raise ValueError('COMPOSITE_REFERENCE_MUST_REMAIN')
             for pool,index,url in sorted(deletions,key=lambda row:(row[0],-row[1])):del images[pool][index]
@@ -176,7 +196,7 @@ def compile_auto_plan(directory, job, candidates, policy):
             positions={}
             for row in safe:
                 target=row['target'];pool,index=target.get('pool'),target.get('index')
-                if pool is not None and row['action'] not in {'DELETE_REDUNDANT','DELETE'}:
+                if pool is not None and pool!='description' and row['action'] not in {'DELETE_REDUNDANT','DELETE'}:
                     positions[target['image_id']]={'pool':pool,'index':index-sum(p==pool and i<index for p,i,url in deletions)}
             if positions:plan['post_actions']['target_positions']=positions
         if mappings or uploads or images!=product.get('images',{}):
@@ -184,7 +204,12 @@ def compile_auto_plan(directory, job, candidates, policy):
         # SKU linkage is handled in the common simulator, including existing-pool twins.
         if mappings: plan['post_actions']['url_replacements']=mappings
         if uploads: plan['post_actions']['uploads']=uploads
-        if uploads and protected_urls:plan['post_actions']['preserve_reference_urls']=sorted(protected_urls)
+        if (uploads or any(r['action']=='REPLACE_TWIN' for r in safe)) and protected_urls:plan['post_actions']['preserve_reference_urls']=sorted(protected_urls)
+        if job.get('image_workflow')=='v2':
+            from image_content_plan import compile_groups
+            inventory=json.loads((root/'full_inventory.json').read_text(encoding='utf-8'))
+            groups=compile_groups(inventory,safe,rows)
+            if groups:plan['post_actions']['content_groups']=groups
         policy.authorize(job['pid'],job['shop_id'],plan['automation']['actions'],uploads=planned_upload_count(plan),execution=execution)
         validation=pre_apply_validate(product,plan)
         if not validation['ok'] and (plan['desired'] or plan['post_actions'] or not deferred):
@@ -196,6 +221,7 @@ def compile_auto_plan(directory, job, candidates, policy):
         names=['audit_product.json','remedy_candidates.json','auto_decisions.json','deferred_items.json']
         if job.get('image_workflow')=='v2':
             names += ['job.json','v2_action_proofs.json','v2_quality.json','v2_sku_selection.json']
+            names += ['full_visual_versions.json']
             names += [str(p.relative_to(root)) for p in sorted((root/'v2_candidates').rglob('*')) if p.is_file()]
         names += [n for n in ('full_audit_evidence_manifest.json','full_audit_report.json','full_inventory.json','full_ai_queue.json','full_ai_judgements.json','full_audit_protocol.json','coverage_matrix.json','audit_account.json','conditional_decisions.json','candidate_quality.json','box_validation.json','deletion_validation.json','main_cleanup.json','audit_coverage.json','semantic_validation.json','ai_queue.json','ai_judgements.json','audit_flags.json','audit_raw.json','evidence_manifest.json') if (root/n).exists()]
         names += [str(p.relative_to(root)) for p in sorted((root/'quality_evidence').glob('*')) if p.is_file()]

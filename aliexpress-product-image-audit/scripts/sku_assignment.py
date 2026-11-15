@@ -2,29 +2,28 @@
 import json
 import re
 
-def select_v2(product, records):
+def select_v2(product, records, *, allow_snapshot_rows=False):
     """Select logical images first, then bind real IDs to the site's one URL field."""
-    from policy_engine import MODEL_CONFIDENCE_MIN as threshold
+    from ai_judge.image_action_decision import mark_disposition
     reasons=[];unique={r['sha256']:r for r in reversed(records)};rows=list(unique.values())
     def qualified(r):
         o=r.get('observation') or {}
         suitable=o.get('sku_suitability') or {}
         photo=suitable.get('is_retail_box_photo') if o.get('visual_class') in {'TOY_WITH_RETAIL_BOX','RETAIL_BOX_ONLY'} else suitable.get('is_toy_photo')
-        return (r.get('decision')=='KEEP' and o.get('confidence',0)>=threshold and not o.get('abstain') and
+        return (r.get('decision')=='KEEP' and not o.get('abstain') and
                 photo is True and
                 o.get('subject_complete') is True and o.get('clear') is True and min(r.get('width',0),r.get('height',0))>=800 and
-                all(o.get('product_identity',{}).get(k)=='YES' for k in ('same_product_as_context','structure_match','color_match')) and
-                not any(m.get('kind') in {'STORE_WATERMARK','PROMOTIONAL_TEXT','UNKNOWN_TEXT'} for m in o.get('watermarks',[])))
+                not any(mark_disposition(m)=='REMOVABLE' for m in o.get('watermarks',[])))
     clean=[r for r in rows if qualified(r)]
-    boxes=[r for r in clean if r['observation'].get('retail_box_status')=='PRESENT' and r['observation'].get('box_relation')=='SAME_PRODUCT' and
-           r['observation'].get('retail_box_confidence',0)>=threshold and r['observation'].get('visual_class') in {'TOY_WITH_RETAIL_BOX','RETAIL_BOX_ONLY'}]
+    boxes=[r for r in clean if r['observation'].get('retail_box_status')=='PRESENT' and
+           r['observation'].get('visual_class') in {'TOY_WITH_RETAIL_BOX','RETAIL_BOX_ONLY'}]
     selected=[];group='UNKNOWN'
-    rank=lambda r:(r['observation']['visual_class']!='TOY_WITH_RETAIL_BOX',-r['observation']['confidence'],-r['width']*r['height'],r['sha256'])
+    rank=lambda r:(r['observation']['visual_class']!='TOY_WITH_RETAIL_BOX',-r['width']*r['height'],r['sha256'])
     if boxes:
         group='WITH_RETAIL_BOX';selected=sorted(boxes,key=rank)[:1]
-    elif rows and all(r.get('observation') and r['observation'].get('retail_box_status')=='ABSENT' and r['observation'].get('retail_box_confidence',0)>=threshold and r.get('decision')!='REVIEW' for r in rows):
+    elif rows and all(r.get('observation') and r['observation'].get('retail_box_status')=='ABSENT' and r.get('decision')!='REVIEW' for r in rows):
         group='WITHOUT_RETAIL_BOX'
-        toys=sorted((r for r in clean if r['observation']['visual_class']=='TOY_PRODUCT'),key=lambda r:(-r['observation']['confidence'],-r['width']*r['height'],r['sha256']))
+        toys=sorted((r for r in clean if r['observation']['visual_class'] in {'TOY_PRODUCT','PRODUCT_MAIN','PRODUCT_DETAIL'}),key=lambda r:(-r['width']*r['height'],r['sha256']))
         if toys:
             selected=[toys[0]]
             second=next((r for r in toys[1:] if r['observation']['angle'] not in {'UNKNOWN',toys[0]['observation']['angle']}),None)
@@ -36,14 +35,46 @@ def select_v2(product, records):
     expected='with_box' if group=='WITH_RETAIL_BOX' else 'without_box'
     eligible=[(s,str(i)) for s,i in zip(skus,ids) if packaging(s.get('skuName',s.get('name','')))==expected]
     if len(skus)==1 and packaging(skus[0].get('skuName',skus[0].get('name',''))) in {expected,'unknown'} and not _complex_contents(skus[0].get('skuName',skus[0].get('name',''))):eligible=[(skus[0],str(ids[0]))]
-    assignments={}
-    # More than one matching variant requires color/model evidence beyond packaging.
+    assignments={};row_assignments=[];bindings={};bound=None
+    # Two unboxed product photos may illustrate the two existing purchase
+    # options; this does not change what packaging is visible in either photo.
+    kinds=[packaging(s.get('skuName',s.get('name',''))) for s in skus]
+    pair=(group=='WITHOUT_RETAIL_BOX' and len(selected)==2 and len({r['url'] for r in selected})==2 and
+          len(skus)==2 and set(kinds)=={'without_box','with_box'} and
+          all(not _complex_contents(s.get('skuName',s.get('name',''))) and
+              (s.get('originalBox') is None or type(s['originalBox']) is bool and s['originalBox']==(kind=='with_box'))
+              for s,kind in zip(skus,kinds)))
+    pair_indices=[kinds.index(kind) for kind in ('without_box','with_box')] if pair else []
+    def bind(indices):
+        unused=list(selected)
+        for index in indices:
+            current=skus[index].get('skuImageUrl') or skus[index].get('imageUrl') or skus[index].get('image')
+            chosen=next((r for r in unused if r['url']==current),unused[0])
+            unused.remove(chosen);bindings[index]=chosen
+            if valid:assignments[str(ids[index])]=chosen['url']
+            else:row_assignments.append(dict(bound[index],url=chosen['url']))
     if selected and valid and len(eligible)==1:
-        current=eligible[0][0].get('skuImageUrl') or eligible[0][0].get('imageUrl') or eligible[0][0].get('image')
-        assignments[eligible[0][1]]=current if current in {r['url'] for r in selected} else selected[0]['url']
+        bind(pair_indices or [next(i for i,value in enumerate(ids) if str(value)==eligible[0][1])])
+    elif selected and not valid and allow_snapshot_rows:
+        from snapshot_sku import locators
+        bound=locators(product)
+        indices=[i for i,s in enumerate(skus) if packaging(s.get('skuName',s.get('name','')))==expected]
+        if bound and len(indices)==1:
+            bind(pair_indices or indices)
+        else:reasons.append('SKU_MAPPING_UNRESOLVED')
     elif selected or skus:reasons.append('SKU_MAPPING_UNRESOLVED')
-    if len(selected)>1:reasons.append('SITE_SINGLE_IMAGE_REFERENCE')
-    return dict(sku_packaging_decision=group,selected_sku_images=[dict(image_id=r['image_id'],sha256=r['sha256'],url=r['url'],logical_sku_group=group,target_sku_id=next(iter(assignments),None)) for r in selected],assignments=assignments,reason_codes=reasons,site_multi_image_supported=False)
+    second_assigned=len(bindings)==2 and len({r['sha256'] for r in bindings.values()})==2
+    if len(selected)>1 and not second_assigned:reasons.append('SITE_SINGLE_IMAGE_REFERENCE')
+    capabilities=dict(scope='CURRENT_WRITER_AND_INPUT_SNAPSHOT_ONLY',scalar_reference_fields=sorted({key for sku in skus for key in ('skuImageUrl','imageUrl','image') if isinstance(sku.get(key),str)}),writer_multi_reference_supported=False,other_interfaces_verified=False,second_reference_assigned=second_assigned,second_reference_scope='DISTINCT_SKU_ROWS' if second_assigned else None)
+    images=[]
+    for r in selected:
+        index=next((i for i,candidate in bindings.items() if candidate['sha256']==r['sha256']),None)
+        target_group=('WITH_RETAIL_BOX' if kinds[index]=='with_box' else 'WITHOUT_RETAIL_BOX') if index is not None else group
+        images.append(dict(image_id=r['image_id'],sha256=r['sha256'],url=r['url'],logical_sku_group=target_group,
+                           source_retail_box_status=r['observation'].get('retail_box_status'),
+                           target_sku_id=str(ids[index]) if index is not None and valid else None,
+                           target_sku_locator=bound[index] if index is not None and bound else None))
+    return dict(sku_packaging_decision=group,selected_sku_images=images,assignments=assignments,row_assignments=row_assignments,reason_codes=reasons,site_multi_image_supported=False,capability_evidence=capabilities)
 
 def packaging(name):
     name=str(name).lower()

@@ -28,7 +28,7 @@ class RepairSkuTests(unittest.TestCase):
         result=select_v2({'skus':[{'skuName':'Without Box'}]},self.records())
         self.assertFalse(result['assignments']);self.assertIn('SKU_MAPPING_UNRESOLVED',result['reason_codes'])
 
-    def test_box_prefers_toy_with_box_at_user_threshold(self):
+    def test_box_prefers_toy_with_box_without_using_confidence_for_ranking(self):
         from sku_assignment import select_v2
         rows=self.records()
         for n,row in enumerate(rows[:2]):

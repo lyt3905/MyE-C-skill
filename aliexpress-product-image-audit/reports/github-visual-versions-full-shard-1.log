@@ -1,0 +1,724 @@
+[gpu-sitecustomize] RapidOCR -> CUDA (ort=D:\GitHub\MyE-C-skill\ae-img-audit\_gpuocr\ort_gpu12)
+test_fence_does_not_relax_schema (test_ai_judge_json_content.JsonContentTests.test_fence_does_not_relax_schema) ... ok
+test_mixed_or_incomplete_content_rejected (test_ai_judge_json_content.JsonContentTests.test_mixed_or_incomplete_content_rejected) ... ok
+test_plain_and_complete_single_fences (test_ai_judge_json_content.JsonContentTests.test_plain_and_complete_single_fences) ... ok
+test_main_entry_defaults_to_offline_and_does_not_create_site_job (test_audit_mainflow_stability.MainEntryTests.test_main_entry_defaults_to_offline_and_does_not_create_site_job) ... ok
+test_old_report_status_can_be_read_without_updating_job (test_audit_mainflow_stability.MainEntryTests.test_old_report_status_can_be_read_without_updating_job) ... ok
+test_status_command_only_reads_local_progress (test_audit_mainflow_stability.MainEntryTests.test_status_command_only_reads_local_progress) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "DISPATCHED", "sequence": 2, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 2}
+{"event": "DISPATCHED", "sequence": 3, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 3}
+{"event": "DISPATCHED", "sequence": 4, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 4}
+{"event": "DISPATCHED", "sequence": 5, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 5}
+{"event": "DISPATCHED", "sequence": 6, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 6}
+{"event": "DISPATCHED", "sequence": 7, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 7}
+{"event": "DISPATCHED", "sequence": 8, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 8}
+{"event": "DISPATCHED", "sequence": 9, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 9}
+{"event": "DISPATCHED", "sequence": 10, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 10}
+{"event": "DISPATCHED", "sequence": 11, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 11}
+{"event": "DISPATCHED", "sequence": 12, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 12}
+{"event": "DISPATCHED", "sequence": 13, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 13}
+{"event": "DISPATCHED", "sequence": 14, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 14}
+{"event": "DISPATCHED", "sequence": 15, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 15}
+{"event": "DISPATCHED", "sequence": 16, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 16}
+{"event": "DISPATCHED", "sequence": 17, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 17}
+{"event": "DISPATCHED", "sequence": 18, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 18}
+{"event": "DISPATCHED", "sequence": 19, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 19}
+{"event": "DISPATCHED", "sequence": 20, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 20}
+{"event": "DISPATCHED", "sequence": 21, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 21}
+{"event": "DISPATCHED", "sequence": 22, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 22}
+{"event": "DISPATCHED", "sequence": 23, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 23}
+{"event": "DISPATCHED", "sequence": 24, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 24}
+test_empty_length_response_is_an_item_exception_and_other_tasks_continue (test_audit_mainflow_stability.MainFlowTests.test_empty_length_response_is_an_item_exception_and_other_tasks_continue) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+test_model_mismatch_remains_fatal (test_audit_mainflow_stability.MainFlowTests.test_model_mismatch_remains_fatal) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 1}
+{"event": "DISPATCHED", "sequence": 2, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 2}
+{"event": "DISPATCHED", "sequence": 3, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 3}
+{"event": "DISPATCHED", "sequence": 4, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 4}
+{"event": "DISPATCHED", "sequence": 5, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 5}
+{"event": "DISPATCHED", "sequence": 6, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 6}
+{"event": "DISPATCHED", "sequence": 7, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 7}
+{"event": "DISPATCHED", "sequence": 8, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 8}
+{"event": "DISPATCHED", "sequence": 9, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 9}
+{"event": "DISPATCHED", "sequence": 10, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 10}
+{"event": "DISPATCHED", "sequence": 11, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 11}
+{"event": "DISPATCHED", "sequence": 12, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 12}
+{"event": "DISPATCHED", "sequence": 13, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 13}
+{"event": "DISPATCHED", "sequence": 14, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 14}
+{"event": "DISPATCHED", "sequence": 15, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 15}
+{"event": "DISPATCHED", "sequence": 16, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 16}
+{"event": "DISPATCHED", "sequence": 17, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 17}
+{"event": "DISPATCHED", "sequence": 18, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 18}
+{"event": "DISPATCHED", "sequence": 19, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 19}
+{"event": "DISPATCHED", "sequence": 20, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 20}
+{"event": "DISPATCHED", "sequence": 21, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 21}
+{"event": "DISPATCHED", "sequence": 22, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 22}
+{"event": "DISPATCHED", "sequence": 23, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 23}
+{"event": "DISPATCHED", "sequence": 24, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 24}
+test_progress_is_durable_before_sender_and_unknown_does_not_block_next (test_audit_mainflow_stability.MainFlowTests.test_progress_is_durable_before_sender_and_unknown_does_not_block_next) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "DISPATCHED", "sequence": 2, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 2}
+{"event": "DISPATCHED", "sequence": 3, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 3}
+{"event": "DISPATCHED", "sequence": 4, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 4}
+{"event": "DISPATCHED", "sequence": 5, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 5}
+{"event": "DISPATCHED", "sequence": 6, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 6}
+{"event": "DISPATCHED", "sequence": 7, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 7}
+{"event": "DISPATCHED", "sequence": 8, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 8}
+{"event": "DISPATCHED", "sequence": 9, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 9}
+{"event": "DISPATCHED", "sequence": 10, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 10}
+{"event": "DISPATCHED", "sequence": 11, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 11}
+{"event": "DISPATCHED", "sequence": 12, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 12}
+{"event": "DISPATCHED", "sequence": 13, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 13}
+{"event": "DISPATCHED", "sequence": 14, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 14}
+{"event": "DISPATCHED", "sequence": 15, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 15}
+{"event": "DISPATCHED", "sequence": 16, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 16}
+{"event": "DISPATCHED", "sequence": 17, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 17}
+{"event": "DISPATCHED", "sequence": 18, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 18}
+{"event": "DISPATCHED", "sequence": 19, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 19}
+{"event": "DISPATCHED", "sequence": 20, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 20}
+{"event": "DISPATCHED", "sequence": 21, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 21}
+{"event": "DISPATCHED", "sequence": 22, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 22}
+{"event": "DISPATCHED", "sequence": 23, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 23}
+{"event": "DISPATCHED", "sequence": 24, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+test_schema_errors_complete_in_one_job_without_parent_or_retries (test_audit_mainflow_stability.MainFlowTests.test_schema_errors_complete_in_one_job_without_parent_or_retries) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+test_timeout_stops_without_retry_and_exposes_reason (test_audit_mainflow_stability.MainFlowTests.test_timeout_stops_without_retry_and_exposes_reason) ... ok
+test_title_authority_cannot_remap_images (test_auto_action_scope.ActionScopeTests.test_title_authority_cannot_remap_images) ... ok
+test_request_budget_failure_rolls_back_image_and_token_admission (test_auto_atomic_admission.AtomicAdmissionTests.test_request_budget_failure_rolls_back_image_and_token_admission) ... ok
+test_small_box_uploads_once_saves_once_and_reads_back (test_auto_box_workflow.BoxWorkflowTests.test_small_box_uploads_once_saves_once_and_reads_back) ... ok
+test_bad_final_structure_blocks_all (test_auto_compiler.AutoCompilerTests.test_bad_final_structure_blocks_all) ... ok
+test_safe_action_compiles_while_other_item_deferred (test_auto_compiler.AutoCompilerTests.test_safe_action_compiles_while_other_item_deferred) ... ok
+test_crop_intersecting_subject_is_rejected (test_auto_remedy.RemedyTests.test_crop_intersecting_subject_is_rejected) ... ok
+test_crop_produces_asset_and_keeps_subject (test_auto_remedy.RemedyTests.test_crop_produces_asset_and_keeps_subject) ... ok
+test_dirty_twin_rejected (test_auto_remedy.RemedyTests.test_dirty_twin_rejected) ... ok
+test_missing_verifier_never_auto_passes (test_auto_remedy.RemedyTests.test_missing_verifier_never_auto_passes) ... ok
+test_twin_requires_independent_quality (test_auto_remedy.RemedyTests.test_twin_requires_independent_quality) ... ok
+test_wrong_hash_is_rejected (test_auto_remedy.RemedyTests.test_wrong_hash_is_rejected) ... ok
+test_fake_rollback_restores_only_original_fields_with_one_new_save (test_auto_controlled_rollback.ControlledRollbackTests.test_fake_rollback_restores_only_original_fields_with_one_new_save) ... ok
+test_unknown_save_and_concurrent_edit_refuse_rollback (test_auto_controlled_rollback.ControlledRollbackTests.test_unknown_save_and_concurrent_edit_refuse_rollback) ... ok
+test_allowed_crop_still_requests_geometry (test_auto_deferral_diagnostics.DeferralDiagnosticsTests.test_allowed_crop_still_requests_geometry) ... ok
+test_disabled_geometry_actions_do_not_spend_on_model_proposals (test_auto_deferral_diagnostics.DeferralDiagnosticsTests.test_disabled_geometry_actions_do_not_spend_on_model_proposals) ... ok
+test_high_confidence_factory_still_keeps_without_remediation (test_auto_deferral_diagnostics.DeferralDiagnosticsTests.test_high_confidence_factory_still_keeps_without_remediation) ... ok
+test_low_confidence_factory_is_not_reported_as_failed_remediation (test_auto_deferral_diagnostics.DeferralDiagnosticsTests.test_low_confidence_factory_is_not_reported_as_failed_remediation) ... ok
+test_missing_model_results_are_explicit (test_auto_deferral_diagnostics.DeferralDiagnosticsTests.test_missing_model_results_are_explicit) ... ok
+test_missing_sku_ids_stop_before_spending_on_visual_assignment (test_auto_deferral_diagnostics.DeferralDiagnosticsTests.test_missing_sku_ids_stop_before_spending_on_visual_assignment) ... ok
+test_unverified_reference_does_not_hide_classification_blocker (test_auto_deferral_diagnostics.DeferralDiagnosticsTests.test_unverified_reference_does_not_hide_classification_blocker) ... ok
+test_box_official_uncertain_and_last_image_are_preserved (test_auto_deletion_planning.DeletionPlanningTests.test_box_official_uncertain_and_last_image_are_preserved) ... ok
+test_only_independently_verified_non_box_non_official_banner_can_delete (test_auto_deletion_planning.DeletionPlanningTests.test_only_independently_verified_non_box_non_official_banner_can_delete) ... ok
+test_erase_over_product_is_rejected (test_auto_erase.EraseTrialTests.test_erase_over_product_is_rejected) ... ok
+test_failed_independent_recheck_never_yields_candidate (test_auto_erase.EraseTrialTests.test_failed_independent_recheck_never_yields_candidate) ... ok
+test_simple_background_trial_preserves_every_outside_pixel (test_auto_erase.EraseTrialTests.test_simple_background_trial_preserves_every_outside_pixel) ... ok
+test_no_actual_change_never_saves (test_auto_execution_semantics.ExecuteSemanticsTests.test_no_actual_change_never_saves) ... ok
+test_translation_failure_is_pending_without_second_save (test_auto_execution_semantics.ExecuteSemanticsTests.test_translation_failure_is_pending_without_second_save) ... ok
+test_T09_box_deletion_rejected (test_v21_compiler.CompilerReviewTests.test_T09_box_deletion_rejected) ... ok
+test_T23_evidence_tampering_rejected_before_get (test_v21_compiler.CompilerReviewTests.test_T23_evidence_tampering_rejected_before_get) ... ok
+test_T23_plan_tampering_rejected_before_get (test_v21_compiler.CompilerReviewTests.test_T23_plan_tampering_rejected_before_get) ... ok
+test_deterministic_empty_plan (test_v21_compiler.CompilerReviewTests.test_deterministic_empty_plan) ... ok
+test_forbidden_change_rejected (test_v21_compiler.CompilerReviewTests.test_forbidden_change_rejected) ... ok
+test_live_dry_run_and_bound_receipt (test_v21_compiler.CompilerReviewTests.test_live_dry_run_and_bound_receipt) ... ok
+test_review_evidence_mutation_rejected (test_v21_compiler.CompilerReviewTests.test_review_evidence_mutation_rejected) ... ok
+test_unresolved_requires_review (test_v21_compiler.CompilerReviewTests.test_unresolved_requires_review) ... ok
+test_upload_has_visible_difference_without_mutation (test_auto_live_preview.LivePreviewTests.test_upload_has_visible_difference_without_mutation) ... ok
+test_auto_executor_cannot_bypass_save_budget (test_auto_local_budget.LocalBudgetTests.test_auto_executor_cannot_bypass_save_budget) ... ok
+test_image_change_preserves_existing_auxiliary_pools (test_auto_optional_pool_plan.OptionalPoolPlanTests.test_image_change_preserves_existing_auxiliary_pools) ... ok
+test_T09_box_deletion_rejected (test_v21_compiler.CompilerReviewTests.test_T09_box_deletion_rejected) ... ok
+test_T23_evidence_tampering_rejected_before_get (test_v21_compiler.CompilerReviewTests.test_T23_evidence_tampering_rejected_before_get) ... ok
+test_T23_plan_tampering_rejected_before_get (test_v21_compiler.CompilerReviewTests.test_T23_plan_tampering_rejected_before_get) ... ok
+test_deterministic_empty_plan (test_v21_compiler.CompilerReviewTests.test_deterministic_empty_plan) ... ok
+test_forbidden_change_rejected (test_v21_compiler.CompilerReviewTests.test_forbidden_change_rejected) ... ok
+test_live_dry_run_and_bound_receipt (test_v21_compiler.CompilerReviewTests.test_live_dry_run_and_bound_receipt) ... ok
+test_review_evidence_mutation_rejected (test_v21_compiler.CompilerReviewTests.test_review_evidence_mutation_rejected) ... ok
+test_unresolved_requires_review (test_v21_compiler.CompilerReviewTests.test_unresolved_requires_review) ... ok
+test_matching_product_hash_does_not_override_wrong_shop_session (test_auto_preview_identity.PreviewIdentityTests.test_matching_product_hash_does_not_override_wrong_shop_session) ... ok
+test_model_payload_has_no_paths_or_credentials (test_auto_quality_contract.QualityContractTests.test_model_payload_has_no_paths_or_credentials) ... ok
+test_quality_result_requires_independent_flags (test_auto_quality_contract.QualityContractTests.test_quality_result_requires_independent_flags) ... ok
+test_shared_deferred_reference_keeps_original_url (test_auto_reference_isolation.ReferenceIsolationTests.test_shared_deferred_reference_keeps_original_url) ... ok
+test_crop_intersecting_subject_is_rejected (test_auto_remedy.RemedyTests.test_crop_intersecting_subject_is_rejected) ... ok
+test_crop_produces_asset_and_keeps_subject (test_auto_remedy.RemedyTests.test_crop_produces_asset_and_keeps_subject) ... ok
+test_dirty_twin_rejected (test_auto_remedy.RemedyTests.test_dirty_twin_rejected) ... ok
+test_missing_verifier_never_auto_passes (test_auto_remedy.RemedyTests.test_missing_verifier_never_auto_passes) ... ok
+test_twin_requires_independent_quality (test_auto_remedy.RemedyTests.test_twin_requires_independent_quality) ... ok
+test_wrong_hash_is_rejected (test_auto_remedy.RemedyTests.test_wrong_hash_is_rejected) ... ok
+test_structure_and_content_check_existing_fake_workflow (test_auto_saved_check.SavedJobCheckTests.test_structure_and_content_check_existing_fake_workflow) ... ok
+test_sku_and_identity_requests_use_business_ids (test_auto_semantic_ids.SemanticIdentityTests.test_sku_and_identity_requests_use_business_ids) ... ok
+test_E14_conflicting_sku_color_never_assigns_other_color (test_auto_sku.SkuAssignmentTests.test_E14_conflicting_sku_color_never_assigns_other_color) ... ok
+test_bundle_content_needs_more_than_generic_model_packaging_observation (test_auto_sku.SkuAssignmentTests.test_bundle_content_needs_more_than_generic_model_packaging_observation) ... ok
+test_explicit_sku_model_conflict_defers_but_compact_aliases_remain_valid (test_auto_sku.SkuAssignmentTests.test_explicit_sku_model_conflict_defers_but_compact_aliases_remain_valid) ... ok
+test_missing_model_or_verification_defer (test_auto_sku.SkuAssignmentTests.test_missing_model_or_verification_defer) ... ok
+test_numeric_pack_contents_need_per_sku_proof (test_auto_sku.SkuAssignmentTests.test_numeric_pack_contents_need_per_sku_proof) ... ok
+test_shared_body_requires_no_change (test_auto_sku.SkuAssignmentTests.test_shared_body_requires_no_change) ... ok
+test_shared_box_reassigns_without_box_only (test_auto_sku.SkuAssignmentTests.test_shared_box_reassigns_without_box_only) ... ok
+test_without_box_has_no_valid_source (test_auto_sku.SkuAssignmentTests.test_without_box_has_no_valid_source) ... ok
+test_wrong_model_and_ambiguous_sources_defer (test_auto_sku.SkuAssignmentTests.test_wrong_model_and_ambiguous_sources_defer) ... ok
+test_clean_wrong_model_or_changed_bytes_cannot_verify (test_auto_sku_readback_binding.SkuReadbackBindingTests.test_clean_wrong_model_or_changed_bytes_cannot_verify) ... ok
+test_generated_assignment_reads_final_uploaded_url_and_bound_bytes (test_auto_sku_readback_binding.SkuReadbackBindingTests.test_generated_assignment_reads_final_uploaded_url_and_bound_bytes) ... ok
+test_twin_requires_model_and_packaging_not_only_phash (test_auto_twin_identity.TwinIdentityTests.test_twin_requires_model_and_packaging_not_only_phash) ... ok
+test_distinct_assets_use_stable_budget_and_identical_assets_share_it (test_auto_upload_budget_allocation.UploadBudgetAllocationTests.test_distinct_assets_use_stable_budget_and_identical_assets_share_it) ... ok
+test_zero_upload_budget_defers_asset_without_global_failure (test_auto_upload_budget_allocation.UploadBudgetAllocationTests.test_zero_upload_budget_defers_asset_without_global_failure) ... ok
+test_machine_scans_and_dual_semantics_are_both_required (test_auto_visual_quality.VisualQualityTests.test_machine_scans_and_dual_semantics_are_both_required) ... ok
+test_model_disagreement_cannot_pass (test_auto_visual_quality.VisualQualityTests.test_model_disagreement_cannot_pass) ... ok
+test_real_queue_twin_to_fake_executor_and_readback (test_auto_workflow.AutoWorkflowTests.test_real_queue_twin_to_fake_executor_and_readback) ... ok
+test_description_header_is_opaque_and_any_change_is_rejected (test_automation_description_opaque.OpaqueDescriptionTests.test_description_header_is_opaque_and_any_change_is_rejected) ... ok
+test_description_type_and_presence_remain_exact (test_automation_description_opaque.OpaqueDescriptionTests.test_description_type_and_presence_remain_exact) ... ok
+test_changed_original_source_is_rejected (test_batch_deletions.BatchDeletionTests.test_changed_original_source_is_rejected) ... ok
+test_compiles_three_deletions_and_exact_description (test_batch_deletions.BatchDeletionTests.test_compiles_three_deletions_and_exact_description) ... ok
+test_footer_text_and_unapproved_url_cannot_be_deleted (test_batch_deletions.BatchDeletionTests.test_footer_text_and_unapproved_url_cannot_be_deleted) ... ok
+test_keep_and_extra_image_are_rejected (test_batch_deletions.BatchDeletionTests.test_keep_and_extra_image_are_rejected) ... ok
+test_preserving_existing_sku_references_does_not_allow_new_urls (test_batch_deletions.BatchDeletionTests.test_preserving_existing_sku_references_does_not_allow_new_urls) ... ok
+test_input_state_rebinding_rejected (test_binding_budget_acceptance.BindingBudgetAcceptance.test_input_state_rebinding_rejected) ... ok
+test_token_reservation_settlement_and_unknown (test_binding_budget_acceptance.BindingBudgetAcceptance.test_token_reservation_settlement_and_unknown) ... ok
+test_default_and_gateway_profiles_use_deepseek_only (test_current_model_selection.CurrentModelSelectionTests.test_default_and_gateway_profiles_use_deepseek_only) ... ok
+test_disabled_model_is_rejected_before_opening_connection (test_current_model_selection.CurrentModelSelectionTests.test_disabled_model_is_rejected_before_opening_connection) ... ok
+test_selected_models_reach_dispatch_without_fallback (test_current_model_selection.CurrentModelSelectionTests.test_selected_models_reach_dispatch_without_fallback) ... ok
+test_adapter_passes_explicit_deletion_scope (test_description_image_edits.DescriptionImageEditTests.test_adapter_passes_explicit_deletion_scope) ... ok
+test_combined_deletion_replacement_adapter_path (test_description_image_edits.DescriptionImageEditTests.test_combined_deletion_replacement_adapter_path) ... ok
+test_delete_only_exact_body_image_and_preserve_footer (test_description_image_edits.DescriptionImageEditTests.test_delete_only_exact_body_image_and_preserve_footer) ... ok
+test_fake_save_and_independent_readback_preserve_non_image_content (test_description_image_edits.DescriptionImageEditTests.test_fake_save_and_independent_readback_preserve_non_image_content) ... ok
+test_legacy_description_mutation_remains_forbidden (test_description_image_edits.DescriptionImageEditTests.test_legacy_description_mutation_remains_forbidden) ... ok
+test_no_matching_body_image_keeps_original_bytes (test_description_image_edits.DescriptionImageEditTests.test_no_matching_body_image_keeps_original_bytes) ... ok
+test_non_image_nodes_with_url_are_not_deleted (test_description_image_edits.DescriptionImageEditTests.test_non_image_nodes_with_url_are_not_deleted) ... ok
+test_replace_body_image_preserves_properties_text_and_footer (test_description_image_edits.DescriptionImageEditTests.test_replace_body_image_preserves_properties_text_and_footer) ... ok
+test_stale_state_rejected_without_write (test_description_image_edits.DescriptionImageEditTests.test_stale_state_rejected_without_write) ... ok
+test_text_mutation_and_footer_deletion_are_rejected_before_put (test_description_image_edits.DescriptionImageEditTests.test_text_mutation_and_footer_deletion_are_rejected_before_put) ... ok
+test_transport_allows_only_declared_image_deletion (test_description_image_edits.DescriptionImageEditTests.test_transport_allows_only_declared_image_deletion) ... ok
+test_unmarked_tail_after_last_product_image_is_protected (test_description_image_edits.DescriptionImageEditTests.test_unmarked_tail_after_last_product_image_is_protected) ... ok
+test_emptying_previously_populated_pool_fails (test_existing_snapshot_preservation.ExistingSnapshotPreservationTests.test_emptying_previously_populated_pool_fails) ... ok
+test_new_orphan_reference_and_removing_previously_pooled_reference_fail (test_existing_snapshot_preservation.ExistingSnapshotPreservationTests.test_new_orphan_reference_and_removing_previously_pooled_reference_fail) ... ok
+test_unmodified_optional_pools_and_legacy_reference_are_preserved (test_existing_snapshot_preservation.ExistingSnapshotPreservationTests.test_unmodified_optional_pools_and_legacy_reference_are_preserved) ... ok
+test_changed_account_blocks_before_inference (test_full_audit_recovery.RecoveryTests.test_changed_account_blocks_before_inference) ... ok
+test_disabled_authorization_does_not_create_phase_or_call_models (test_full_audit_recovery.RecoveryTests.test_disabled_authorization_does_not_create_phase_or_call_models) ... ok
+{"completed_tasks": 1, "expected_tasks": 2, "item": "WM_fecbdd442582f25b", "status": "CLEAN"}
+{"completed_tasks": 2, "expected_tasks": 2, "item": "WM_eb356bfb0e06790b", "status": "CLEAN"}
+test_fake_recovery_preserves_parent_budget_and_unknown_total (test_full_audit_recovery.RecoveryTests.test_fake_recovery_preserves_parent_budget_and_unknown_total) ... ok
+test_human_labels_are_exact_sha_scoped_and_do_not_set_verdicts (test_full_audit_recovery.RecoveryTests.test_human_labels_are_exact_sha_scoped_and_do_not_set_verdicts) ... ok
+test_remote_content_drift_blocks_before_inference (test_full_audit_recovery.RecoveryTests.test_remote_content_drift_blocks_before_inference) ... ok
+test_select_only_unresolved_pairs_and_never_drop_sku_positions (test_full_audit_recovery.RecoveryTests.test_select_only_unresolved_pairs_and_never_drop_sku_positions) ... ok
+test_state_drift_blocks_before_inference (test_full_audit_recovery.RecoveryTests.test_state_drift_blocks_before_inference) ... ok
+test_limits_and_json (test_ipc.IPCCodecTests.test_limits_and_json) ... ok
+test_identity_required_before_connect (test_ipc.IPCIdentityTests.test_identity_required_before_connect) ... ok
+test_receive_timeout_cancels_partial_read (test_ipc.IPCIdentityTests.test_receive_timeout_cancels_partial_read) ... ok
+test_real_process_authorization (test_ipc.IPCProcessTests.test_real_process_authorization) ... ok
+test_fingerprint_is_canonical_validated_sha256 (test_model_gateway_config.ModelGatewayConfigTests.test_fingerprint_is_canonical_validated_sha256) ... ok
+test_integer_limits_exclude_boolean (test_model_gateway_config.ModelGatewayConfigTests.test_integer_limits_exclude_boolean) ... ok
+test_load_utf8_bom_and_sanitize_load_failures (test_model_gateway_config.ModelGatewayConfigTests.test_load_utf8_bom_and_sanitize_load_failures) ... ok
+test_models_accept_single_or_legacy_distinct_safe_identifiers (test_model_gateway_config.ModelGatewayConfigTests.test_models_accept_single_or_legacy_distinct_safe_identifiers) ... ok
+test_profile_is_copied_and_trailing_slash_normalized (test_model_gateway_config.ModelGatewayConfigTests.test_profile_is_copied_and_trailing_slash_normalized) ... ok
+test_required_and_extra_fields (test_model_gateway_config.ModelGatewayConfigTests.test_required_and_extra_fields) ... ok
+test_schema_is_exact (test_model_gateway_config.ModelGatewayConfigTests.test_schema_is_exact) ... ok
+test_urls_accept_https_and_exact_loopback_http (test_model_gateway_config.ModelGatewayConfigTests.test_urls_accept_https_and_exact_loopback_http) ... ok
+test_urls_reject_credentials_and_non_loopback_http (test_model_gateway_config.ModelGatewayConfigTests.test_urls_reject_credentials_and_non_loopback_http) ... ok
+test_captured_4083_poster_is_reviewed_without_policy_changes (test_model_policy_alignment.ModelPolicyAlignmentTests.test_captured_4083_poster_is_reviewed_without_policy_changes) ... ok
+test_fusion_status_preserves_every_existing_policy_disposition (test_model_policy_alignment.ModelPolicyAlignmentTests.test_fusion_status_preserves_every_existing_policy_disposition) ... ok
+test_review_only_classes_stay_review_even_with_high_model_agreement (test_model_policy_alignment.ModelPolicyAlignmentTests.test_review_only_classes_stay_review_even_with_high_model_agreement) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 1}
+{"event": "DISPATCHED", "sequence": 2, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 2}
+{"event": "DISPATCHED", "sequence": 3, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 3}
+{"event": "DISPATCHED", "sequence": 4, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 4}
+{"event": "DISPATCHED", "sequence": 5, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 5}
+{"event": "DISPATCHED", "sequence": 6, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 6}
+{"event": "DISPATCHED", "sequence": 7, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 7}
+{"event": "DISPATCHED", "sequence": 8, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 8}
+{"event": "DISPATCHED", "sequence": 9, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 9}
+{"event": "DISPATCHED", "sequence": 10, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 10}
+{"event": "DISPATCHED", "sequence": 11, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 11}
+{"event": "DISPATCHED", "sequence": 12, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 12}
+{"event": "DISPATCHED", "sequence": 13, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 13}
+{"event": "DISPATCHED", "sequence": 14, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 14}
+{"event": "DISPATCHED", "sequence": 15, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 15}
+{"event": "DISPATCHED", "sequence": 16, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 16}
+{"event": "DISPATCHED", "sequence": 17, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 17}
+{"event": "DISPATCHED", "sequence": 18, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 18}
+{"event": "DISPATCHED", "sequence": 19, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 19}
+{"event": "DISPATCHED", "sequence": 20, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 20}
+{"event": "DISPATCHED", "sequence": 21, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 21}
+{"event": "DISPATCHED", "sequence": 22, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 22}
+{"event": "DISPATCHED", "sequence": 23, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 23}
+{"event": "DISPATCHED", "sequence": 24, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 24}
+test_24_fake_calls_complete_with_no_budget_guarantee (test_observed_audit.ObservedAuditTests.test_24_fake_calls_complete_with_no_budget_guarantee) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 1}
+{"event": "DISPATCHED", "sequence": 2, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 2}
+{"event": "DISPATCHED", "sequence": 3, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 3}
+{"event": "DISPATCHED", "sequence": 4, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 4}
+{"event": "DISPATCHED", "sequence": 5, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 5}
+{"event": "DISPATCHED", "sequence": 6, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 6}
+{"event": "DISPATCHED", "sequence": 7, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 7}
+{"event": "DISPATCHED", "sequence": 8, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 8}
+{"event": "DISPATCHED", "sequence": 9, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 9}
+{"event": "DISPATCHED", "sequence": 10, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 10}
+{"event": "DISPATCHED", "sequence": 11, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 11}
+{"event": "DISPATCHED", "sequence": 12, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 12}
+{"event": "DISPATCHED", "sequence": 13, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 13}
+{"event": "DISPATCHED", "sequence": 14, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 14}
+{"event": "DISPATCHED", "sequence": 15, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 15}
+{"event": "DISPATCHED", "sequence": 16, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 16}
+{"event": "DISPATCHED", "sequence": 17, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 17}
+{"event": "DISPATCHED", "sequence": 18, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 18}
+{"event": "DISPATCHED", "sequence": 19, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 19}
+{"event": "DISPATCHED", "sequence": 20, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 20}
+{"event": "DISPATCHED", "sequence": 21, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 21}
+{"event": "DISPATCHED", "sequence": 22, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 22}
+{"event": "DISPATCHED", "sequence": 23, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 23}
+{"event": "DISPATCHED", "sequence": 24, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 24}
+test_attempt_is_durable_before_sender_and_raw_is_saved (test_observed_audit.ObservedAuditTests.test_attempt_is_durable_before_sender_and_raw_is_saved) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+test_bad_schema_or_timeout_stops_after_one_attempt (test_observed_audit.ObservedAuditTests.test_bad_schema_or_timeout_stops_after_one_attempt) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 1}
+{"event": "DISPATCHED", "sequence": 2, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 2}
+{"event": "DISPATCHED", "sequence": 3, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 3}
+{"event": "DISPATCHED", "sequence": 4, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 4}
+{"event": "DISPATCHED", "sequence": 5, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 5}
+{"event": "DISPATCHED", "sequence": 6, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 6}
+{"event": "DISPATCHED", "sequence": 7, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 7}
+{"event": "DISPATCHED", "sequence": 8, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 8}
+{"event": "DISPATCHED", "sequence": 9, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 9}
+{"event": "DISPATCHED", "sequence": 10, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 10}
+{"event": "DISPATCHED", "sequence": 11, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 11}
+{"event": "DISPATCHED", "sequence": 12, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 12}
+{"event": "DISPATCHED", "sequence": 13, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 13}
+{"event": "DISPATCHED", "sequence": 14, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 14}
+{"event": "DISPATCHED", "sequence": 15, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 15}
+{"event": "DISPATCHED", "sequence": 16, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 16}
+{"event": "DISPATCHED", "sequence": 17, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 17}
+{"event": "DISPATCHED", "sequence": 18, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 18}
+{"event": "DISPATCHED", "sequence": 19, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 19}
+{"event": "DISPATCHED", "sequence": 20, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 20}
+{"event": "DISPATCHED", "sequence": 21, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 21}
+{"event": "DISPATCHED", "sequence": 22, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 22}
+{"event": "DISPATCHED", "sequence": 23, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 23}
+{"event": "DISPATCHED", "sequence": 24, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 24}
+test_cannot_restart_completed_job (test_observed_audit.ObservedAuditTests.test_cannot_restart_completed_job) ... ok
+test_default_cli_is_offline (test_observed_audit.ObservedAuditTests.test_default_cli_is_offline) ... ok
+test_dispatch_failure_does_not_send (test_observed_audit.ObservedAuditTests.test_dispatch_failure_does_not_send) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+test_empty_output_length_is_diagnosed_and_not_used_as_result (test_observed_audit.ObservedAuditTests.test_empty_output_length_is_diagnosed_and_not_used_as_result) ... ok
+test_historical_job_cannot_be_run_or_written (test_observed_audit.ObservedAuditTests.test_historical_job_cannot_be_run_or_written) ... ok
+test_legacy_http_cannot_bypass_budget_with_prepared_generation_options (test_observed_audit.ObservedAuditTests.test_legacy_http_cannot_bypass_budget_with_prepared_generation_options) ... ok
+test_low_reasoning_generation_is_in_plan_and_real_body (test_observed_audit.ObservedAuditTests.test_low_reasoning_generation_is_in_plan_and_real_body) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 1}
+{"event": "DISPATCHED", "sequence": 2, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 2}
+{"event": "DISPATCHED", "sequence": 3, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 3}
+{"event": "DISPATCHED", "sequence": 4, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 4}
+{"event": "DISPATCHED", "sequence": 5, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 5}
+{"event": "DISPATCHED", "sequence": 6, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 6}
+{"event": "DISPATCHED", "sequence": 7, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 7}
+{"event": "DISPATCHED", "sequence": 8, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 8}
+{"event": "DISPATCHED", "sequence": 9, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 9}
+{"event": "DISPATCHED", "sequence": 10, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 10}
+{"event": "DISPATCHED", "sequence": 11, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 11}
+{"event": "DISPATCHED", "sequence": 12, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 12}
+{"event": "DISPATCHED", "sequence": 13, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 13}
+{"event": "DISPATCHED", "sequence": 14, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 14}
+{"event": "DISPATCHED", "sequence": 15, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 15}
+{"event": "DISPATCHED", "sequence": 16, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 16}
+{"event": "DISPATCHED", "sequence": 17, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 17}
+{"event": "DISPATCHED", "sequence": 18, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 18}
+{"event": "DISPATCHED", "sequence": 19, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 19}
+{"event": "DISPATCHED", "sequence": 20, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 20}
+{"event": "DISPATCHED", "sequence": 21, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 21}
+{"event": "DISPATCHED", "sequence": 22, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 22}
+{"event": "DISPATCHED", "sequence": 23, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 23}
+{"event": "DISPATCHED", "sequence": 24, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 24}
+test_missing_usage_does_not_stop_audit_or_become_zero (test_observed_audit.ObservedAuditTests.test_missing_usage_does_not_stop_audit_or_become_zero) ... ok
+test_no_real_authorization_rejects_before_transport (test_observed_audit.ObservedAuditTests.test_no_real_authorization_rejects_before_transport) ... ok
+test_request_limit_is_24_without_token_limit (test_observed_audit.ObservedAuditTests.test_request_limit_is_24_without_token_limit) ... ok
+test_source_changed_before_start_never_sends (test_observed_audit.ObservedAuditTests.test_source_changed_before_start_never_sends) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 1}
+{"event": "DISPATCHED", "sequence": 2, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 2}
+{"event": "DISPATCHED", "sequence": 3, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 3}
+{"event": "DISPATCHED", "sequence": 4, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 4}
+{"event": "DISPATCHED", "sequence": 5, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 5}
+{"event": "DISPATCHED", "sequence": 6, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 6}
+{"event": "DISPATCHED", "sequence": 7, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 7}
+{"event": "DISPATCHED", "sequence": 8, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 8}
+{"event": "DISPATCHED", "sequence": 9, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 9}
+{"event": "DISPATCHED", "sequence": 10, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 10}
+{"event": "DISPATCHED", "sequence": 11, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 11}
+{"event": "DISPATCHED", "sequence": 12, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 12}
+{"event": "DISPATCHED", "sequence": 13, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 13}
+{"event": "DISPATCHED", "sequence": 14, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 14}
+{"event": "DISPATCHED", "sequence": 15, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 15}
+{"event": "DISPATCHED", "sequence": 16, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 16}
+{"event": "DISPATCHED", "sequence": 17, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 17}
+{"event": "DISPATCHED", "sequence": 18, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 18}
+{"event": "DISPATCHED", "sequence": 19, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 19}
+{"event": "DISPATCHED", "sequence": 20, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 20}
+{"event": "DISPATCHED", "sequence": 21, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 21}
+{"event": "DISPATCHED", "sequence": 22, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 22}
+{"event": "DISPATCHED", "sequence": 23, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 23}
+{"event": "DISPATCHED", "sequence": 24, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 24}
+test_unknown_result_never_promoted_to_pass (test_observed_audit.ObservedAuditTests.test_unknown_result_never_promoted_to_pass) ... ok
+test_P0_ACCOUNT_01_same_server_principal_has_stable_fingerprint (test_p1p2_account_identity.VerifiedAccountTests.test_P0_ACCOUNT_01_same_server_principal_has_stable_fingerprint) ... ok
+test_P0_ACCOUNT_02_plan_binding_rejects_other_account_even_same_pid_shop (test_p1p2_account_identity.VerifiedAccountTests.test_P0_ACCOUNT_02_plan_binding_rejects_other_account_even_same_pid_shop) ... ok
+test_P0_ACCOUNT_02_same_shop_or_username_does_not_mask_different_account (test_p1p2_account_identity.VerifiedAccountTests.test_P0_ACCOUNT_02_same_shop_or_username_does_not_mask_different_account) ... ok
+test_P0_ACCOUNT_04_missing_current_shop_is_explicit_failure (test_p1p2_account_identity.VerifiedAccountTests.test_P0_ACCOUNT_04_missing_current_shop_is_explicit_failure) ... ok
+test_missing_or_conflicting_principal_never_uses_username_fallback (test_p1p2_account_identity.VerifiedAccountTests.test_missing_or_conflicting_principal_never_uses_username_fallback) ... ok
+JOB_786580ab6b144f43a0abe860cda23821
+test_default_audit_uses_the_supplied_read_session_not_environment_config (test_p1p2_default_read_session.DefaultReadSessionTests.test_default_audit_uses_the_supplied_read_session_not_environment_config) ... ok
+test_SCOPE_07_old_description_desired_and_post_actions_fail_closed (test_p1p2_scope_plans.ScopePlanV12Tests.test_SCOPE_07_old_description_desired_and_post_actions_fail_closed) ... ok
+test_SCOPE_07_old_description_permission_requires_migration (test_p1p2_scope_plans.ScopePlanV12Tests.test_SCOPE_07_old_description_permission_requires_migration) ... ok
+test_SCOPE_06_original_description_is_transmitted_without_parsing (test_p1p2_scope_wire.ScopeWireTests.test_SCOPE_06_original_description_is_transmitted_without_parsing) ... ok
+test_SCOPE_07_direct_writer_cannot_override_fixed_description (test_p1p2_scope_wire.ScopeWireTests.test_SCOPE_07_direct_writer_cannot_override_fixed_description) ... ok
+test_invalid_count_does_not_read (test_pending_selection.PendingSelectionTests.test_invalid_count_does_not_read) ... ok
+test_pending_first_page_and_shop_bracketing (test_pending_selection.PendingSelectionTests.test_pending_first_page_and_shop_bracketing) ... ok
+test_shop_mismatch_before_or_after_read_rejected (test_pending_selection.PendingSelectionTests.test_shop_mismatch_before_or_after_read_rejected) ... ok
+test_wrong_or_missing_status_rejected (test_pending_selection.PendingSelectionTests.test_wrong_or_missing_status_rejected) ... ok
+test_duplicate_upload_rejected (test_plan_v2_security.StrictPlanTests.test_duplicate_upload_rejected) ... ok
+test_nested_rejections (test_plan_v2_security.StrictPlanTests.test_nested_rejections) ... ok
+test_validation_returns_detached_snapshot (test_plan_v2_security.StrictPlanTests.test_validation_returns_detached_snapshot) ... ok
+test_nonfinite_expiration_and_boolean_limit_rejected (test_plan_v2_security.TicketShapeTests.test_nonfinite_expiration_and_boolean_limit_rejected) ... ok
+test_sign_detaches_payload (test_plan_v2_security.TicketShapeTests.test_sign_detaches_payload) ... ok
+test_preserve (test_policy_v2.PolicyTests.test_preserve) ... ok
+test_unknown_reviews (test_policy_v2.PolicyTests.test_unknown_reviews) ... ok
+test_block_no_retry (test_round2_budget.Round2BudgetTests.test_block_no_retry) ... ok
+test_sku_unknown_image_rejected (test_round2_budget.Round2BudgetTests.test_sku_unknown_image_rejected) ... ok
+test_template_source_bound_in_manifest (test_round2_budget.Round2BudgetTests.test_template_source_bound_in_manifest) ... ok
+test_unused_token_reservation_released (test_round2_budget.Round2BudgetTests.test_unused_token_reservation_released) ... ok
+test_zero_and_unknown (test_round2_budget.Round2BudgetTests.test_zero_and_unknown) ... ok
+test_low_confidence_never_keep (test_semantic_queue.SemanticQueueTests.test_low_confidence_never_keep) ... ok
+test_normal_items_do_not_call_ai (test_semantic_queue.SemanticQueueTests.test_normal_items_do_not_call_ai) ... ok
+test_ocr_model_contradiction_creates_candidate (test_semantic_queue.SemanticQueueTests.test_ocr_model_contradiction_creates_candidate) ... ok
+test_policy_values_drive_title_check (test_semantic_queue.SemanticQueueTests.test_policy_values_drive_title_check) ... ok
+test_semantics_mismatch_cannot_authorize_mutation (test_semantic_queue.SemanticQueueTests.test_semantics_mismatch_cannot_authorize_mutation) ... ok
+test_sku_reference_bound_to_real_image (test_semantic_queue.SemanticQueueTests.test_sku_reference_bound_to_real_image) ... ok
+test_title_semantics_uncertainty_does_not_queue_model_review (test_semantic_queue.SemanticQueueTests.test_title_semantics_uncertainty_does_not_queue_model_review) ... ok
+test_non_http_references_are_rejected_before_fetch (test_site_readback_headers.SiteReadbackHeadersTests.test_non_http_references_are_rejected_before_fetch) ... ok
+test_readback_uses_same_public_image_headers_as_audit (test_site_readback_headers.SiteReadbackHeadersTests.test_readback_uses_same_public_image_headers_as_audit) ... ok
+test_explicit_token_limit_is_enforced_resource (test_token_config.TokenConfigTests.test_explicit_token_limit_is_enforced_resource) ... ok
+test_same_raw_ocr_reclassified_per_title (test_token_opt.CacheIsolationTests.test_same_raw_ocr_reclassified_per_title) ... ok
+test_count_mismatch_fails_closed (test_token_opt.DescriptionTests.test_count_mismatch_fails_closed) ... ok
+test_legacy_exact_url_operation_is_forbidden_and_input_is_opaque (test_token_opt.DescriptionTests.test_legacy_exact_url_operation_is_forbidden_and_input_is_opaque) ... ok
+test_apply_uses_one_save_and_preserves_sku_fields (test_token_opt.ExecutorTests.test_apply_uses_one_save_and_preserves_sku_fields) ... ok
+test_dry_run_has_zero_mutations (test_token_opt.ExecutorTests.test_dry_run_has_zero_mutations) ... ok
+test_noop_dry_run_is_valid_but_noop_apply_is_rejected (test_token_opt.ExecutorTests.test_noop_dry_run_is_valid_but_noop_apply_is_rejected) ... ok
+test_post_readback_detects_unplanned_field_drift (test_token_opt.ExecutorTests.test_post_readback_detects_unplanned_field_drift) ... ok
+test_stale_state_rejected_before_save (test_token_opt.ExecutorTests.test_stale_state_rejected_before_save) ... ok
+test_explicit_empty_pools_are_valid (test_token_opt.PlanTests.test_explicit_empty_pools_are_valid) ... ok
+test_rejects_legacy_and_unknown_fields (test_token_opt.PlanTests.test_rejects_legacy_and_unknown_fields) ... ok
+test_state_hash_dict_order_stable_list_order_sensitive (test_token_opt.PlanTests.test_state_hash_dict_order_stable_list_order_sensitive) ... ok
+test_report_is_compact_and_does_not_fake_budget_pass (test_token_opt.ReportTests.test_report_is_compact_and_does_not_fake_budget_pass) ... ok
+test_box_semantic_disagreement_cannot_be_a_passed_deletion_review (test_v13_deletion_comparison.DeletionComparisonTests.test_box_semantic_disagreement_cannot_be_a_passed_deletion_review) ... ok
+test_comparison_and_single_image_review_keep_distinct_evidence_records (test_v13_deletion_comparison.DeletionComparisonTests.test_comparison_and_single_image_review_keep_distinct_evidence_records) ... ok
+test_legacy_explicit_reference_review_does_not_require_new_comparison_argument (test_v13_deletion_comparison.DeletionComparisonTests.test_legacy_explicit_reference_review_does_not_require_new_comparison_argument) ... ok
+test_real_inspector_binds_retained_full_image_for_both_model_judgements (test_v13_deletion_comparison.DeletionComparisonTests.test_real_inspector_binds_retained_full_image_for_both_model_judgements) ... ok
+test_direct_legacy_compiler_refuses_before_resolving_or_reading_description (test_v13_description_legacy.LegacyDescriptionScopeTests.test_direct_legacy_compiler_refuses_before_resolving_or_reading_description) ... ok
+test_legacy_preview_rejects_description_plan_before_reading_site (test_v13_description_legacy.LegacyDescriptionScopeTests.test_legacy_preview_rejects_description_plan_before_reading_site) ... ok
+test_obsolete_helpers_reject_before_reading_the_fixed_value (test_v13_description_legacy.LegacyDescriptionScopeTests.test_obsolete_helpers_reject_before_reading_the_fixed_value) ... ok
+test_shipped_example_allows_preview_but_not_execution (test_v13_example_preauthorization.ExamplePreauthorizationTests.test_shipped_example_allows_preview_but_not_execution) ... ok
+test_standard_cli_refuses_copied_example_before_site_client (test_v13_example_preauthorization.ExamplePreauthorizationTests.test_standard_cli_refuses_copied_example_before_site_client) ... ok
+test_low_resolution_main_uses_existing_real_hd_bytes_without_upload_or_upscale (test_v13_hd_cli.HdCliTests.test_low_resolution_main_uses_existing_real_hd_bytes_without_upload_or_upscale) ... ok
+test_no_genuine_hd_or_identity_conflict_preserves_original (test_v13_hd_cli.HdCliTests.test_no_genuine_hd_or_identity_conflict_preserves_original) ... ok
+test_shared_url_replacement_updates_both_real_pools_without_losing_references (test_v13_hd_cli.HdCliTests.test_shared_url_replacement_updates_both_real_pools_without_losing_references) ... ok
+test_unrelated_missing_image_remains_deferred_while_safe_hd_action_completes (test_v13_hd_cli.HdCliTests.test_unrelated_missing_image_remains_deferred_while_safe_hd_action_completes) ... ok
+test_both_polarities_have_independent_bound_highpass (test_v13_highpass.HighpassTests.test_both_polarities_have_independent_bound_highpass) ... ok
+test_flat_image_has_explicit_empty_candidates (test_v13_highpass.HighpassTests.test_flat_image_has_explicit_empty_candidates) ... ok
+test_missing_indexes_do_not_bind_ocr_from_another_source (test_v13_highpass.HighpassTests.test_missing_indexes_do_not_bind_ocr_from_another_source) ... ok
+test_ocr_roi_coordinates_and_bytes_match_original_without_ownership_claim (test_v13_highpass.HighpassTests.test_ocr_roi_coordinates_and_bytes_match_original_without_ownership_claim) ... ok
+test_rerun_keeps_old_files_but_excludes_them_from_current_evidence (test_v13_highpass.HighpassTests.test_rerun_keeps_old_files_but_excludes_them_from_current_evidence) ... ok
+test_resized_residual_roi_maps_back_to_original_pixels (test_v13_highpass.HighpassTests.test_resized_residual_roi_maps_back_to_original_pixels) ... ok
+test_standard_cli_binds_highpass_and_roi_files_with_fake_writer (test_v13_highpass.HighpassTests.test_standard_cli_binds_highpass_and_roi_files_with_fake_writer) ... ok
+test_standard_cli_rejects_highpass_tamper_after_preview_before_upload (test_v13_highpass.HighpassTests.test_standard_cli_rejects_highpass_tamper_after_preview_before_upload) ... ok
+test_budget_blocked_is_not_a_zero_token_provider_call (test_v13_image_observations.ImageObservationTests.test_budget_blocked_is_not_a_zero_token_provider_call) ... ok
+test_download_elapsed_is_measured_per_unique_url (test_v13_image_observations.ImageObservationTests.test_download_elapsed_is_measured_per_unique_url) ... ok
+test_export_names_all_uncalled_models_including_budget_blocked_and_cache (test_v13_image_observations.ImageObservationTests.test_export_names_all_uncalled_models_including_budget_blocked_and_cache) ... ok
+test_invalid_json_still_accounts_actual_usage_and_missing_usage_is_unknown (test_v13_image_observations.ImageObservationTests.test_invalid_json_still_accounts_actual_usage_and_missing_usage_is_unknown) ... ok
+test_negative_provider_usage_is_unknown_in_both_events_and_aggregate (test_v13_image_observations.ImageObservationTests.test_negative_provider_usage_is_unknown_in_both_events_and_aggregate) ... ok
+test_real_call_and_cache_observations_keep_provider_and_usage_distinct (test_v13_image_observations.ImageObservationTests.test_real_call_and_cache_observations_keep_provider_and_usage_distinct) ... ok
+test_standard_cli_exports_each_image_with_independent_signals_and_no_description (test_v13_image_observations.ImageObservationTests.test_standard_cli_exports_each_image_with_independent_signals_and_no_description) ... ok
+test_cached_middle_read_is_reclassified_and_official_print_stays_unflagged (test_v13_middle_ocr.MiddleOcrTests.test_cached_middle_read_is_reclassified_and_official_print_stays_unflagged) ... ok
+test_middle_zoom_recovers_truncated_store_text_at_original_coordinates (test_v13_middle_ocr.MiddleOcrTests.test_middle_zoom_recovers_truncated_store_text_at_original_coordinates) ... ok
+test_standard_cli_middle_ocr_reaches_machine_candidate_queue_without_writes (test_v13_middle_ocr.MiddleOcrTests.test_standard_cli_middle_ocr_reaches_machine_candidate_queue_without_writes) ... ok
+test_tiny_image_remains_decodable_by_all_ocr_passes (test_v13_middle_ocr.MiddleOcrTests.test_tiny_image_remains_decodable_by_all_ocr_passes) ... ok
+test_inputs_identity_description_and_references_stay_strict (test_v13_pricing_readback.PricingReadbackTests.test_inputs_identity_description_and_references_stay_strict) ... ok
+test_only_derived_sku_amounts_are_excluded_from_postsave_comparison (test_v13_pricing_readback.PricingReadbackTests.test_only_derived_sku_amounts_are_excluded_from_postsave_comparison) ... ok
+test_readback_context_only_does_not_allow_outbound_repricing (test_v13_pricing_readback.PricingReadbackTests.test_readback_context_only_does_not_allow_outbound_repricing) ... ok
+test_missing_precrash_metrics_cannot_be_reported_as_actual_zero (test_v13_recovery_metrics.RecoveryMetricsTests.test_missing_precrash_metrics_cannot_be_reported_as_actual_zero) ... ok
+test_recovery_cache_retains_previous_usage_and_report_refresh_is_idempotent (test_v13_recovery_metrics.RecoveryMetricsTests.test_recovery_cache_retains_previous_usage_and_report_refresh_is_idempotent) ... ok
+test_second_transport_phase_adds_usage_and_prior_unknown_stays_unknown (test_v13_recovery_metrics.RecoveryMetricsTests.test_second_transport_phase_adds_usage_and_prior_unknown_stays_unknown) ... ok
+test_brand_code_cli_updates_only_known_unambiguous_field (test_v13_remaining_actions_cli.RemainingActionsCliTests.test_brand_code_cli_updates_only_known_unambiguous_field) ... ok
+test_bundle_or_accessory_spec_without_item_level_content_proof_does_not_get_generic_body (test_v13_remaining_actions_cli.RemainingActionsCliTests.test_bundle_or_accessory_spec_without_item_level_content_proof_does_not_get_generic_body) ... ok
+test_conflicting_explicit_sku_model_never_receives_parent_model_image (test_v13_remaining_actions_cli.RemainingActionsCliTests.test_conflicting_explicit_sku_model_never_receives_parent_model_image) ... ok
+test_conflicting_sku_is_deferred_while_independent_valid_sku_is_fixed (test_v13_remaining_actions_cli.RemainingActionsCliTests.test_conflicting_sku_is_deferred_while_independent_valid_sku_is_fixed) ... ok
+test_explicit_official_pool_cli_uploads_real_hd_with_provenance (test_v13_remaining_actions_cli.RemainingActionsCliTests.test_explicit_official_pool_cli_uploads_real_hd_with_provenance) ... ok
+test_low_resolution_sku_cli_repairs_image_pool_and_live_sku_reference (test_v13_remaining_actions_cli.RemainingActionsCliTests.test_low_resolution_sku_cli_repairs_image_pool_and_live_sku_reference) ... ok
+test_multicolor_skus_receive_their_own_verified_body_images (test_v13_remaining_actions_cli.RemainingActionsCliTests.test_multicolor_skus_receive_their_own_verified_body_images) ... ok
+test_uncertain_bundle_does_not_block_independent_simple_sku (test_v13_remaining_actions_cli.RemainingActionsCliTests.test_uncertain_bundle_does_not_block_independent_simple_sku) ... ok
+test_consensus_requires_two_distinct_models_and_watermark_tasks (test_v13_store_policy_consensus.StorePolicyConsensusTests.test_consensus_requires_two_distinct_models_and_watermark_tasks) ... ok
+test_owner_conflict_or_placeholder_still_defers (test_v13_store_policy_consensus.StorePolicyConsensusTests.test_owner_conflict_or_placeholder_still_defers) ... ok
+test_protected_categories_never_merge_with_store_or_each_other (test_v13_store_policy_consensus.StorePolicyConsensusTests.test_protected_categories_never_merge_with_store_or_each_other) ... ok
+test_review_policy_low_confidence_and_abstention_stay_deferred (test_v13_store_policy_consensus.StorePolicyConsensusTests.test_review_policy_low_confidence_and_abstention_stay_deferred) ... ok
+test_same_specific_store_and_existing_remove_policy_form_candidate (test_v13_store_policy_consensus.StorePolicyConsensusTests.test_same_specific_store_and_existing_remove_policy_form_candidate) ... ok
+test_brand_gate_keeps_independent_review (test_v13_title_single_translation.SingleTranslationTests.test_brand_gate_keeps_independent_review) ... ok
+test_missing_brand_reviewer_never_reuses_title_rules (test_v13_title_single_translation.SingleTranslationTests.test_missing_brand_reviewer_never_reuses_title_rules) ... ok
+test_standard_cli_saves_once_translates_once_without_title_review (test_v13_title_single_translation.SingleTranslationTests.test_standard_cli_saves_once_translates_once_without_title_review) ... ok
+test_title_and_translation_checks_make_no_model_calls (test_v13_title_single_translation.SingleTranslationTests.test_title_and_translation_checks_make_no_model_calls) ... ok
+test_translation_error_hangs_without_automatic_retranslation_or_resave (test_v13_title_single_translation.SingleTranslationTests.test_translation_error_hangs_without_automatic_retranslation_or_resave) ... ok
+test_T09_box_deletion_rejected (test_v21_compiler.CompilerReviewTests.test_T09_box_deletion_rejected) ... ok
+test_T23_evidence_tampering_rejected_before_get (test_v21_compiler.CompilerReviewTests.test_T23_evidence_tampering_rejected_before_get) ... ok
+test_T23_plan_tampering_rejected_before_get (test_v21_compiler.CompilerReviewTests.test_T23_plan_tampering_rejected_before_get) ... ok
+test_deterministic_empty_plan (test_v21_compiler.CompilerReviewTests.test_deterministic_empty_plan) ... ok
+test_forbidden_change_rejected (test_v21_compiler.CompilerReviewTests.test_forbidden_change_rejected) ... ok
+test_live_dry_run_and_bound_receipt (test_v21_compiler.CompilerReviewTests.test_live_dry_run_and_bound_receipt) ... ok
+test_review_evidence_mutation_rejected (test_v21_compiler.CompilerReviewTests.test_review_evidence_mutation_rejected) ... ok
+test_unresolved_requires_review (test_v21_compiler.CompilerReviewTests.test_unresolved_requires_review) ... ok
+test_registry_binary_only_labels_never_become_keep_or_other_truth (test_v2_accuracy.RegistryAccuracyTests.test_registry_binary_only_labels_never_become_keep_or_other_truth) ... ok
+test_registry_cannot_confirm_other_unreviewed_outcomes_or_fake_predictions (test_v2_accuracy.RegistryAccuracyTests.test_registry_cannot_confirm_other_unreviewed_outcomes_or_fake_predictions) ... ok
+test_registry_cli_reports_missing_predictions_and_rejects_legacy_mode (test_v2_accuracy.RegistryAccuracyTests.test_registry_cli_reports_missing_predictions_and_rejects_legacy_mode) ... ok
+test_registry_detects_image_and_existing_truth_drift (test_v2_accuracy.RegistryAccuracyTests.test_registry_detects_image_and_existing_truth_drift) ... ok
+test_registry_imports_only_explicit_action_without_mutating_rows (test_v2_accuracy.RegistryAccuracyTests.test_registry_imports_only_explicit_action_without_mutating_rows) ... ok
+test_registry_merges_complementary_same_sha_and_rejects_contradictions (test_v2_accuracy.RegistryAccuracyTests.test_registry_merges_complementary_same_sha_and_rejects_contradictions) ... ok
+test_box_directional_errors_and_unknown_are_not_absence (test_v2_accuracy.V2AccuracyTests.test_box_directional_errors_and_unknown_are_not_absence) ... ok
+test_conflicting_same_sha_is_rejected (test_v2_accuracy.V2AccuracyTests.test_conflicting_same_sha_is_rejected) ... ok
+test_empty_labels_do_not_invent_accuracy_or_release (test_v2_accuracy.V2AccuracyTests.test_empty_labels_do_not_invent_accuracy_or_release) ... ok
+test_gates_compute_statistics_but_never_grant_real_authorization (test_v2_accuracy.V2AccuracyTests.test_gates_compute_statistics_but_never_grant_real_authorization) ... ok
+test_invalid_or_excluded_fields_are_rejected (test_v2_accuracy.V2AccuracyTests.test_invalid_or_excluded_fields_are_rejected) ... ok
+test_low_confidence_is_record_only_but_abstention_is_deferred (test_v2_accuracy.V2AccuracyTests.test_low_confidence_is_record_only_but_abstention_is_deferred) ... ok
+test_missing_human_labels_and_severe_checks_never_pass_gates (test_v2_accuracy.V2AccuracyTests.test_missing_human_labels_and_severe_checks_never_pass_gates) ... ok
+test_real_declared_samples_require_actual_matching_image_bytes (test_v2_accuracy.V2AccuracyTests.test_real_declared_samples_require_actual_matching_image_bytes) ... ok
+test_review_is_abstention_and_not_an_error_or_fake_match (test_v2_accuracy.V2AccuracyTests.test_review_is_abstention_and_not_an_error_or_fake_match) ... ok
+test_same_sha_across_business_positions_counts_once (test_v2_accuracy.V2AccuracyTests.test_same_sha_across_business_positions_counts_once) ... ok
+test_sku_results_are_separate_for_with_and_without_box (test_v2_accuracy.V2AccuracyTests.test_sku_results_are_separate_for_with_and_without_box) ... ok
+test_synthetic_perfect_samples_never_satisfy_real_gate (test_v2_accuracy.V2AccuracyTests.test_synthetic_perfect_samples_never_satisfy_real_gate) ... ok
+test_box_composite_deletion_can_continue_when_packaging_evidence_remains (test_v2_completion.V2CompletionTests.test_box_composite_deletion_can_continue_when_packaging_evidence_remains) ... ok
+test_delete_sku_reassignment_to_repaired_image_resolves_both_operations (test_v2_completion.V2CompletionTests.test_delete_sku_reassignment_to_repaired_image_resolves_both_operations) ... ok
+test_deleted_image_sku_reference_is_reassigned_in_same_single_save (test_v2_completion.V2CompletionTests.test_deleted_image_sku_reference_is_reassigned_in_same_single_save) ... ok
+test_deletion_preserves_last_retail_box_evidence (test_v2_completion.V2CompletionTests.test_deletion_preserves_last_retail_box_evidence) ... ok
+test_failed_regeneration_identity_never_uploads_or_repeats_edit (test_v2_completion.V2CompletionTests.test_failed_regeneration_identity_never_uploads_or_repeats_edit) ... ok
+test_frozen_configured_edit_adapter_runs_through_normal_prepare_and_budget (test_v2_completion.V2CompletionTests.test_frozen_configured_edit_adapter_runs_through_normal_prepare_and_budget) ... ok
+test_full_audit_cli_defaults_to_v2_without_ocr_template_requirement (test_v2_completion.V2CompletionTests.test_full_audit_cli_defaults_to_v2_without_ocr_template_requirement) ... ok
+test_local_repair_preserves_transparency_outside_mask (test_v2_completion.V2CompletionTests.test_local_repair_preserves_transparency_outside_mask) ... ok
+test_local_torchscript_adapter_accepts_installed_lama_two_tensor_contract (test_v2_completion.V2CompletionTests.test_local_torchscript_adapter_accepts_installed_lama_two_tensor_contract) ... ok
+test_missing_sku_id_preserves_reference_while_independent_main_repair_continues (test_v2_completion.V2CompletionTests.test_missing_sku_id_preserves_reference_while_independent_main_repair_continues) ... ok
+test_possible_same_product_relation_is_record_only_and_uncertain_box_still_reviews (test_v2_completion.V2CompletionTests.test_possible_same_product_relation_is_record_only_and_uncertain_box_still_reviews) ... ok
+test_protected_and_unknown_text_keep_unchanged_with_v2_client (test_v2_completion.V2CompletionTests.test_protected_and_unknown_text_keep_unchanged_with_v2_client) ... ok
+test_reference_only_delete_is_resolved_by_authorized_existing_sku_assignment (test_v2_completion.V2CompletionTests.test_reference_only_delete_is_resolved_by_authorized_existing_sku_assignment) ... ok
+test_reference_only_review_remains_explicitly_deferred (test_v2_completion.V2CompletionTests.test_reference_only_review_remains_explicitly_deferred) ... ok
+test_reference_only_sku_image_is_repaired_uploaded_and_bound_to_existing_id (test_v2_completion.V2CompletionTests.test_reference_only_sku_image_is_repaired_uploaded_and_bound_to_existing_id) ... ok
+test_repaired_image_selected_for_sku_verifies_resolved_upload_url (test_v2_completion.V2CompletionTests.test_repaired_image_selected_for_sku_verifies_resolved_upload_url) ... ok
+test_retained_box_byte_drift_fails_content_verification_without_resave (test_v2_completion.V2CompletionTests.test_retained_box_byte_drift_fails_content_verification_without_resave) ... ok
+test_sku_selector_preserves_valid_existing_reference_and_respects_suitability (test_v2_completion.V2CompletionTests.test_sku_selector_preserves_valid_existing_reference_and_respects_suitability) ... ok
+test_standalone_v2_audit_freezes_new_job_and_uses_unified_strategy (test_v2_completion.V2CompletionTests.test_standalone_v2_audit_freezes_new_job_and_uses_unified_strategy) ... ok
+test_two_no_box_candidates_both_enter_existing_sku_image_pool (test_v2_completion.V2CompletionTests.test_two_no_box_candidates_both_enter_existing_sku_image_pool) ... ok
+test_v2_batch_stops_after_unknown_save_without_creating_next_job (test_v2_completion.V2CompletionTests.test_v2_batch_stops_after_unknown_save_without_creating_next_job) ... ok
+test_v2_cross_job_duplicate_plan_does_not_save_again (test_v2_completion.V2CompletionTests.test_v2_cross_job_duplicate_plan_does_not_save_again) ... ok
+test_v2_one_three_ten_products_use_real_jobs_and_shared_fake_ledger (test_v2_completion.V2CompletionTests.test_v2_one_three_ten_products_use_real_jobs_and_shared_fake_ledger) ... ok
+test_accessories_info_and_unrelated_boxes_never_selected_as_toy (test_v2_repairs_sku.RepairSkuTests.test_accessories_info_and_unrelated_boxes_never_selected_as_toy) ... ok
+test_blank_and_transparent_candidates_are_rejected (test_v2_repairs_sku.RepairSkuTests.test_blank_and_transparent_candidates_are_rejected) ... ok
+test_box_prefers_toy_with_box_without_using_confidence_for_ranking (test_v2_repairs_sku.RepairSkuTests.test_box_prefers_toy_with_box_without_using_confidence_for_ranking) ... ok
+test_fake_lama_is_distinct_from_real_model_validation (test_v2_repairs_sku.RepairSkuTests.test_fake_lama_is_distinct_from_real_model_validation) ... ok
+test_large_complex_requires_configured_lama (test_v2_repairs_sku.RepairSkuTests.test_large_complex_requires_configured_lama) ... ok
+test_mask_repair_preserves_outside_and_original (test_v2_repairs_sku.RepairSkuTests.test_mask_repair_preserves_outside_and_original) ... ok
+test_missing_id_no_snapshot_row_substitution (test_v2_repairs_sku.RepairSkuTests.test_missing_id_no_snapshot_row_substitution) ... ok
+test_no_box_distinct_angles_and_actual_id_single_reference (test_v2_repairs_sku.RepairSkuTests.test_no_box_distinct_angles_and_actual_id_single_reference) ... ok
+test_same_sha_different_urls_not_two_images_and_ambiguous_ids_not_guessed (test_v2_repairs_sku.RepairSkuTests.test_same_sha_different_urls_not_two_images_and_ambiguous_ids_not_guessed) ... ok
+test_uncertain_preserves_mapping_and_shortage_not_duplicated (test_v2_repairs_sku.RepairSkuTests.test_uncertain_preserves_mapping_and_shortage_not_duplicated) ... ok
+test_cache_key_includes_task_prompt (test_watermark_prompt_contract.WatermarkPromptTests.test_cache_key_includes_task_prompt) ... ok
+test_sent_prompt_has_one_explicit_watermark_contract (test_watermark_prompt_contract.WatermarkPromptTests.test_sent_prompt_has_one_explicit_watermark_contract) ... ok
+test_template_and_residual_are_real_outputs (test_workflow_evidence_integration.EvidenceIntegration.test_template_and_residual_are_real_outputs) ... ok
+test_input_binding_rejects_drift (test_workflow_v2.BindingRecoveryTests.test_input_binding_rejects_drift) ... ok
+test_live_lock_preserved (test_workflow_v2.BindingRecoveryTests.test_live_lock_preserved) ... ok
+test_other_job_lock_preserved (test_workflow_v2.BindingRecoveryTests.test_other_job_lock_preserved) ... ok
+test_atomic_budget (test_workflow_v2.ControlTests.test_atomic_budget) ... ok
+test_modified_binding_rejected (test_workflow_v2.ControlTests.test_modified_binding_rejected) ... ok
+test_no_state_skip (test_workflow_v2.ControlTests.test_no_state_skip) ... ok
+test_read_only_adapter (test_workflow_v2.ControlTests.test_read_only_adapter) ... ok
+test_resume_failed_audit (test_workflow_v2.ControlTests.test_resume_failed_audit) ... ok
+test_complete_and_resume_without_side_effects (test_workflow_v2.OfflineEndToEndTests.test_complete_and_resume_without_side_effects) ... ok
+
+----------------------------------------------------------------------
+Ran 326 tests in 328.326s
+
+OK
+{"job_id": "FAKE_ONLY", "audit_complete": null, "audit_status": null, "compliance_status": null, "unresolved_count": null}
+{"run_id": "98115c7de77b4a3f87b6545d929f235e", "tests": 326, "failures": 0, "errors": 0, "skipped": 0, "elapsed_seconds": 328.766, "source_unchanged": true, "source_files": 462, "blocked_network_attempts": 0, "real_model_calls": 0, "production_writes": 0, "exit_code": 0}

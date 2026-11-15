@@ -1,0 +1,891 @@
+{
+  "schema": "human-image-corrections/v1",
+  "scope": "8 user-confirmed historical source images; annotations are supplied observations, not new model predictions",
+  "rows": [
+    {
+      "id": "5085_DETAIL_01",
+      "file": "5085-detail-01.bin",
+      "sha256": "c360556722aaeca3259ba56b800124e66454175e5bfac8265df6dafbe0ea2b37",
+      "expected": "DELETE",
+      "role": "SELLER_NOTICE",
+      "raw_observation": {
+        "schema_version": "image-action-decision.v2",
+        "task_type": "image_action_decision",
+        "item_id": "IMG_c360556722aaeca3259ba56b800124e66454175e5bfac8265df6dafbe0ea2b37",
+        "image_id": "IMG_c360556722aaeca3259ba56b800124e66454175e5bfac8265df6dafbe0ea2b37",
+        "image_sha256": "c360556722aaeca3259ba56b800124e66454175e5bfac8265df6dafbe0ea2b37",
+        "image_type": "DETAIL",
+        "evidence_ids": [
+          "SOURCE_c360556722aaeca3259ba56b800124e66454175e5bfac8265df6dafbe0ea2b37"
+        ],
+        "confidence": 0.92,
+        "abstain": false,
+        "decision": "DELETE",
+        "visual_class": "TEXT_WATERMARK",
+        "retail_box_status": "ABSENT",
+        "retail_box_confidence": 0.96,
+        "retail_box_bbox": null,
+        "box_relation": "UNRELATED",
+        "toy_present": false,
+        "toy_confidence": 0.97,
+        "subject_complete": false,
+        "clear": true,
+        "angle": "UNKNOWN",
+        "background_complexity": "SMOOTH",
+        "reason": "The image is a whole-frame seller welcome/promotional text strip ('Dear friend, welcome to our store...') on a plain white background. There is no toy, no retail box, no packaging, and no product specification or other useful product information anywhere in the frame, so there is nothing to preserve or repair and no meaningful crop that would yield product imagery. Text ownership is not verifiable from pixels (no store name/logo identifying the seller), but per the whole-frame-notice rule unknown ownership does not block deletion of a pure promotional text image with no product photograph. No removable-overlay repair is appropriate because the text is the entire image content, so the whole image is unsuitable for product references.",
+        "preserve_regions": [],
+        "watermarks": [
+          {
+            "kind": "PROMOTIONAL_TEXT",
+            "bbox": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "confidence": 0.97,
+            "preserve_overlap_risk": "LOW",
+            "ownership_visual_guess": "Seller's own store welcome/promotional notice; specific store identity not visually determinable",
+            "region_type": "BBOX",
+            "owner": "UNKNOWN"
+          }
+        ],
+        "product_identity": {
+          "same_product_as_context": "UNKNOWN",
+          "model_visible": "UNKNOWN",
+          "structure_match": "UNKNOWN",
+          "color_match": "UNKNOWN"
+        },
+        "sku_suitability": {
+          "is_toy_photo": false,
+          "is_retail_box_photo": false,
+          "recommended_group": "UNKNOWN"
+        },
+        "field_confidences": {
+          "visual_class": 0.88,
+          "product_identity": 0.9,
+          "box_relation": 0.7,
+          "watermark_ownership": 0.35,
+          "sku_suitability": 0.9
+        }
+      },
+      "source_job": "JOB_7dfee47f5c994dc3bf9a59de1af6095f",
+      "source_result_sha256": "256d365c062b44760bff697e8b48a56d0e42df3b35eea3cbe99f7b1d7c976a1f",
+      "human_confirmation": "User identified another store introduction and requested deletion; real DeepSeek reidentification also DELETE."
+    },
+    {
+      "id": "5085_DETAIL_02",
+      "file": "5085-detail-02.bin",
+      "sha256": "be49fda2b68cf36dd9396e70f05b7e2300827a4e8be78f5ec6b0b37aec8c02b0",
+      "expected": "DELETE",
+      "role": "OTHER_STORE_FRAME",
+      "raw_observation": {
+        "schema_version": "image-action-decision.v2",
+        "task_type": "image_action_decision",
+        "item_id": "IMG_be49fda2b68cf36dd9396e70f05b7e2300827a4e8be78f5ec6b0b37aec8c02b0",
+        "image_id": "IMG_be49fda2b68cf36dd9396e70f05b7e2300827a4e8be78f5ec6b0b37aec8c02b0",
+        "image_sha256": "be49fda2b68cf36dd9396e70f05b7e2300827a4e8be78f5ec6b0b37aec8c02b0",
+        "image_type": "MAIN",
+        "confidence": 0.78,
+        "abstain": false,
+        "decision": "KEEP",
+        "visual_class": "DECORATED_COMPOSITE",
+        "retail_box_status": "PRESENT",
+        "retail_box_confidence": 0.95,
+        "retail_box_bbox": [
+          0.03,
+          0.04,
+          0.98,
+          0.43
+        ],
+        "box_relation": "POSSIBLY_SAME_PRODUCT",
+        "toy_present": true,
+        "toy_confidence": 0.99,
+        "subject_complete": true,
+        "clear": true,
+        "angle": "front views of boxes and figures",
+        "background_complexity": "SMOOTH",
+        "reason": "The image is a decorated promotional composite showing four Transformers RED retail boxes across the top and four loose figures below, plus a bottom store/promotional banner reading 'In stock' and 'GK Robot Toy Store'. The product and packaging content is clear and useful, so the image should be retained. Retail packaging is visibly present but shows multiple characters from the line, making exact same-product relation to the listing context uncertain and record-only. The bottom banner is a visible store/promotional text region, but its ownership relative to the listing cannot be resolved from pixels alone; do not remove unknown attribution from an otherwise usable product image.",
+        "evidence_ids": [
+          "SOURCE_be49fda2b68cf36dd9396e70f05b7e2300827a4e8be78f5ec6b0b37aec8c02b0"
+        ],
+        "preserve_regions": [
+          {
+            "kind": "retail box packaging print and manufacturer branding, box 1",
+            "bbox": [
+              0.03,
+              0.04,
+              0.27,
+              0.43
+            ]
+          },
+          {
+            "kind": "retail box packaging print and manufacturer branding, box 2",
+            "bbox": [
+              0.28,
+              0.04,
+              0.5,
+              0.43
+            ]
+          },
+          {
+            "kind": "retail box packaging print and manufacturer branding, box 3",
+            "bbox": [
+              0.52,
+              0.04,
+              0.74,
+              0.43
+            ]
+          },
+          {
+            "kind": "retail box packaging print and manufacturer branding, box 4",
+            "bbox": [
+              0.76,
+              0.04,
+              0.98,
+              0.43
+            ]
+          },
+          {
+            "kind": "loose figure product detail, Megatron",
+            "bbox": [
+              0.04,
+              0.46,
+              0.25,
+              0.85
+            ]
+          },
+          {
+            "kind": "loose figure product detail, Cheetor",
+            "bbox": [
+              0.25,
+              0.48,
+              0.49,
+              0.8
+            ]
+          },
+          {
+            "kind": "loose figure product detail, Optimus Primal",
+            "bbox": [
+              0.48,
+              0.52,
+              0.74,
+              0.88
+            ]
+          },
+          {
+            "kind": "loose figure product detail, Coronation Starscream",
+            "bbox": [
+              0.72,
+              0.46,
+              0.96,
+              0.8
+            ]
+          }
+        ],
+        "watermarks": [
+          {
+            "kind": "PROMOTIONAL_TEXT",
+            "bbox": [
+              0.02,
+              0.86,
+              0.38,
+              0.97
+            ],
+            "confidence": 0.95,
+            "preserve_overlap_risk": "LOW",
+            "ownership_visual_guess": "Large 'In stock' promotional banner text; ownership relative to the listing is unresolved.",
+            "region_type": "BBOX",
+            "owner": "UNKNOWN"
+          },
+          {
+            "kind": "STORE_WATERMARK",
+            "bbox": [
+              0.49,
+              0.87,
+              0.93,
+              0.97
+            ],
+            "confidence": 0.95,
+            "preserve_overlap_risk": "LOW",
+            "ownership_visual_guess": "Visible store name 'GK Robot Toy Store'; ownership relative to the listing is unresolved.",
+            "region_type": "BBOX",
+            "owner": "UNKNOWN"
+          },
+          {
+            "kind": "PACKAGING_PRINT",
+            "bbox": [
+              0.04,
+              0.05,
+              0.26,
+              0.43
+            ],
+            "confidence": 0.85,
+            "preserve_overlap_risk": "HIGH",
+            "region_type": "BBOX",
+            "owner": "PACKAGING"
+          },
+          {
+            "kind": "PACKAGING_PRINT",
+            "bbox": [
+              0.28,
+              0.05,
+              0.5,
+              0.43
+            ],
+            "confidence": 0.85,
+            "preserve_overlap_risk": "HIGH",
+            "region_type": "BBOX",
+            "owner": "PACKAGING"
+          },
+          {
+            "kind": "PACKAGING_PRINT",
+            "bbox": [
+              0.52,
+              0.05,
+              0.74,
+              0.43
+            ],
+            "confidence": 0.85,
+            "preserve_overlap_risk": "HIGH",
+            "region_type": "BBOX",
+            "owner": "PACKAGING"
+          },
+          {
+            "kind": "PACKAGING_PRINT",
+            "bbox": [
+              0.76,
+              0.05,
+              0.98,
+              0.43
+            ],
+            "confidence": 0.85,
+            "preserve_overlap_risk": "HIGH",
+            "region_type": "BBOX",
+            "owner": "PACKAGING"
+          }
+        ],
+        "product_identity": {
+          "same_product_as_context": "UNKNOWN",
+          "model_visible": "NO",
+          "structure_match": "UNKNOWN",
+          "color_match": "UNKNOWN"
+        },
+        "sku_suitability": {
+          "is_toy_photo": true,
+          "is_retail_box_photo": true,
+          "recommended_group": "WITH_RETAIL_BOX"
+        },
+        "field_confidences": {
+          "visual_class": 0.9,
+          "product_identity": 0.25,
+          "box_relation": 0.4,
+          "watermark_ownership": 0.2,
+          "sku_suitability": 0.7
+        }
+      },
+      "source_job": "JOB_537ac52336e24fe9ab0dae64599df248",
+      "source_result_sha256": "ae7a2dad366560b312abc66fa0330b2bd1ebf33a70ee953302ba0db3dd7ea785",
+      "human_confirmation": "User explicitly requested whole-image deletion for other-store frame"
+    },
+    {
+      "id": "5085_DETAIL_03",
+      "file": "5085-detail-03.bin",
+      "sha256": "48f89851f846cf2275007a94abbacd9cc581271908abe5e89a86f20c3c4fa500",
+      "expected": "REMOVE_TEXT",
+      "role": "ADDED_WATERMARK",
+      "raw_observation": {
+        "schema_version": "image-action-decision.v2",
+        "task_type": "image_action_decision",
+        "item_id": "IMG_48f89851f846cf2275007a94abbacd9cc581271908abe5e89a86f20c3c4fa500",
+        "image_id": "IMG_48f89851f846cf2275007a94abbacd9cc581271908abe5e89a86f20c3c4fa500",
+        "image_sha256": "48f89851f846cf2275007a94abbacd9cc581271908abe5e89a86f20c3c4fa500",
+        "image_type": "MAIN",
+        "confidence": 0.62,
+        "abstain": false,
+        "decision": "KEEP",
+        "visual_class": "TOY_PRODUCT",
+        "retail_box_status": "ABSENT",
+        "retail_box_confidence": 0.9,
+        "retail_box_bbox": null,
+        "box_relation": "UNRELATED",
+        "toy_present": true,
+        "toy_confidence": 0.97,
+        "subject_complete": true,
+        "clear": true,
+        "angle": "front three-quarter view",
+        "background_complexity": "SMOOTH",
+        "reason": "White-background product photo of a purple grid-patterned Decepticon-style robot figure posed with a large gun, a pink cube and a spiked pink flail, plus four alternate hands laid out at lower left. No retail packaging, carton or box is visible, so retail box status is ABSENT and box relation UNRELATED. A faint, semi-transparent cursive script watermark is spread across the mid-left to mid-right of the frame and passes over the figure's torso, arm and leg, giving MEDIUM-to-HIGH overlap risk with real product detail; ownership cannot be determined from pixels, so this unknown-owner text is retained unchanged per default KEEP policy rather than edited or deleted. The image is a usable, essentially complete same-class toy photograph with useful product information (sculpt, accessories, colour), so KEEP is chosen; identity fields are recorded as UNKNOWN/not directly verifiable from context and did not drive the action.",
+        "evidence_ids": [
+          "SOURCE_48f89851f846cf2275007a94abbacd9cc581271908abe5e89a86f20c3c4fa500"
+        ],
+        "preserve_regions": [
+          {
+            "kind": "toy figure body and head",
+            "bbox": [
+              0.22,
+              0.05,
+              0.78,
+              0.97
+            ]
+          },
+          {
+            "kind": "chest Decepticon faction insignia",
+            "bbox": [
+              0.4,
+              0.25,
+              0.47,
+              0.33
+            ]
+          },
+          {
+            "kind": "gun accessory",
+            "bbox": [
+              0.03,
+              0.28,
+              0.36,
+              0.62
+            ]
+          },
+          {
+            "kind": "pink cube accessory",
+            "bbox": [
+              0.68,
+              0.06,
+              0.82,
+              0.24
+            ]
+          },
+          {
+            "kind": "spiked flail accessory",
+            "bbox": [
+              0.72,
+              0.42,
+              0.99,
+              0.96
+            ]
+          },
+          {
+            "kind": "alternate hands",
+            "bbox": [
+              0.06,
+              0.65,
+              0.27,
+              0.91
+            ]
+          }
+        ],
+        "watermarks": [
+          {
+            "kind": "UNKNOWN_TEXT",
+            "bbox": [
+              0.0,
+              0.41,
+              0.79,
+              0.68
+            ],
+            "confidence": 0.6,
+            "preserve_overlap_risk": "HIGH",
+            "owner": "UNKNOWN",
+            "region_type": "BBOX",
+            "ownership_visual_guess": "semi-transparent cursive script superimposed over the product, likely a store or creator overlay but not verifiable"
+          }
+        ],
+        "product_identity": {
+          "same_product_as_context": "UNKNOWN",
+          "model_visible": "NO",
+          "structure_match": "UNKNOWN",
+          "color_match": "UNKNOWN"
+        },
+        "sku_suitability": {
+          "is_toy_photo": true,
+          "is_retail_box_photo": false,
+          "recommended_group": "WITHOUT_RETAIL_BOX"
+        },
+        "field_confidences": {
+          "visual_class": 0.93,
+          "product_identity": 0.2,
+          "box_relation": 0.9,
+          "watermark_ownership": 0.25,
+          "sku_suitability": 0.85
+        }
+      },
+      "source_job": "JOB_537ac52336e24fe9ab0dae64599df248",
+      "source_result_sha256": "ae7a2dad366560b312abc66fa0330b2bd1ebf33a70ee953302ba0db3dd7ea785",
+      "human_confirmation": "User explicitly confirmed faint added watermark removal",
+      "repair_mode": "BACKGROUND_GLYPHS",
+      "user_confirmed_region": [
+        0.05,
+        0.425,
+        0.95,
+        0.6875
+      ]
+    },
+    {
+      "id": "5085_DETAIL_04",
+      "file": "5085-detail-04.bin",
+      "sha256": "e6649b506a5aa2beb9fcaa8e92018881dbc08d568a4452e1c23e29d8ab396627",
+      "expected": "REMOVE_TEXT",
+      "role": "ADDED_WATERMARK",
+      "raw_observation": {
+        "schema_version": "image-action-decision.v2",
+        "task_type": "image_action_decision",
+        "item_id": "IMG_e6649b506a5aa2beb9fcaa8e92018881dbc08d568a4452e1c23e29d8ab396627",
+        "image_id": "IMG_e6649b506a5aa2beb9fcaa8e92018881dbc08d568a4452e1c23e29d8ab396627",
+        "image_sha256": "e6649b506a5aa2beb9fcaa8e92018881dbc08d568a4452e1c23e29d8ab396627",
+        "image_type": "MAIN",
+        "confidence": 0.9,
+        "abstain": false,
+        "decision": "KEEP",
+        "visual_class": "TOY_PRODUCT",
+        "retail_box_status": "ABSENT",
+        "retail_box_confidence": 0.97,
+        "retail_box_bbox": null,
+        "box_relation": "UNRELATED",
+        "toy_present": true,
+        "toy_confidence": 0.99,
+        "subject_complete": true,
+        "clear": true,
+        "angle": "front",
+        "background_complexity": "SMOOTH",
+        "reason": "Clear, complete front-view toy action figure on a smooth white background with no retail box visible. A faint unknown watermark overlaps the lower product area; ownership is unresolved and overlap risk is high, so the usable toy photograph should be kept with the text left unchanged. Context identity details are uncertain but are record-only and do not justify deletion.",
+        "evidence_ids": [
+          "SOURCE_e6649b506a5aa2beb9fcaa8e92018881dbc08d568a4452e1c23e29d8ab396627"
+        ],
+        "preserve_regions": [
+          {
+            "kind": "product_figure",
+            "bbox": [
+              0.08,
+              0.04,
+              0.91,
+              0.96
+            ]
+          },
+          {
+            "kind": "head_crest",
+            "bbox": [
+              0.39,
+              0.04,
+              0.57,
+              0.25
+            ]
+          },
+          {
+            "kind": "torso_armor",
+            "bbox": [
+              0.35,
+              0.22,
+              0.66,
+              0.5
+            ]
+          },
+          {
+            "kind": "weapon",
+            "bbox": [
+              0.06,
+              0.38,
+              0.31,
+              0.68
+            ]
+          },
+          {
+            "kind": "right_arm",
+            "bbox": [
+              0.66,
+              0.22,
+              0.92,
+              0.48
+            ]
+          },
+          {
+            "kind": "legs_and_feet",
+            "bbox": [
+              0.28,
+              0.5,
+              0.82,
+              0.96
+            ]
+          }
+        ],
+        "watermarks": [
+          {
+            "kind": "UNKNOWN_TEXT",
+            "bbox": [
+              0.33,
+              0.5,
+              0.75,
+              0.68
+            ],
+            "confidence": 0.65,
+            "preserve_overlap_risk": "HIGH",
+            "owner": "UNKNOWN",
+            "ownership_visual_guess": "UNKNOWN",
+            "region_type": "BBOX"
+          }
+        ],
+        "product_identity": {
+          "same_product_as_context": "UNKNOWN",
+          "model_visible": "NO",
+          "structure_match": "UNKNOWN",
+          "color_match": "UNKNOWN"
+        },
+        "sku_suitability": {
+          "is_toy_photo": true,
+          "is_retail_box_photo": false,
+          "recommended_group": "WITHOUT_RETAIL_BOX"
+        },
+        "field_confidences": {
+          "visual_class": 0.97,
+          "product_identity": 0.35,
+          "box_relation": 0.2,
+          "watermark_ownership": 0.1,
+          "sku_suitability": 0.95
+        }
+      },
+      "source_job": "JOB_537ac52336e24fe9ab0dae64599df248",
+      "source_result_sha256": "ae7a2dad366560b312abc66fa0330b2bd1ebf33a70ee953302ba0db3dd7ea785",
+      "human_confirmation": "User explicitly confirmed faint added watermark removal",
+      "repair_mode": "BACKGROUND_GLYPHS",
+      "user_confirmed_region": [
+        0.05,
+        0.425,
+        0.95,
+        0.6875
+      ]
+    },
+    {
+      "id": "5085_DETAIL_05",
+      "file": "5085-detail-05.bin",
+      "sha256": "0320948aca3c4fe2f1eb774502a02ab723c0ae65cab67a352dd03aa016665f28",
+      "expected": "REMOVE_TEXT",
+      "role": "ADDED_WATERMARK",
+      "raw_observation": {
+        "schema_version": "image-action-decision.v2",
+        "task_type": "image_action_decision",
+        "item_id": "IMG_0320948aca3c4fe2f1eb774502a02ab723c0ae65cab67a352dd03aa016665f28",
+        "image_id": "IMG_0320948aca3c4fe2f1eb774502a02ab723c0ae65cab67a352dd03aa016665f28",
+        "image_sha256": "0320948aca3c4fe2f1eb774502a02ab723c0ae65cab67a352dd03aa016665f28",
+        "image_type": "MAIN",
+        "confidence": 0.9,
+        "abstain": false,
+        "decision": "KEEP",
+        "visual_class": "TOY_PRODUCT",
+        "retail_box_status": "ABSENT",
+        "retail_box_confidence": 0.95,
+        "retail_box_bbox": null,
+        "box_relation": "UNRELATED",
+        "toy_present": true,
+        "toy_confidence": 0.98,
+        "subject_complete": true,
+        "clear": true,
+        "angle": "front view",
+        "background_complexity": "SMOOTH",
+        "reason": "The image is a clear, complete front-view product photograph of the black, white, and red ape-like robot figure on a smooth white background. No retail box, shipping carton, or display box is visible, so retail packaging is absent and the image is suitable for the WITHOUT_RETAIL_BOX grouping. The figure matches the listing context in visible structure and color; model, structure, color, and same-product observations are record-only and do not gate the action. A faint text-like watermark is visible across the middle of the image, overlapping the figure; its ownership is unresolved, so it is retained unchanged rather than removed. The image has useful product reference value and does not meet DELETE or REMOVE_TEXT conditions.",
+        "evidence_ids": [
+          "SOURCE_0320948aca3c4fe2f1eb774502a02ab723c0ae65cab67a352dd03aa016665f28"
+        ],
+        "preserve_regions": [
+          {
+            "kind": "toy figure main structure",
+            "bbox": [
+              0.07,
+              0.05,
+              0.95,
+              0.97
+            ]
+          },
+          {
+            "kind": "head and face details",
+            "bbox": [
+              0.3,
+              0.06,
+              0.53,
+              0.24
+            ]
+          },
+          {
+            "kind": "chest panel and product print",
+            "bbox": [
+              0.32,
+              0.22,
+              0.57,
+              0.47
+            ]
+          }
+        ],
+        "watermarks": [
+          {
+            "kind": "UNKNOWN_TEXT",
+            "bbox": [
+              0.03,
+              0.38,
+              0.86,
+              0.72
+            ],
+            "confidence": 0.6,
+            "preserve_overlap_risk": "HIGH",
+            "owner": "UNKNOWN"
+          }
+        ],
+        "product_identity": {
+          "same_product_as_context": "YES",
+          "model_visible": "YES",
+          "structure_match": "YES",
+          "color_match": "YES"
+        },
+        "sku_suitability": {
+          "is_toy_photo": true,
+          "is_retail_box_photo": false,
+          "recommended_group": "WITHOUT_RETAIL_BOX"
+        },
+        "field_confidences": {
+          "visual_class": 0.98,
+          "product_identity": 0.82,
+          "box_relation": 0.8,
+          "watermark_ownership": 0.2,
+          "sku_suitability": 0.95
+        }
+      },
+      "source_job": "JOB_537ac52336e24fe9ab0dae64599df248",
+      "source_result_sha256": "ae7a2dad366560b312abc66fa0330b2bd1ebf33a70ee953302ba0db3dd7ea785",
+      "human_confirmation": "User explicitly confirmed faint added watermark removal",
+      "repair_mode": "BACKGROUND_GLYPHS",
+      "user_confirmed_region": [
+        0.05,
+        0.425,
+        0.95,
+        0.6875
+      ]
+    },
+    {
+      "id": "4086_DETAIL_01",
+      "file": "4086-detail-01.bin",
+      "sha256": "df1cd09fa06dd466f8a778e5d061de92bfe42b8691e3fe4c75e19378641fbfe7",
+      "expected": "DELETE",
+      "role": "SELLER_NOTICE",
+      "raw_observation": {
+        "schema_version": "image-action-decision.v2",
+        "task_type": "image_action_decision",
+        "item_id": "IMG_df1cd09fa06dd466f8a778e5d061de92bfe42b8691e3fe4c75e19378641fbfe7",
+        "image_id": "IMG_df1cd09fa06dd466f8a778e5d061de92bfe42b8691e3fe4c75e19378641fbfe7",
+        "image_sha256": "df1cd09fa06dd466f8a778e5d061de92bfe42b8691e3fe4c75e19378641fbfe7",
+        "image_type": "DETAIL",
+        "evidence_ids": [
+          "SOURCE_df1cd09fa06dd466f8a778e5d061de92bfe42b8691e3fe4c75e19378641fbfe7"
+        ],
+        "confidence": 0.82,
+        "abstain": false,
+        "decision": "DELETE",
+        "visual_class": "TEXT_WATERMARK",
+        "retail_box_status": "ABSENT",
+        "retail_box_confidence": 0.9,
+        "retail_box_bbox": null,
+        "box_relation": "UNRELATED",
+        "toy_present": false,
+        "toy_confidence": 0.92,
+        "subject_complete": false,
+        "clear": true,
+        "angle": "UNKNOWN",
+        "background_complexity": "SMOOTH",
+        "reason": "Extremely wide thin strip (1240x184) containing only a single line of red promotional Chinese sales copy on plain white, with the text truncated at the right edge; no figure, no packaging, no product structure or accessory is visible. The wording mentions only a box steel-stamp number as text and shows no actual retail box, so no packaging is visually present. Because the frame is pure seller promotional text with no product evidence, there is no retained product image value to protect (and removing the text would leave an empty white strip), so the whole image is unsuitable as a product reference rather than a removable-overlay edit case; the deletion reason is lack of usable product content, not listing/identity mismatch. Text ownership is not verifiable from pixels and is recorded as unresolved, but that alone does not justify an edit or review here because nothing of product value would survive.",
+        "preserve_regions": [],
+        "watermarks": [
+          {
+            "kind": "PROMOTIONAL_TEXT",
+            "bbox": [
+              0.0,
+              0.14,
+              0.99,
+              0.63
+            ],
+            "confidence": 0.9,
+            "preserve_overlap_risk": "LOW",
+            "ownership_visual_guess": "seller/listing promotional banner text, ownership not visually determinable",
+            "owner": "UNKNOWN",
+            "region_type": "BBOX"
+          }
+        ],
+        "product_identity": {
+          "same_product_as_context": "UNKNOWN",
+          "model_visible": "UNKNOWN",
+          "structure_match": "UNKNOWN",
+          "color_match": "UNKNOWN"
+        },
+        "sku_suitability": {
+          "is_toy_photo": false,
+          "is_retail_box_photo": false,
+          "recommended_group": "UNKNOWN"
+        },
+        "field_confidences": {
+          "visual_class": 0.85,
+          "product_identity": 0.3,
+          "box_relation": 0.3,
+          "watermark_ownership": 0.3,
+          "sku_suitability": 0.8
+        },
+        "retail_box_bbox_note": null
+      },
+      "source_job": "JOB_eefd545518a7411681bc975ab65a2b9b",
+      "source_result_sha256": "6a4e0e24b2f95ff1da7958a283e69b1679dd8d88be761db0007a0475a7438c54",
+      "human_confirmation": "User confirmed these seller-notice images should be deleted"
+    },
+    {
+      "id": "4086_DETAIL_02",
+      "file": "4086-detail-02.bin",
+      "sha256": "d9fcb01acdd77cc41e53adbee02499e7983f327fd2a66f68ce3f9d8ee03b9a4f",
+      "expected": "DELETE",
+      "role": "SELLER_NOTICE",
+      "raw_observation": {
+        "schema_version": "image-action-decision.v2",
+        "task_type": "image_action_decision",
+        "item_id": "IMG_d9fcb01acdd77cc41e53adbee02499e7983f327fd2a66f68ce3f9d8ee03b9a4f",
+        "image_id": "IMG_d9fcb01acdd77cc41e53adbee02499e7983f327fd2a66f68ce3f9d8ee03b9a4f",
+        "image_sha256": "d9fcb01acdd77cc41e53adbee02499e7983f327fd2a66f68ce3f9d8ee03b9a4f",
+        "image_type": "DETAIL",
+        "confidence": 0.86,
+        "abstain": false,
+        "decision": "DELETE",
+        "visual_class": "INFORMATION_IMAGE",
+        "retail_box_status": "ABSENT",
+        "retail_box_confidence": 0.88,
+        "retail_box_bbox": null,
+        "box_relation": "UNRELATED",
+        "toy_present": false,
+        "toy_confidence": 0.9,
+        "subject_complete": false,
+        "clear": false,
+        "angle": "UNKNOWN",
+        "background_complexity": "SMOOTH",
+        "reason": "The image is a flat yellow text graphic headed 'NOTES TO BUY / 购买须知' containing only Chinese shop-purchase terms (sealed-box disclaimers, no 7-day return, inspect-before-signing instructions). No figure, no retail packaging, no product structure, print or packaging detail is visible, and the text is a whole-frame shop notice rather than an overlay on a product photograph, so there is no removable-overlay repair case and no retained product reference value. Deletion is based on absence of product/packaging photographic value, not on any identity mismatch. The store-notice text is recorded as a shop-authored promotional region with owner guessed OWN_STORE (visual guess only, not authorization); because the notice covers essentially the entire frame, removal would leave no content, which is why DELETE rather than REMOVE_TEXT is chosen. No protected product structures, logos, model text or packaging print exist in this frame, so preserve_regions is empty. Clear is false because no photographic product subject exists to judge, although the notice text itself is legible.",
+        "evidence_ids": [
+          "SOURCE_d9fcb01acdd77cc41e53adbee02499e7983f327fd2a66f68ce3f9d8ee03b9a4f"
+        ],
+        "preserve_regions": [],
+        "watermarks": [
+          {
+            "kind": "PROMOTIONAL_TEXT",
+            "bbox": [
+              0.0,
+              0.0,
+              1.0,
+              1.0
+            ],
+            "confidence": 0.88,
+            "preserve_overlap_risk": "HIGH",
+            "owner": "OWN_STORE",
+            "region_type": "BBOX",
+            "ownership_visual_guess": "OWN_STORE"
+          }
+        ],
+        "product_identity": {
+          "same_product_as_context": "UNKNOWN",
+          "model_visible": "NO",
+          "structure_match": "UNKNOWN",
+          "color_match": "UNKNOWN"
+        },
+        "sku_suitability": {
+          "is_toy_photo": false,
+          "is_retail_box_photo": false,
+          "recommended_group": "UNKNOWN"
+        },
+        "field_confidences": {
+          "visual_class": 0.9,
+          "product_identity": 0.5,
+          "box_relation": 0.85,
+          "watermark_ownership": 0.7,
+          "sku_suitability": 0.85
+        }
+      },
+      "source_job": "JOB_eefd545518a7411681bc975ab65a2b9b",
+      "source_result_sha256": "6a4e0e24b2f95ff1da7958a283e69b1679dd8d88be761db0007a0475a7438c54",
+      "human_confirmation": "User confirmed these seller-notice images should be deleted"
+    },
+    {
+      "id": "4086_DETAIL_12",
+      "file": "4086-detail-12.bin",
+      "sha256": "5252d1620e3434a5b242446b5321bb0349432ff5cc4f294bc9ca8b768a5d9609",
+      "expected": "DELETE",
+      "role": "SELLER_NOTICE",
+      "raw_observation": {
+        "schema_version": "image-action-decision.v2",
+        "task_type": "image_action_decision",
+        "item_id": "IMG_5252d1620e3434a5b242446b5321bb0349432ff5cc4f294bc9ca8b768a5d9609",
+        "image_id": "IMG_5252d1620e3434a5b242446b5321bb0349432ff5cc4f294bc9ca8b768a5d9609",
+        "image_sha256": "5252d1620e3434a5b242446b5321bb0349432ff5cc4f294bc9ca8b768a5d9609",
+        "image_type": "DETAIL",
+        "confidence": 0.9,
+        "abstain": false,
+        "decision": "DELETE",
+        "visual_class": "INFO_GRAPHIC",
+        "retail_box_status": "ABSENT",
+        "retail_box_confidence": 0.9,
+        "retail_box_bbox": null,
+        "box_relation": "UNRELATED",
+        "toy_present": false,
+        "toy_confidence": 0.93,
+        "subject_complete": false,
+        "clear": true,
+        "angle": "UNKNOWN",
+        "background_complexity": "SMOOTH",
+        "reason": "The image is entirely a Chinese-language seller notice/after-sales policy text block (green headline banner plus long paragraphs of buyer instructions about inspection, shipping, returns and feedback) on a plain white background. No toy figure, no retail packaging, no model or SKU-specific product detail, and no specifications or size chart are visible, so nothing here can serve as visual product evidence for the MPMN-01/MPMN-02 listing. The text is store-authored policy copy rather than a removable overlay on top of product content, so a text-removal edit would leave an empty image and local repair is pointless. Deleting this whole image is therefore based on its lack of retained product-reference value, not on any listing-identity mismatch; no other retained image is affected by this assessment.",
+        "evidence_ids": [
+          "SOURCE_5252d1620e3434a5b242446b5321bb0349432ff5cc4f294bc9ca8b768a5d9609"
+        ],
+        "preserve_regions": [],
+        "watermarks": [
+          {
+            "kind": "PROMOTIONAL_TEXT",
+            "bbox": [
+              0.02,
+              0.012,
+              0.45,
+              0.068
+            ],
+            "confidence": 0.85,
+            "preserve_overlap_risk": "LOW",
+            "owner": "OWN_STORE",
+            "region_type": "BBOX",
+            "ownership_visual_guess": "Seller's own store notice headline banner"
+          },
+          {
+            "kind": "PROMOTIONAL_TEXT",
+            "bbox": [
+              0.02,
+              0.09,
+              0.98,
+              0.99
+            ],
+            "confidence": 0.85,
+            "preserve_overlap_risk": "LOW",
+            "owner": "OWN_STORE",
+            "region_type": "BBOX",
+            "ownership_visual_guess": "Seller-authored after-sales and buyer instruction body text"
+          }
+        ],
+        "product_identity": {
+          "same_product_as_context": "UNKNOWN",
+          "model_visible": "NO",
+          "structure_match": "UNKNOWN",
+          "color_match": "UNKNOWN"
+        },
+        "sku_suitability": {
+          "is_toy_photo": false,
+          "is_retail_box_photo": false,
+          "recommended_group": "UNKNOWN"
+        },
+        "field_confidences": {
+          "visual_class": 0.92,
+          "product_identity": 0.3,
+          "box_relation": 0.2,
+          "watermark_ownership": 0.6,
+          "sku_suitability": 0.9
+        },
+        "retail_box_bbox_note": null
+      },
+      "source_job": "JOB_eefd545518a7411681bc975ab65a2b9b",
+      "source_result_sha256": "6a4e0e24b2f95ff1da7958a283e69b1679dd8d88be761db0007a0475a7438c54",
+      "human_confirmation": "User confirmed these seller-notice images should be deleted"
+    }
+  ]
+}

@@ -1,0 +1,434 @@
+[gpu-sitecustomize] RapidOCR -> CUDA (ort=D:\GitHub\MyE-C-skill\ae-img-audit\_gpuocr\ort_gpu12)
+test_25th_request_blocked (test_8788_real_validation.BudgetTests.test_25th_request_blocked) ... ok
+test_missing_or_inconsistent_usage_stops_and_never_zeroes (test_8788_real_validation.BudgetTests.test_missing_or_inconsistent_usage_stops_and_never_zeroes) ... ok
+test_next_worst_case_cannot_exceed_remaining_budget (test_8788_real_validation.BudgetTests.test_next_worst_case_cannot_exceed_remaining_budget) ... ok
+test_reserve_before_send_settle_and_count_failure (test_8788_real_validation.BudgetTests.test_reserve_before_send_settle_and_count_failure) ... ok
+test_supplier_exceeding_reserved_ceiling_latches_stop (test_8788_real_validation.BudgetTests.test_supplier_exceeding_reserved_ceiling_latches_stop) ... ok
+test_unknown_input_ceiling_blocks_before_request (test_8788_real_validation.BudgetTests.test_unknown_input_ceiling_blocks_before_request) ... ok
+test_24_fake_calls_partial_reports_mapping_and_source_immutable (test_8788_real_validation.RealValidationTests.test_24_fake_calls_partial_reports_mapping_and_source_immutable) ... ok
+test_all_failures_stop_without_retry_preserve_raw_and_usage (test_8788_real_validation.RealValidationTests.test_all_failures_stop_without_retry_preserve_raw_and_usage) ... ok
+test_contract_change_after_preflight_stops_before_first_call (test_8788_real_validation.RealValidationTests.test_contract_change_after_preflight_stops_before_first_call) ... ok
+test_default_cli_never_executes_and_modes_exclusive (test_8788_real_validation.RealValidationTests.test_default_cli_never_executes_and_modes_exclusive) ... usage: run_offline_tests.py [-h] [--source-job-dir SOURCE_JOB_DIR]
+                            [--input-manifest INPUT_MANIFEST]
+                            [--output-dir OUTPUT_DIR]
+                            [--model-config MODEL_CONFIG]
+                            [--max-provider-requests {24}]
+                            [--max-total-tokens {300000}] [--no-retry]
+                            [--no-site-write]
+                            [--preflight-only | --execute-real-models]
+run_offline_tests.py: error: argument --execute-real-models: not allowed with argument --preflight-only
+ok
+test_fake_entry_cannot_write_start_marker_into_historical_job (test_8788_real_validation.RealValidationTests.test_fake_entry_cannot_write_start_marker_into_historical_job) ... ok
+test_full_sha_six_images_16_positions_no_extra_sku_tasks (test_8788_real_validation.RealValidationTests.test_full_sha_six_images_16_positions_no_extra_sku_tasks) ... ok
+test_isolation_rejects_old_job_and_its_ancestors (test_8788_real_validation.RealValidationTests.test_isolation_rejects_old_job_and_its_ancestors) ... ok
+test_manifest_sha_dimensions_binding_and_scope_tamper_blocked (test_8788_real_validation.RealValidationTests.test_manifest_sha_dimensions_binding_and_scope_tamper_blocked) ... ok
+test_no_unsafe_cli_flags_and_fixed_caps (test_8788_real_validation.RealValidationTests.test_no_unsafe_cli_flags_and_fixed_caps) ... usage: run_offline_tests.py [-h] [--source-job-dir SOURCE_JOB_DIR]
+                            [--input-manifest INPUT_MANIFEST]
+                            [--output-dir OUTPUT_DIR]
+                            [--model-config MODEL_CONFIG]
+                            [--max-provider-requests {24}]
+                            [--max-total-tokens {300000}] [--no-retry]
+                            [--no-site-write]
+                            [--preflight-only | --execute-real-models]
+run_offline_tests.py: error: argument --max-provider-requests: invalid choice: '25' (choose from 24)
+usage: run_offline_tests.py [-h] [--source-job-dir SOURCE_JOB_DIR]
+                            [--input-manifest INPUT_MANIFEST]
+                            [--output-dir OUTPUT_DIR]
+                            [--model-config MODEL_CONFIG]
+                            [--max-provider-requests {24}]
+                            [--max-total-tokens {300000}] [--no-retry]
+                            [--no-site-write]
+                            [--preflight-only | --execute-real-models]
+run_offline_tests.py: error: argument --max-total-tokens: invalid choice: '500000' (choose from 300000)
+usage: run_offline_tests.py [-h] [--source-job-dir SOURCE_JOB_DIR]
+                            [--input-manifest INPUT_MANIFEST]
+                            [--output-dir OUTPUT_DIR]
+                            [--model-config MODEL_CONFIG]
+                            [--max-provider-requests {24}]
+                            [--max-total-tokens {300000}] [--no-retry]
+                            [--no-site-write]
+                            [--preflight-only | --execute-real-models]
+run_offline_tests.py: error: unrecognized arguments: --retry
+usage: run_offline_tests.py [-h] [--source-job-dir SOURCE_JOB_DIR]
+                            [--input-manifest INPUT_MANIFEST]
+                            [--output-dir OUTPUT_DIR]
+                            [--model-config MODEL_CONFIG]
+                            [--max-provider-requests {24}]
+                            [--max-total-tokens {300000}] [--no-retry]
+                            [--no-site-write]
+                            [--preflight-only | --execute-real-models]
+run_offline_tests.py: error: unrecognized arguments: --allow-budget-bypass
+ok
+test_overlay_includes_matched_and_unmatched_region_boxes (test_8788_real_validation.RealValidationTests.test_overlay_includes_matched_and_unmatched_region_boxes) ... ok
+test_preflight_no_network_no_judge_no_writer_default_blocked_budget (test_8788_real_validation.RealValidationTests.test_preflight_no_network_no_judge_no_writer_default_blocked_budget) ... ok
+test_schema_failure_records_actual_per_request_usage (test_8788_real_validation.RealValidationTests.test_schema_failure_records_actual_per_request_usage) ... ok
+test_source_modified_midrun_stops_before_next_send (test_8788_real_validation.RealValidationTests.test_source_modified_midrun_stops_before_next_send) ... ok
+test_used_job_never_restarts_or_reuses_authorization (test_8788_real_validation.RealValidationTests.test_used_job_never_restarts_or_reuses_authorization) ... ok
+test_boolean_confidence_rejected (test_ai_judge.JudgeTests.test_boolean_confidence_rejected) ... ok
+test_cache_context_isolated (test_ai_judge.JudgeTests.test_cache_context_isolated) ... ok
+test_empty_queue_no_calls (test_ai_judge.JudgeTests.test_empty_queue_no_calls) ... ok
+test_invalid_response_never_clean (test_ai_judge.JudgeTests.test_invalid_response_never_clean) ... ok
+test_pipeline_context_changes_with_sku_and_title (test_ai_judge.JudgeTests.test_pipeline_context_changes_with_sku_and_title) ... ok
+test_timeout_counted (test_ai_judge.JudgeTests.test_timeout_counted) ... ok
+test_unique_image_budget_and_missing_usage (test_ai_judge.JudgeTests.test_unique_image_budget_and_missing_usage) ... ok
+test_failures_and_no_retry (test_local_execution.ApplyTests.test_failures_and_no_retry) ... ok
+test_identity_confirmation (test_local_execution.ApplyTests.test_identity_confirmation) ... ok
+test_save_and_checker (test_local_execution.ApplyTests.test_save_and_checker) ... ok
+test_changed_comparison_bytes_cannot_reuse_cached_clean (test_auto_comparison_cache.ComparisonCacheTests.test_changed_comparison_bytes_cannot_reuse_cached_clean) ... ok
+test_E29_two_real_auditor_jobs_do_not_mix_shared_current_shop (test_auto_cross_shop_workflow.CrossShopWorkflowTests.test_E29_two_real_auditor_jobs_do_not_mix_shared_current_shop) ... ok
+test_booleans_and_arbitrary_sha_do_not_authorize_source (test_auto_evidence_binding.EvidenceBindingTests.test_booleans_and_arbitrary_sha_do_not_authorize_source) ... ok
+test_changed_box_evidence_is_rejected_before_any_writer_call (test_auto_evidence_binding.EvidenceBindingTests.test_changed_box_evidence_is_rejected_before_any_writer_call) ... ok
+test_failures_and_no_retry (test_local_execution.ApplyTests.test_failures_and_no_retry) ... ok
+test_identity_confirmation (test_local_execution.ApplyTests.test_identity_confirmation) ... ok
+test_save_and_checker (test_local_execution.ApplyTests.test_save_and_checker) ... ok
+test_content_failure_overrides_pending_translation (test_auto_failure_priority.FailurePriorityTests.test_content_failure_overrides_pending_translation) ... ok
+test_mixed_failure_halts_next_product (test_auto_failure_priority.FailurePriorityTests.test_mixed_failure_halts_next_product) ... ok
+test_failures_and_no_retry (test_local_execution.ApplyTests.test_failures_and_no_retry) ... ok
+test_identity_confirmation (test_local_execution.ApplyTests.test_identity_confirmation) ... ok
+test_save_and_checker (test_local_execution.ApplyTests.test_save_and_checker) ... ok
+test_explicit_provenance_and_hash_are_required (test_auto_local_pool.OfficialPoolTests.test_explicit_provenance_and_hash_are_required) ... ok
+test_planner_uses_product_identity_model (test_auto_local_pool.OfficialPoolTests.test_planner_uses_product_identity_model) ... ok
+test_readback_review_does_not_overwrite_original_quality_evidence (test_auto_quality_history.QualityEvidenceHistoryTests.test_readback_review_does_not_overwrite_original_quality_evidence) ... ok
+test_E01_clean_real_auditor_job_has_verifiable_readonly_artifacts (test_auto_readonly_acceptance.ReadonlyAcceptanceTests.test_E01_clean_real_auditor_job_has_verifiable_readonly_artifacts) ... ok
+test_missing_image_evidence_cannot_be_clean (test_auto_readonly_acceptance.ReadonlyAcceptanceTests.test_missing_image_evidence_cannot_be_clean) ... ok
+test_E07_disagreement_preserves_detail_while_independent_main_saves (test_auto_real_auditor_workflow.RealAuditorWorkflowTests.test_E07_disagreement_preserves_detail_while_independent_main_saves) ... ok
+test_E09_seven_main_can_save_only_after_safe_deletion_repairs_count (test_auto_real_auditor_workflow.RealAuditorWorkflowTests.test_E09_seven_main_can_save_only_after_safe_deletion_repairs_count) ... ok
+test_E10_box_deletion_is_deferred_in_real_auditor_workflow (test_auto_real_auditor_workflow.RealAuditorWorkflowTests.test_E10_box_deletion_is_deferred_in_real_auditor_workflow) ... ok
+test_E33_dirty_official_pool_is_rejected_in_real_auditor_workflow (test_auto_real_auditor_workflow.RealAuditorWorkflowTests.test_E33_dirty_official_pool_is_rejected_in_real_auditor_workflow) ... ok
+test_background_trial_from_real_auditor_to_fake_writer (test_auto_real_auditor_workflow.RealAuditorWorkflowTests.test_background_trial_from_real_auditor_to_fake_writer) ... ok
+test_official_local_pool_from_real_auditor_to_fake_writer (test_auto_real_auditor_workflow.RealAuditorWorkflowTests.test_official_local_pool_from_real_auditor_to_fake_writer) ... ok
+test_safe_deletion_from_real_auditor_preserves_description_structure (test_auto_real_auditor_workflow.RealAuditorWorkflowTests.test_safe_deletion_from_real_auditor_preserves_description_structure) ... ok
+test_finished_job_returns_persisted_result_without_reauditing (test_auto_recovery_policy.RecoveryPolicyTests.test_finished_job_returns_persisted_result_without_reauditing) ... ok
+test_policy_edit_invalidates_loaded_authority (test_auto_recovery_policy.RecoveryPolicyTests.test_policy_edit_invalidates_loaded_authority) ... ok
+test_unknown_job_never_reopens_apply (test_auto_recovery_policy.RecoveryPolicyTests.test_unknown_job_never_reopens_apply) ... ok
+test_partial_job_report_has_counts_provenance_budget_and_readback (test_auto_report_complete.AutomaticReportTests.test_partial_job_report_has_counts_provenance_budget_and_readback) ... ok
+test_token_failure_leaves_no_image_reservation_or_request (test_auto_reservations.ReservationTests.test_token_failure_leaves_no_image_reservation_or_request) ... ok
+test_actual_workflow_plan_and_candidates_validate (test_auto_schema_contracts.SchemaContractTests.test_actual_workflow_plan_and_candidates_validate) ... ok
+test_automation_example_and_rejection_agree (test_auto_schema_contracts.SchemaContractTests.test_automation_example_and_rejection_agree) ... ok
+test_sku_mapping_preserves_other_fields (test_auto_semantic_compiler.SemanticCompilerTests.test_sku_mapping_preserves_other_fields) ... ok
+test_title_model_is_authorized_and_logo_preserved (test_auto_semantic_compiler.SemanticCompilerTests.test_title_model_is_authorized_and_logo_preserved) ... ok
+test_sku_workflow_repairs_shared_box (test_auto_semantic_workflow.SemanticWorkflowTests.test_sku_workflow_repairs_shared_box) ... ok
+test_title_workflow_saves_once_and_translates_once (test_auto_semantic_workflow.SemanticWorkflowTests.test_title_workflow_saves_once_and_translates_once) ... ok
+test_conflicting_template_declarations_are_rejected (test_auto_template_applicability.TemplateApplicabilityTests.test_conflicting_template_declarations_are_rejected) ... ok
+test_required_missing_is_distinct_from_explicit_no_applicable (test_auto_template_applicability.TemplateApplicabilityTests.test_required_missing_is_distinct_from_explicit_no_applicable) ... ok
+test_changed_saved_fields_prevent_translation_retry (test_auto_translation_retry.TranslationRetryTests.test_changed_saved_fields_prevent_translation_retry) ... ok
+test_retry_is_translation_only_and_durably_limited (test_auto_translation_retry.TranslationRetryTests.test_retry_is_translation_only_and_durably_limited) ... ok
+test_E24_E35_unknown_committed_save_gets_readback_and_stops_batch (test_auto_unknown_batch_workflow.UnknownBatchWorkflowTests.test_E24_E35_unknown_committed_save_gets_readback_and_stops_batch) ... ok
+test_failures_and_no_retry (test_local_execution.ApplyTests.test_failures_and_no_retry) ... ok
+test_identity_confirmation (test_local_execution.ApplyTests.test_identity_confirmation) ... ok
+test_save_and_checker (test_local_execution.ApplyTests.test_save_and_checker) ... ok
+test_independent_instances_share_spacing_and_failure_keeps_limit (test_auto_upload_rate.UploadRateTests.test_independent_instances_share_spacing_and_failure_keeps_limit) ... ok
+test_invalid_interval_is_rejected (test_auto_upload_rate.UploadRateTests.test_invalid_interval_is_rejected) ... ok
+test_two_processes_share_global_upload_channel (test_auto_upload_rate.UploadRateTests.test_two_processes_share_global_upload_channel) ... ok
+test_description_and_auxiliary_pools_are_ignored (test_auto_whole_pool.WholePoolTests.test_description_and_auxiliary_pools_are_ignored) ... ok
+test_string_description_and_duplicate_references (test_auto_whole_pool.WholePoolTests.test_string_description_and_duplicate_references) ... ok
+test_budget_survives_restart (test_budget_performance_v2.PersistencePerformanceTests.test_budget_survives_restart) ... ok
+test_download_dedup_failure_and_cache (test_budget_performance_v2.PersistencePerformanceTests.test_download_dedup_failure_and_cache) ... ok
+test_description_http_status (test_business_matrix.BusinessMatrix.test_description_http_status) ... ok
+test_model_disagreement_reviews (test_business_matrix.BusinessMatrix.test_model_disagreement_reviews) ... ok
+test_sku_packaging_protection (test_business_matrix.BusinessMatrix.test_sku_packaging_protection) ... ok
+test_uncertain_judgements_never_keep (test_business_matrix.BusinessMatrix.test_uncertain_judgements_never_keep) ... ok
+test_watermark_sop (test_business_matrix.BusinessMatrix.test_watermark_sop) ... ok
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 1, "batch_sequence": 22, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 22}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 2, "batch_sequence": 23, "model": "deepseek-v4.1-flash"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 23}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 3, "batch_sequence": 24, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 24}
+test_completed_child_cannot_be_used_to_replay_old_pairs (test_complete_observed_audit.ContinuationTests.test_completed_child_cannot_be_used_to_replay_old_pairs) ... ok
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 1, "batch_sequence": 22, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 22}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 2, "batch_sequence": 23, "model": "deepseek-v4.1-flash"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 23}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 3, "batch_sequence": 24, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 24}
+test_continuation_cannot_be_repeated (test_complete_observed_audit.ContinuationTests.test_continuation_cannot_be_repeated) ... ok
+test_item_journal_keeps_one_monotonic_counter_across_schema_errors (test_complete_observed_audit.ContinuationTests.test_item_journal_keeps_one_monotonic_counter_across_schema_errors) ... ok
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 1, "batch_sequence": 22, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 22}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 2, "batch_sequence": 23, "model": "deepseek-v4.1-flash"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 23}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 3, "batch_sequence": 24, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 24}
+test_missing_model_a_keeps_model_b_observations_in_model_b_slot (test_complete_observed_audit.ContinuationTests.test_missing_model_a_keeps_model_b_observations_in_model_b_slot) ... ok
+{"event": "DISPATCHED", "sequence": 1, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "DISPATCHED", "sequence": 2, "task": "watermark", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 2}
+{"event": "DISPATCHED", "sequence": 3, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 3}
+{"event": "DISPATCHED", "sequence": 4, "task": "product_identity", "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 4}
+{"event": "DISPATCHED", "sequence": 5, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 5}
+{"event": "DISPATCHED", "sequence": 6, "task": "watermark", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 6}
+{"event": "DISPATCHED", "sequence": 7, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 7}
+{"event": "DISPATCHED", "sequence": 8, "task": "product_identity", "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 8}
+{"event": "DISPATCHED", "sequence": 9, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 9}
+{"event": "DISPATCHED", "sequence": 10, "task": "watermark", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 10}
+{"event": "DISPATCHED", "sequence": 11, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 11}
+{"event": "DISPATCHED", "sequence": 12, "task": "product_identity", "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 12}
+{"event": "DISPATCHED", "sequence": 13, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 13}
+{"event": "DISPATCHED", "sequence": 14, "task": "watermark", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 14}
+{"event": "DISPATCHED", "sequence": 15, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 15}
+{"event": "DISPATCHED", "sequence": 16, "task": "product_identity", "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 16}
+{"event": "DISPATCHED", "sequence": 17, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 17}
+{"event": "DISPATCHED", "sequence": 18, "task": "watermark", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 18}
+{"event": "DISPATCHED", "sequence": 19, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 19}
+{"event": "DISPATCHED", "sequence": 20, "task": "product_identity", "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 20}
+{"event": "DISPATCHED", "sequence": 21, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 21}
+{"event": "DISPATCHED", "sequence": 22, "task": "watermark", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 22}
+{"event": "DISPATCHED", "sequence": 23, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "deepseek-v4.1-flash"}
+{"event": "SUCCESS", "sequence": 23}
+{"event": "DISPATCHED", "sequence": 24, "task": "product_identity", "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5", "model": "mimo-v2.6-pro"}
+{"event": "SUCCESS", "sequence": 24}
+test_new_workflow_automatically_finishes_after_one_item_schema_error (test_complete_observed_audit.ContinuationTests.test_new_workflow_automatically_finishes_after_one_item_schema_error) ... ok
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 1, "batch_sequence": 22, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 22}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 2, "batch_sequence": 23, "model": "deepseek-v4.1-flash"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 23}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 3, "batch_sequence": 24, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 24}
+test_only_three_never_called_pairs_execute_and_keep_missing_result (test_complete_observed_audit.ContinuationTests.test_only_three_never_called_pairs_execute_and_keep_missing_result) ... ok
+test_plan_tamper_cannot_trigger_other_images (test_complete_observed_audit.ContinuationTests.test_plan_tamper_cannot_trigger_other_images) ... ok
+test_real_continuation_requires_real_authorization (test_complete_observed_audit.ContinuationTests.test_real_continuation_requires_real_authorization) ... ok
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 1, "batch_sequence": 22, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_EXCEPTION", "batch_sequence": 22}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 2, "batch_sequence": 23, "model": "deepseek-v4.1-flash"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 23}
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 3, "batch_sequence": 24, "model": "mimo-v2.6-pro"}
+{"event": "CONTINUATION_SUCCESS", "batch_sequence": 24}
+test_schema_failure_is_one_exception_and_remaining_pairs_still_execute (test_complete_observed_audit.ContinuationTests.test_schema_failure_is_one_exception_and_remaining_pairs_still_execute) ... ok
+{"event": "CONTINUATION_DISPATCHED", "local_sequence": 1, "batch_sequence": 22, "model": "mimo-v2.6-pro"}
+test_transport_timeout_stops_without_retry_or_discarding_parent (test_complete_observed_audit.ContinuationTests.test_transport_timeout_stops_without_retry_or_discarding_parent) ... ok
+test_abstention_and_disagreement_still_remain_unresolved (test_confidence_080.Confidence080Tests.test_abstention_and_disagreement_still_remain_unresolved) ... ok
+test_candidate_and_deletion_quality_use_same_boundary (test_confidence_080.Confidence080Tests.test_candidate_and_deletion_quality_use_same_boundary) ... ok
+test_client_policy_and_full_audit_agree_on_boundary (test_confidence_080.Confidence080Tests.test_client_policy_and_full_audit_agree_on_boundary) ... ok
+test_identity_dimension_and_root_boundary (test_confidence_080.Confidence080Tests.test_identity_dimension_and_root_boundary) ... ok
+test_watermark_region_and_root_boundary (test_confidence_080.Confidence080Tests.test_watermark_region_and_root_boundary) ... ok
+test_current_shop_fails_closed_when_selection_missing (test_current_shop_adapter.CurrentShopAdapterTests.test_current_shop_fails_closed_when_selection_missing) ... ok
+test_current_shop_uses_auth_me_selected_shop (test_current_shop_adapter.CurrentShopAdapterTests.test_current_shop_uses_auth_me_selected_shop) ... ok
+test_runtime_docs_requirements_and_windows_runner_included_without_local_data (test_delivery_bundle.DeliveryBundleTests.test_runtime_docs_requirements_and_windows_runner_included_without_local_data) ... ok
+test_explicit_config_no_discovery_and_tls (test_explicit_site.ExplicitSiteTests.test_explicit_config_no_discovery_and_tls) ... ok
+test_import_does_not_discover_credentials (test_explicit_site.ExplicitSiteTests.test_import_does_not_discover_credentials) ... ok
+test_failures_and_no_retry (test_local_execution.ApplyTests.test_failures_and_no_retry) ... ok
+test_identity_confirmation (test_local_execution.ApplyTests.test_identity_confirmation) ... ok
+test_save_and_checker (test_local_execution.ApplyTests.test_save_and_checker) ... ok
+test_confirm_noop_and_replay (test_local_execution.LocalTests.test_confirm_noop_and_replay) ... ok
+JOB_78e48eb46dc741faa406209b3ea0fbfe
+test_confirmed_banner_can_be_planned_while_other_marks_stay_deferred (test_normal_flow_repairs.NormalFlowRepairTests.test_confirmed_banner_can_be_planned_while_other_marks_stay_deferred) ... ok
+test_native_800_image_can_remove_edge_banner_without_upscaling (test_normal_flow_repairs.NormalFlowRepairTests.test_native_800_image_can_remove_edge_banner_without_upscaling) ... ok
+test_quality_judge_receives_the_authorized_local_repair_scope (test_normal_flow_repairs.NormalFlowRepairTests.test_quality_judge_receives_the_authorized_local_repair_scope) ... ok
+test_P0_ACCOUNT_01_standard_plan_and_job_bind_same_verified_account (test_p1p2_account_workflow.AccountWorkflowTests.test_P0_ACCOUNT_01_standard_plan_and_job_bind_same_verified_account) ... ok
+test_P0_ACCOUNT_02_audit_and_writer_mismatch_rejected_before_plan (test_p1p2_account_workflow.AccountWorkflowTests.test_P0_ACCOUNT_02_audit_and_writer_mismatch_rejected_before_plan) ... ok
+test_P0_LEDGER_01_02_read_or_shop_failure_releases_proven_zero_write (test_p1p2_ledger_workflow.LedgerWorkflowTests.test_P0_LEDGER_01_02_read_or_shop_failure_releases_proven_zero_write) ... ok
+test_P0_LEDGER_03_upload_timeout_is_unknown_and_cannot_reclaim (test_p1p2_ledger_workflow.LedgerWorkflowTests.test_P0_LEDGER_03_upload_timeout_is_unknown_and_cannot_reclaim) ... ok
+test_absent_presale_is_not_invented (test_presale_preservation.PresalePreservationTests.test_absent_presale_is_not_invented) ... ok
+test_only_updated_timestamp_is_separate_from_protected_business_fields (test_presale_preservation.PresalePreservationTests.test_only_updated_timestamp_is_separate_from_protected_business_fields) ... ok
+test_privileged_adapter_passes_presale_without_casting (test_presale_preservation.PresalePreservationTests.test_privileged_adapter_passes_presale_without_casting) ... ok
+test_transport_preserves_true_false_and_original_type (test_presale_preservation.PresalePreservationTests.test_transport_preserves_true_false_and_original_type) ... ok
+test_v2_readback_reports_timestamp_but_rejects_presale_drift (test_presale_preservation.PresalePreservationTests.test_v2_readback_reports_timestamp_but_rejects_presale_drift) ... ok
+test_failures_and_no_retry (test_local_execution.ApplyTests.test_failures_and_no_retry) ... ok
+test_identity_confirmation (test_local_execution.ApplyTests.test_identity_confirmation) ... ok
+test_save_and_checker (test_local_execution.ApplyTests.test_save_and_checker) ... ok
+test_identity_and_post_upload_drift (test_round2_preapply.MorePreApply.test_identity_and_post_upload_drift) ... ok
+test_missing_identity_and_small_upload_fail_closed (test_round2_preapply.MorePreApply.test_missing_identity_and_small_upload_fail_closed) ... ok
+test_protected_field (test_round2_preapply.MorePreApply.test_protected_field) ... ok
+test_sku_upload_preserves_other_skus (test_round2_preapply.MorePreApply.test_sku_upload_preserves_other_skus) ... ok
+test_valid_upload (test_round2_preapply.MorePreApply.test_valid_upload) ... ok
+test_seven_images_rejected_before_save (test_round2_preapply.PreApplyRegression.test_seven_images_rejected_before_save) ... ok
+test_no_automatic_secrets (test_security_v21.SecurityV21.test_no_automatic_secrets) ... ok
+test_old_apply_denied_before_access (test_security_v21.SecurityV21.test_old_apply_denied_before_access) ... ok
+test_read_only_surface (test_security_v21.SecurityV21.test_read_only_surface) ... ok
+test_tls_cannot_disable (test_security_v21.SecurityV21.test_tls_cannot_disable) ... ok
+test_ambiguous_packaging_does_not_gain_row_assignments (test_snapshot_sku.SnapshotSkuTests.test_ambiguous_packaging_does_not_gain_row_assignments) ... ok
+test_default_still_defers_missing_ids (test_snapshot_sku.SnapshotSkuTests.test_default_still_defers_missing_ids) ... ok
+test_disabled_policy_cannot_execute_snapshot_post_action (test_snapshot_sku.SnapshotSkuTests.test_disabled_policy_cannot_execute_snapshot_post_action) ... ok
+test_duplicate_indices_or_unbound_urls_are_rejected (test_snapshot_sku.SnapshotSkuTests.test_duplicate_indices_or_unbound_urls_are_rejected) ... ok
+test_fake_workflow_saves_bound_row_and_verifies_downloaded_image (test_snapshot_sku.SnapshotSkuTests.test_fake_workflow_saves_bound_row_and_verifies_downloaded_image) ... ok
+test_identical_content_at_two_urls_is_one_image_choice (test_snapshot_sku.SnapshotSkuTests.test_identical_content_at_two_urls_is_one_image_choice) ... ok
+test_opt_in_uses_snapshot_locator_without_inventing_ids (test_snapshot_sku.SnapshotSkuTests.test_opt_in_uses_snapshot_locator_without_inventing_ids) ... ok
+test_partial_failure_identifies_the_actual_row_with_no_ids (test_snapshot_sku.SnapshotSkuTests.test_partial_failure_identifies_the_actual_row_with_no_ids) ... ok
+test_reordered_or_edited_rows_reject_the_original_locator (test_snapshot_sku.SnapshotSkuTests.test_reordered_or_edited_rows_reject_the_original_locator) ... ok
+test_saved_row_reorder_or_price_drift_stops_without_retry (test_snapshot_sku.SnapshotSkuTests.test_saved_row_reorder_or_price_drift_stops_without_retry) ... ok
+test_unverified_existing_with_box_reference_is_preserved (test_snapshot_sku.SnapshotSkuTests.test_unverified_existing_with_box_reference_is_preserved) ... ok
+test_changed_job_or_policy_rejected (test_unified_model_budget.UnifiedModelBudgetTests.test_changed_job_or_policy_rejected) ... ok
+test_corrupt_settled_amount_cannot_create_new_budget (test_unified_model_budget.UnifiedModelBudgetTests.test_corrupt_settled_amount_cannot_create_new_budget) ... ok
+test_direct_http_request_requires_budget_dispatch (test_unified_model_budget.UnifiedModelBudgetTests.test_direct_http_request_requires_budget_dispatch) ... ok
+test_disk_failure_latch_survives_restart (test_unified_model_budget.UnifiedModelBudgetTests.test_disk_failure_latch_survives_restart) ... ok
+test_every_required_parameter_is_fail_closed (test_unified_model_budget.UnifiedModelBudgetTests.test_every_required_parameter_is_fail_closed) ... ok
+test_image_and_product_scope_are_enforced_before_send (test_unified_model_budget.UnifiedModelBudgetTests.test_image_and_product_scope_are_enforced_before_send) ... ok
+test_invalid_numeric_or_unknown_price_never_dispatches (test_unified_model_budget.UnifiedModelBudgetTests.test_invalid_numeric_or_unknown_price_never_dispatches) ... ok
+test_ledger_write_failure_never_sends (test_unified_model_budget.UnifiedModelBudgetTests.test_ledger_write_failure_never_sends) ... ok
+test_legacy_direct_senders_are_closed (test_unified_model_budget.UnifiedModelBudgetTests.test_legacy_direct_senders_are_closed) ... ok
+test_missing_authorization_never_dispatches (test_unified_model_budget.UnifiedModelBudgetTests.test_missing_authorization_never_dispatches) ... ok
+test_missing_usage_preserves_reservation_and_stops (test_unified_model_budget.UnifiedModelBudgetTests.test_missing_usage_preserves_reservation_and_stops) ... ok
+test_nested_concurrent_call_blocked (test_unified_model_budget.UnifiedModelBudgetTests.test_nested_concurrent_call_blocked) ... ok
+test_redirect_and_response_model_change_stop_without_followup (test_unified_model_budget.UnifiedModelBudgetTests.test_redirect_and_response_model_change_stop_without_followup) ... ok
+test_request_limit_before_transport (test_unified_model_budget.UnifiedModelBudgetTests.test_request_limit_before_transport) ... ok
+test_restart_pending_is_unknown (test_unified_model_budget.UnifiedModelBudgetTests.test_restart_pending_is_unknown) ... ok
+test_route_and_model_whitelist (test_unified_model_budget.UnifiedModelBudgetTests.test_route_and_model_whitelist) ... ok
+test_soft_reservation_breach_stops_even_with_small_reported_total (test_unified_model_budget.UnifiedModelBudgetTests.test_soft_reservation_breach_stops_even_with_small_reported_total) ... ok
+test_strict_never_uses_controlled_bypass (test_unified_model_budget.UnifiedModelBudgetTests.test_strict_never_uses_controlled_bypass) ... ok
+test_success_records_gateway_provenance_and_cost (test_unified_model_budget.UnifiedModelBudgetTests.test_success_records_gateway_provenance_and_cost) ... ok
+test_timeout_never_retries (test_unified_model_budget.UnifiedModelBudgetTests.test_timeout_never_retries) ... ok
+test_usage_total_mismatch_stops (test_unified_model_budget.UnifiedModelBudgetTests.test_usage_total_mismatch_stops) ... ok
+test_usd_reservation_blocks_last_request (test_unified_model_budget.UnifiedModelBudgetTests.test_usd_reservation_blocks_last_request) ... ok
+test_body_image_style_wrong_header_and_unbound_source_remain_rejected (test_v13_description_header.DescriptionHeaderTests.test_body_image_style_wrong_header_and_unbound_source_remain_rejected) ... ok
+test_description_presence_and_value_type_are_not_normalized_away (test_v13_description_header.DescriptionHeaderTests.test_description_presence_and_value_type_are_not_normalized_away) ... ok
+test_exact_site_header_sync_is_rejected_without_mutating_snapshots (test_v13_description_header.DescriptionHeaderTests.test_exact_site_header_sync_is_rejected_without_mutating_snapshots) ... ok
+test_outbound_plan_still_cannot_edit_description (test_v13_description_header.DescriptionHeaderTests.test_outbound_plan_still_cannot_edit_description) ... ok
+test_standard_cli_rejects_header_body_and_image_changes (test_v13_description_header.DescriptionHeaderTests.test_standard_cli_rejects_header_body_and_image_changes) ... ok
+test_configured_output_limit_reaches_wire_and_default_is_unchanged (test_v13_gateway_diagnostics.GatewayDiagnosticsTests.test_configured_output_limit_reaches_wire_and_default_is_unchanged) ... ok
+test_http_failure_keeps_safe_diagnostics_and_unknown_usage (test_v13_gateway_diagnostics.GatewayDiagnosticsTests.test_http_failure_keeps_safe_diagnostics_and_unknown_usage) ... ok
+test_invalid_output_limit_fails_before_requests (test_v13_gateway_diagnostics.GatewayDiagnosticsTests.test_invalid_output_limit_fails_before_requests) ... ok
+test_known_usage_schema_failure_preserves_actual_token_accounting (test_v13_gateway_diagnostics.GatewayDiagnosticsTests.test_known_usage_schema_failure_preserves_actual_token_accounting) ... ok
+test_output_limit_is_reserved_before_provider_call (test_v13_gateway_diagnostics.GatewayDiagnosticsTests.test_output_limit_is_reserved_before_provider_call) ... ok
+test_unreadable_gateway_json_marks_usage_unknown_and_blocks_next_request (test_v13_gateway_diagnostics.GatewayDiagnosticsTests.test_unreadable_gateway_json_marks_usage_unknown_and_blocks_next_request) ... ok
+test_changed_or_new_outside_reference_rejected (test_v13_legacy_sku_delivery.LegacySkuDeliveryTests.test_changed_or_new_outside_reference_rejected) ... ok
+test_changed_reference_to_valid_sku_pool_passes (test_v13_legacy_sku_delivery.LegacySkuDeliveryTests.test_changed_reference_to_valid_sku_pool_passes) ... ok
+test_unchanged_legacy_reference_uses_real_before (test_v13_legacy_sku_delivery.LegacySkuDeliveryTests.test_unchanged_legacy_reference_uses_real_before) ... ok
+test_without_before_remains_strict (test_v13_legacy_sku_delivery.LegacySkuDeliveryTests.test_without_before_remains_strict) ... ok
+test_forged_before_cannot_make_new_outside_reference_look_legacy (test_v13_legacy_sku_delivery_cli.LegacySkuDeliveryCliTests.test_forged_before_cannot_make_new_outside_reference_look_legacy) ... ok
+test_independent_hd_action_preserves_existing_reference_and_passes_delivery (test_v13_legacy_sku_delivery_cli.LegacySkuDeliveryCliTests.test_independent_hd_action_preserves_existing_reference_and_passes_delivery) ... ok
+test_colored_outer_edge_cannot_pass_via_gray_brightness (test_v13_official_letterbox.OfficialLetterboxTests.test_colored_outer_edge_cannot_pass_via_gray_brightness) ... ok
+test_independent_identity_failure_still_rejects (test_v13_official_letterbox.OfficialLetterboxTests.test_independent_identity_failure_still_rejects) ... ok
+test_nonwhite_edges_do_not_admit_letterbox_fallback (test_v13_official_letterbox.OfficialLetterboxTests.test_nonwhite_edges_do_not_admit_letterbox_fallback) ... ok
+test_official_model_and_sha_requirements_remain_mandatory (test_v13_official_letterbox.OfficialLetterboxTests.test_official_model_and_sha_requirements_remain_mandatory) ... ok
+test_top_bottom_letterbox_also_preserves_original_candidate (test_v13_official_letterbox.OfficialLetterboxTests.test_top_bottom_letterbox_also_preserves_original_candidate) ... ok
+test_white_letterbox_admits_original_to_independent_gate_without_pixel_writes (test_v13_official_letterbox.OfficialLetterboxTests.test_white_letterbox_admits_original_to_independent_gate_without_pixel_writes) ... ok
+test_standard_cli_uploads_original_hd_pixels_and_preserves_fields (test_v13_official_letterbox_cli.OfficialLetterboxCliTests.test_standard_cli_uploads_original_hd_pixels_and_preserves_fields) ... ok
+test_white_padding_match_never_bypasses_independent_identity (test_v13_official_letterbox_cli.OfficialLetterboxCliTests.test_white_padding_match_never_bypasses_independent_identity) ... ok
+test_client_keeps_mismatch_and_canonical_cache_without_retry (test_v13_quality_response_shape.QualityResponseShapeTests.test_client_keeps_mismatch_and_canonical_cache_without_retry) ... ok
+test_flat_contract_does_not_invent_or_coerce_required_checks (test_v13_quality_response_shape.QualityResponseShapeTests.test_flat_contract_does_not_invent_or_coerce_required_checks) ... ok
+test_flat_quality_fields_preserve_negative_decision_and_false_flags (test_v13_quality_response_shape.QualityResponseShapeTests.test_flat_quality_fields_preserve_negative_decision_and_false_flags) ... ok
+test_identity_and_evidence_checks_still_apply (test_v13_quality_response_shape.QualityResponseShapeTests.test_identity_and_evidence_checks_still_apply) ... ok
+test_cli_identity_packaging_uncertainties_do_not_write (test_v13_semantic_cli.SemanticCliTests.test_cli_identity_packaging_uncertainties_do_not_write) ... ok
+test_missing_template_is_deferred_without_internal_evidence_hash_failure (test_v13_semantic_cli.SemanticCliTests.test_missing_template_is_deferred_without_internal_evidence_hash_failure) ... ok
+test_sku_cli_reassigns_without_box_and_preserves_with_box_reference (test_v13_semantic_cli.SemanticCliTests.test_sku_cli_reassigns_without_box_and_preserves_with_box_reference) ... ok
+test_sop_alias_small_scale_is_preserved_through_standard_cli (test_v13_semantic_cli.SemanticCliTests.test_sop_alias_small_scale_is_preserved_through_standard_cli) ... ok
+test_title_cli_saves_once_then_translates_and_verifies_opaque_fields (test_v13_semantic_cli.SemanticCliTests.test_title_cli_saves_once_then_translates_and_verifies_opaque_fields) ... ok
+test_different_store_owners_block_before_any_fake_write (test_v13_store_policy_consensus_cli.StorePolicyConsensusCliTests.test_different_store_owners_block_before_any_fake_write) ... ok
+test_same_store_region_passes_independent_quality_to_fake_writer (test_v13_store_policy_consensus_cli.StorePolicyConsensusCliTests.test_same_store_region_passes_independent_quality_to_fake_writer) ... ok
+test_formats_trace_to_unchanged_original (test_v21_visual_input.VisualInputTests.test_formats_trace_to_unchanged_original) ... ok
+test_fake_repair_quality_sku_save_and_readback_accept_zero_scores (test_v2_confidence_record_only.ConfidenceRecordOnlyTests.test_fake_repair_quality_sku_save_and_readback_accept_zero_scores) ... ok
+test_low_box_score_does_not_prevent_box_selection (test_v2_confidence_record_only.ConfidenceRecordOnlyTests.test_low_box_score_does_not_prevent_box_selection) ... ok
+test_low_score_never_overrides_an_explicit_quality_failure (test_v2_confidence_record_only.ConfidenceRecordOnlyTests.test_low_score_never_overrides_an_explicit_quality_failure) ... ok
+test_retained_box_evidence_uses_observation_not_low_score (test_v2_confidence_record_only.ConfidenceRecordOnlyTests.test_retained_box_evidence_uses_observation_not_low_score) ... ok
+test_scoring_does_not_relabel_low_score_prediction_as_review (test_v2_confidence_record_only.ConfidenceRecordOnlyTests.test_scoring_does_not_relabel_low_score_prediction_as_review) ... ok
+test_sku_ranking_and_eligibility_do_not_use_any_confidence (test_v2_confidence_record_only.ConfidenceRecordOnlyTests.test_sku_ranking_and_eligibility_do_not_use_any_confidence) ... ok
+test_zero_confidence_does_not_override_keep_delete_or_remove_text (test_v2_confidence_record_only.ConfidenceRecordOnlyTests.test_zero_confidence_does_not_override_keep_delete_or_remove_text) ... ok
+test_zero_region_confidence_still_generates_only_the_requested_mask (test_v2_confidence_record_only.ConfidenceRecordOnlyTests.test_zero_region_confidence_still_generates_only_the_requested_mask) ... ok
+test_fake_repair_save_and_readback_use_only_deepseek (test_v2_deepseek_only.DeepSeekOnlyTests.test_fake_repair_save_and_readback_use_only_deepseek) ... ok
+test_identity_unknown_no_and_low_field_score_do_not_block (test_v2_deepseek_only.DeepSeekOnlyTests.test_identity_unknown_no_and_low_field_score_do_not_block) ... ok
+test_low_action_confidence_is_record_only_and_abstention_still_reviews (test_v2_deepseek_only.DeepSeekOnlyTests.test_low_action_confidence_is_record_only_and_abstention_still_reviews) ... ok
+test_mimo_only_profile_fails_before_transport (test_v2_deepseek_only.DeepSeekOnlyTests.test_mimo_only_profile_fails_before_transport) ... ok
+test_old_pair_profile_cannot_invoke_mimo_for_audit (test_v2_deepseek_only.DeepSeekOnlyTests.test_old_pair_profile_cannot_invoke_mimo_for_audit) ... ok
+test_old_pair_profile_cannot_invoke_mimo_for_quality (test_v2_deepseek_only.DeepSeekOnlyTests.test_old_pair_profile_cannot_invoke_mimo_for_quality) ... ok
+test_single_model_config_and_mimo_dispatch_disabled (test_v2_deepseek_only.DeepSeekOnlyTests.test_single_model_config_and_mimo_dispatch_disabled) ... ok
+test_sku_selection_does_not_require_listing_identity_match (test_v2_deepseek_only.DeepSeekOnlyTests.test_sku_selection_does_not_require_listing_identity_match) ... ok
+test_deepseek_alone_reviews_keep (test_v2_full_workflow.CoordinationTests.test_deepseek_alone_reviews_keep) ... ok
+test_disabled_reviewer_cannot_change_removal_regions (test_v2_full_workflow.CoordinationTests.test_disabled_reviewer_cannot_change_removal_regions) ... ok
+test_factory_model_text_is_protected_and_sku_eligible (test_v2_full_workflow.CoordinationTests.test_factory_model_text_is_protected_and_sku_eligible) ... ok
+test_factory_promotion_cannot_be_removed (test_v2_full_workflow.CoordinationTests.test_factory_promotion_cannot_be_removed) ... ok
+test_low_field_confidence_is_recorded_without_deferral (test_v2_full_workflow.CoordinationTests.test_low_field_confidence_is_recorded_without_deferral) ... ok
+test_only_deepseek_ownership_is_recorded (test_v2_full_workflow.CoordinationTests.test_only_deepseek_ownership_is_recorded) ... ok
+test_secondary_sku_suitability_is_not_requested (test_v2_full_workflow.CoordinationTests.test_secondary_sku_suitability_is_not_requested) ... ok
+test_single_model_regions_preserved_without_synthetic_merge (test_v2_full_workflow.CoordinationTests.test_single_model_regions_preserved_without_synthetic_merge) ... ok
+test_direct_full_audit_defaults_to_v2_and_record_only (test_v2_full_workflow.EntryTests.test_direct_full_audit_defaults_to_v2_and_record_only) ... ok
+test_pre_audit_cli_defaults_to_v2_instead_of_ocr (test_v2_full_workflow.EntryTests.test_pre_audit_cli_defaults_to_v2_instead_of_ocr) ... ok
+test_readonly_cli_uses_the_same_unified_audit (test_v2_full_workflow.EntryTests.test_readonly_cli_uses_the_same_unified_audit) ... ok
+{"audit_complete": true}
+JOB_c61b6ccf8d7f46b89162d53d672e60aa
+test_run_apply_uses_the_existing_authorized_automatic_executor (test_v2_full_workflow.EntryTests.test_run_apply_uses_the_existing_authorized_automatic_executor) ... ok
+test_all_kept_pools_are_checked_by_bytes (test_v2_full_workflow.RepairAndReadbackTests.test_all_kept_pools_are_checked_by_bytes) ... ok
+test_confirmed_apply_performs_v2_byte_verification (test_v2_full_workflow.RepairAndReadbackTests.test_confirmed_apply_performs_v2_byte_verification) ... ok
+test_editor_failure_never_uploads (test_v2_full_workflow.RepairAndReadbackTests.test_editor_failure_never_uploads) ... ok
+test_editor_missing_usage_is_recorded_null_and_does_not_block (test_v2_full_workflow.RepairAndReadbackTests.test_editor_missing_usage_is_recorded_null_and_does_not_block) ... ok
+test_explicit_review_preserves_original_but_low_score_allows_repair (test_v2_full_workflow.RepairAndReadbackTests.test_explicit_review_preserves_original_but_low_score_allows_repair) ... ok
+test_failed_lama_backend_preserves_original (test_v2_full_workflow.RepairAndReadbackTests.test_failed_lama_backend_preserves_original) ... ok
+test_failed_upload_never_saves (test_v2_full_workflow.RepairAndReadbackTests.test_failed_upload_never_saves) ... ok
+test_faint_watermark_still_runs_the_full_repair_chain (test_v2_full_workflow.RepairAndReadbackTests.test_faint_watermark_still_runs_the_full_repair_chain) ... ok
+test_full_cli_from_shop_pid_to_save_and_independent_readback (test_v2_full_workflow.RepairAndReadbackTests.test_full_cli_from_shop_pid_to_save_and_independent_readback) ... ok
+test_local_failure_falls_back_once_to_configured_image_editor (test_v2_full_workflow.RepairAndReadbackTests.test_local_failure_falls_back_once_to_configured_image_editor) ... ok
+test_local_failure_without_editor_keeps_original (test_v2_full_workflow.RepairAndReadbackTests.test_local_failure_without_editor_keeps_original) ... ok
+test_report_counts_unique_actions_and_pool_references (test_v2_full_workflow.RepairAndReadbackTests.test_report_counts_unique_actions_and_pool_references) ... ok
+test_save_applied_but_timed_out_recovers_by_reading_without_resend (test_v2_full_workflow.RepairAndReadbackTests.test_save_applied_but_timed_out_recovers_by_reading_without_resend) ... ok
+test_sku_url_unchanged_but_image_bytes_changed_fails_readback (test_v2_full_workflow.RepairAndReadbackTests.test_sku_url_unchanged_but_image_bytes_changed_fails_readback) ... ok
+test_color_unknown_or_no_is_recorded_without_blocking_keep (test_v2_text_color_policy.TextColorPolicyTests.test_color_unknown_or_no_is_recorded_without_blocking_keep) ... ok
+test_creator_text_keeps_single_observation (test_v2_text_color_policy.TextColorPolicyTests.test_creator_text_keeps_single_observation) ... ok
+test_fake_full_workflow_retains_unknown_text_and_original_bytes (test_v2_text_color_policy.TextColorPolicyTests.test_fake_full_workflow_retains_unknown_text_and_original_bytes) ... ok
+test_known_store_watermark_still_not_sku_clean (test_v2_text_color_policy.TextColorPolicyTests.test_known_store_watermark_still_not_sku_clean) ... ok
+test_low_overall_confidence_is_not_raised (test_v2_text_color_policy.TextColorPolicyTests.test_low_overall_confidence_is_not_raised) ... ok
+test_uncertain_product_identity_is_record_only (test_v2_text_color_policy.TextColorPolicyTests.test_uncertain_product_identity_is_record_only) ... ok
+test_unknown_text_and_color_do_not_block_sku_selection (test_v2_text_color_policy.TextColorPolicyTests.test_unknown_text_and_color_do_not_block_sku_selection) ... ok
+test_unknown_text_detected_by_one_model_only_is_kept (test_v2_text_color_policy.TextColorPolicyTests.test_unknown_text_detected_by_one_model_only_is_kept) ... ok
+test_unknown_text_is_never_a_removal_target (test_v2_text_color_policy.TextColorPolicyTests.test_unknown_text_is_never_a_removal_target) ... ok
+test_unknown_text_low_confidence_is_kept_without_fabricating_owner (test_v2_text_color_policy.TextColorPolicyTests.test_unknown_text_low_confidence_is_kept_without_fabricating_owner) ... ok
+test_bad_sha_and_coordinates_rejected (test_v2_vision.VisionTests.test_bad_sha_and_coordinates_rejected) ... ok
+test_cache_reused_and_context_invalidates_without_description (test_v2_vision.VisionTests.test_cache_reused_and_context_invalidates_without_description) ... ok
+test_conflicting_confidences_cannot_be_rescued_by_second_model (test_v2_vision.VisionTests.test_conflicting_confidences_cannot_be_rescued_by_second_model) ... ok
+test_delete_uses_deepseek_without_second_reviewer (test_v2_vision.VisionTests.test_delete_uses_deepseek_without_second_reviewer) ... ok
+test_factory_print_not_removable (test_v2_vision.VisionTests.test_factory_print_not_removable) ... ok
+test_invalid_primary_second_does_not_authorize_deletion (test_v2_vision.VisionTests.test_invalid_primary_second_does_not_authorize_deletion) ... ok
+test_keep_uses_only_deepseek (test_v2_vision.VisionTests.test_keep_uses_only_deepseek) ... ok
+test_legacy_confidence_alias_is_only_accepted_when_identical (test_v2_vision.VisionTests.test_legacy_confidence_alias_is_only_accepted_when_identical) ... ok
+test_model_prompt_contains_complete_authoritative_output_schema (test_v2_vision.VisionTests.test_model_prompt_contains_complete_authoritative_output_schema) ... ok
+test_numeric_score_recorded_and_unknown_class_never_keep (test_v2_vision.VisionTests.test_numeric_score_recorded_and_unknown_class_never_keep) ... ok
+test_outgoing_schema_uses_one_decision_confidence (test_v2_vision.VisionTests.test_outgoing_schema_uses_one_decision_confidence) ... ok
+test_prompt_does_not_receive_legacy_contract (test_v2_vision.VisionTests.test_prompt_does_not_receive_legacy_contract) ... ok
+test_transport_error_does_not_retry_same_model (test_v2_vision.VisionTests.test_transport_error_does_not_retry_same_model) ... ok
+test_uncertain_box_stays_review_without_second_model (test_v2_vision.VisionTests.test_uncertain_box_stays_review_without_second_model) ... ok
+test_box_branch_binds_existing_sku_without_creating_variants (test_v2_workflow.V2WorkflowTests.test_box_branch_binds_existing_sku_without_creating_variants) ... ok
+{"status": "AUTO_VERIFIED"}
+JOB_dab09f0092d2427895925258738c8b83
+test_cli_defaults_to_bound_v2_and_can_use_relative_job_root (test_v2_workflow.V2WorkflowTests.test_cli_defaults_to_bound_v2_and_can_use_relative_job_root) ... ok
+test_configured_fake_edit_uses_existing_budget_and_quality (test_v2_workflow.V2WorkflowTests.test_configured_fake_edit_uses_existing_budget_and_quality) ... ok
+test_delete_keep_and_independent_deferred_one_save (test_v2_workflow.V2WorkflowTests.test_delete_keep_and_independent_deferred_one_save) ... ok
+test_description_and_sku_corruption_never_pass_readback (test_v2_workflow.V2WorkflowTests.test_description_and_sku_corruption_never_pass_readback) ... ok
+test_identity_damage_does_not_retry_alternate_algorithm (test_v2_workflow.V2WorkflowTests.test_identity_damage_does_not_retry_alternate_algorithm) ... ok
+test_quality_failure_never_uploads (test_v2_workflow.V2WorkflowTests.test_quality_failure_never_uploads) ... ok
+test_remove_text_dedup_upload_and_readback (test_v2_workflow.V2WorkflowTests.test_remove_text_dedup_upload_and_readback) ... ok
+test_rights_unknown_preserves_original (test_v2_workflow.V2WorkflowTests.test_rights_unknown_preserves_original) ... ok
+test_unconfigured_regeneration_remains_deferred (test_v2_workflow.V2WorkflowTests.test_unconfigured_regeneration_remains_deferred) ... ok
+test_unknown_save_has_no_resend (test_v2_workflow.V2WorkflowTests.test_unknown_save_has_no_resend) ... ok
+test_T10_excess_main_images_fail_delivery (test_vertical_workflow.VerticalTests.test_T10_excess_main_images_fail_delivery) ... ok
+test_review_dryrun_apply (test_vertical_workflow.VerticalTests.test_review_dryrun_apply) ... ok
+test_save_timeout_journal_blocks_retry (test_vertical_workflow.VerticalTests.test_save_timeout_journal_blocks_retry) ... ok
+test_body_only_existing_clean_version_can_replace (test_visual_versions.VersionWorkflowTests.test_body_only_existing_clean_version_can_replace) ... ok
+test_existing_clean_version_also_precedes_regeneration (test_visual_versions.VersionWorkflowTests.test_existing_clean_version_also_precedes_regeneration) ... ok
+test_no_clean_version_large_frame_is_deleted (test_visual_versions.VersionWorkflowTests.test_no_clean_version_large_frame_is_deleted) ... ok
+test_no_clean_version_small_overlay_is_locally_repaired (test_visual_versions.VersionWorkflowTests.test_no_clean_version_small_overlay_is_locally_repaired) ... ok
+test_replacement_readback_failure_is_not_success (test_visual_versions.VersionWorkflowTests.test_replacement_readback_failure_is_not_success) ... ok
+test_shared_main_detail_body_sku_references_are_replaced (test_visual_versions.VersionWorkflowTests.test_shared_main_detail_body_sku_references_are_replaced) ... ok
+test_sku_reference_only_uses_clean_version (test_visual_versions.VersionWorkflowTests.test_sku_reference_only_uses_clean_version) ... ok
+test_verified_clean_version_replaces_before_delete_or_inpaint (test_visual_versions.VersionWorkflowTests.test_verified_clean_version_replaces_before_delete_or_inpaint) ... ok
+test_composed_top_badges_and_bottom_promo_band_are_large_frame (test_visual_versions.VisualVersionTests.test_composed_top_badges_and_bottom_promo_band_are_large_frame) ... ok
+test_dirty_unknown_review_and_small_candidates_are_ineligible (test_visual_versions.VisualVersionTests.test_dirty_unknown_review_and_small_candidates_are_ineligible) ... ok
+test_real_framed_and_clean_are_same_photo (test_visual_versions.VisualVersionTests.test_real_framed_and_clean_are_same_photo) ... ok
+test_resized_compressed_same_photo_matches (test_visual_versions.VisualVersionTests.test_resized_compressed_same_photo_matches) ... ok
+test_same_product_background_but_different_pose_is_not_same_photo (test_visual_versions.VisualVersionTests.test_same_product_background_but_different_pose_is_not_same_photo) ... ok
+test_small_store_frame_raw_delete_uses_local_repair_fallback (test_visual_versions.VisualVersionTests.test_small_store_frame_raw_delete_uses_local_repair_fallback) ... ok
+
+----------------------------------------------------------------------
+Ran 298 tests in 293.023s
+
+OK
+{"status": "FAKE_ONLY"}
+{"run_id": "0302dc0018a248fda55a8757165c8988", "tests": 298, "failures": 0, "errors": 0, "skipped": 0, "elapsed_seconds": 293.438, "source_unchanged": true, "source_files": 462, "blocked_network_attempts": 0, "real_model_calls": 0, "production_writes": 0, "exit_code": 0}

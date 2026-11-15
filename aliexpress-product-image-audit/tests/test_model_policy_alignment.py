@@ -21,7 +21,7 @@ class ModelPolicyAlignmentTests(unittest.TestCase):
                         'usage':{'prompt_tokens':1,'completion_tokens':1,'total_tokens':2}}
                 budget=BudgetManager({'ai_requests':2})
                 try:
-                    client=JudgeClient(budget,root,transport=send,retries=0)
+                    client=JudgeClient(budget,root,models=('legacy-a','legacy-b'),transport=send,retries=0)
                     result=client.classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{})
                     self.assertEqual(result['status'],'REVIEW',result)
                     self.assertEqual(evaluate(result),'NEEDS_REVIEW')
@@ -52,7 +52,7 @@ class ModelPolicyAlignmentTests(unittest.TestCase):
                     return {'choices':[{'message':{'content':json.dumps(exhaustive(output))}}]}
                 budget=BudgetManager({'ai_requests':2})
                 try:
-                    result=JudgeClient(budget,root,transport=send,retries=0).classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{})
+                    result=JudgeClient(budget,root,models=('legacy-a','legacy-b'),transport=send,retries=0).classify('watermark',{'id':'A','evidence_ids':['A'],'dimensions':[800,800]},{})
                     self.assertEqual(evaluate(result),disposition)
                     self.assertEqual(result['status'],{'KEEP':'CLEAN','REMOVE_CANDIDATE':'HIT','NEEDS_REVIEW':'REVIEW'}[disposition])
                 finally:budget.close()

@@ -10,7 +10,7 @@ from model_config import DEFAULT_MODELS, load_config
 
 
 class CurrentModelSelectionTests(unittest.TestCase):
-    def test_default_and_gateway_profiles_use_selected_pair(self):
+    def test_default_and_gateway_profiles_use_deepseek_only(self):
         with tempfile.TemporaryDirectory() as directory:
             budget = BudgetManager({})
             try:
@@ -22,7 +22,7 @@ class CurrentModelSelectionTests(unittest.TestCase):
             self.assertEqual(config['models'], [prefix + model for model in DEFAULT_MODELS])
 
     def test_disabled_model_is_rejected_before_opening_connection(self):
-        for model in ('kimi-k3-1', 'kimi3', 'glm-5v-turbo', 'other'):
+        for model in ('kimi-k3-1', 'kimi3', 'glm-5v-turbo', 'other','mimo-v2.6-pro','workbuddy/mimo-v2.6-pro'):
             request = urllib.request.Request('http://127.0.0.1:8788/v1/chat/completions',
                                              data=json.dumps({'model': model}).encode())
             with patch('ai_judge.client.urllib.request.build_opener') as opener:

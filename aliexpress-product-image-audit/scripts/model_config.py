@@ -48,10 +48,10 @@ def validate_config(config):
         _invalid('base_url')
 
     models = config['models']
-    if (not isinstance(models, list) or len(models) != 2
+    if (not isinstance(models, list) or len(models) not in (1,2)
             or any(not isinstance(model, str) or _MODEL_ID.fullmatch(model) is None
                    for model in models)
-            or models[0].casefold() == models[1].casefold()):
+            or len({model.casefold() for model in models}) != len(models)):
         _invalid('models')
     for field, low, high in (('max_output_tokens', 1, 16384), ('retries', 0, 2), ('timeout', 1, 150)):
         if type(config[field]) is not int or not low <= config[field] <= high:
@@ -81,10 +81,17 @@ def fingerprint(config):
     return hashlib.sha256(canonical.encode('utf-8')).hexdigest()
 
 
-DEFAULT_MODELS = ("deepseek-v4.1-flash", "mimo-v2.6-pro")
+DEFAULT_MODELS = ("deepseek-v4.1-flash",)
+
+
+def review_models(models):
+    """Select the current reviewer even when reading an old pair profile."""
+    selected=tuple(m for m in models if m in {'deepseek-v4.1-flash','workbuddy/deepseek-v4.1-flash'})
+    if len(selected)!=1:raise ValueError('DEEPSEEK_REVIEW_MODEL_REQUIRED')
+    return selected
 
 
 def require_enabled_model(model):
-    """Apply the current user-selected pair at the actual HTTP dispatch boundary."""
+    """Apply the current user selection at the actual HTTP dispatch boundary."""
     if model not in DEFAULT_MODELS and model not in {"workbuddy/" + m for m in DEFAULT_MODELS}:
         raise ValueError("MODEL_DISABLED_BY_PROJECT_SELECTION")

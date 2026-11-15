@@ -29,6 +29,7 @@ def validate_assignments(product, assignments):
         raise ValueError('SNAPSHOT_SKU_BINDING_UNVERIFIED')
     seen=set()
     urls={url for pool in ('main','detail','sku') for url in (product.get('images') or {}).get(pool,[])}
+    urls.update(row.get('skuImageUrl') or row.get('imageUrl') or row.get('image') for row in product.get('skus') or [])
     for assignment in assignments:
         if type(assignment) is not dict or set(assignment)!={'index','source_sha256','url'}:
             raise ValueError('INVALID_SNAPSHOT_SKU_ASSIGNMENT')

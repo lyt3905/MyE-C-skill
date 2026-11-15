@@ -321,6 +321,11 @@ def verify_content(root,plan,writer,gate):
 
 def report(root,job,status,result,writer=None,inspector=None):
     root=Path(root)
+    if job.get('image_workflow')=='v2':
+        technical=status
+        if status not in {'AUTO_VERIFIED','PARTIALLY_AUTO_FIXED','REVIEW_REQUIRED','FAILED','APPLY_UNKNOWN'}:
+            status='AUTO_VERIFIED' if status=='CLEAN' and result.get('content_validation',{}).get('ok') else 'FAILED' if status in {'PREWRITE_FAILED','BLOCKED_FATAL'} else 'REVIEW_REQUIRED'
+        result.update(status=status,technical_status=technical)
     atomic_json(root/'automatic_result.json',dict(result,status=status))
     from automatic_report import write
     return write(root,job,status,result,writer,inspector)

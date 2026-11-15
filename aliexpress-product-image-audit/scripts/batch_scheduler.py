@@ -14,7 +14,7 @@ def run_batch(pids,shop,policy,run_one,*,execution=True):
             # An unclassified exception may follow a successful remote write. Never continue guessing.
             result={'status':'APPLY_UNKNOWN','error':type(exc).__name__}
         items.append({'pid':pid,'shop':shop,'result':result})
-        if result.get('status') in HALT:
+        if result.get('status') in HALT or result.get('technical_status') in HALT:
             halted=True;break
     return {'schema':'auto-batch/v1','items':items,'halted':halted,'not_started':pids[len(items):],
             'elapsed_ms':round((time.perf_counter()-started)*1000,3),'write_concurrency':1}

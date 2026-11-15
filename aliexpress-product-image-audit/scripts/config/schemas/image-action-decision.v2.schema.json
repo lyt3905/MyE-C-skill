@@ -55,7 +55,15 @@
         "RETAIL_BOX_ONLY",
         "TOY_PRODUCT",
         "TOY_WITH_RETAIL_BOX",
-        "UNKNOWN"
+        "UNKNOWN",
+        "PRODUCT_MAIN",
+        "PRODUCT_DETAIL",
+        "PRODUCT_SCENE",
+        "STORE_WATERMARK",
+        "TEXT_WATERMARK",
+        "DECORATED_COMPOSITE",
+        "SIZE_CHART",
+        "INFORMATION_IMAGE"
       ]
     },
     "retail_box_status": {
@@ -139,6 +147,9 @@
           "kind": {
             "type": "string"
           },
+          "scope": {
+            "enum": ["EXACT_REGION", "PRODUCT_FOREGROUND"]
+          },
           "bbox": {
             "type": "array",
             "items": {
@@ -195,7 +206,10 @@
               "PRODUCT_PRINT",
               "PROMOTIONAL_TEXT",
               "STORE_WATERMARK",
-              "UNKNOWN_TEXT"
+              "UNKNOWN_TEXT",
+              "MODEL_TEXT",
+              "NORMAL_PHOTO_TEXT",
+              "TEXT_WATERMARK"
             ]
           },
           "bbox": {
@@ -238,10 +252,27 @@
           "ownership_visual_guess": {
             "type": "string"
           },
+          "overlay_role": {
+            "enum": ["OTHER_STORE_FRAME", "SELLER_NOTICE", "ADDED_WATERMARK", "UNRESOLVED_TEXT"]
+          },
+          "repair_mode": {
+            "enum": ["BACKGROUND_GLYPHS", "REGION"]
+          },
           "region_type": {
             "enum": [
               "BBOX",
               "POLYGON"
+            ]
+          },
+          "owner": {
+            "enum": [
+              "OWN_STORE",
+              "THIRD_PARTY_STORE",
+              "MANUFACTURER",
+              "PRODUCT",
+              "PACKAGING",
+              "CREATOR",
+              "UNKNOWN"
             ]
           }
         },
@@ -328,6 +359,52 @@
         "recommended_group"
       ],
       "additionalProperties": false
+    },
+    "field_confidences": {
+      "type": "object",
+      "properties": {
+        "visual_class": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "product_identity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "box_relation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "watermark_ownership": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sku_suitability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "visual_class",
+        "product_identity",
+        "box_relation",
+        "watermark_ownership",
+        "sku_suitability"
+      ],
+      "additionalProperties": false
+    },
+    "retail_box_bbox_note": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2000,
+      "description": "Optional observer annotation only; never used to override typed business fields."
     }
   },
   "required": [

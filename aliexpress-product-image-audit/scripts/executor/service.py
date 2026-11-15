@@ -75,7 +75,12 @@ class ExecutorService:
             snapshot = snapshots / (str(len(upload_paths)) + path.suffix)
             snapshot.write_bytes(data)
             pool = plan['desired'].get('images',{}).get(ref['pool'],[])
-            if ref['index'] >= len(pool):
+            if ref['pool']=='description':
+                from description_images import body_image_nodes
+                product=json.loads((self.root/'audit_product.json').read_text(encoding='utf-8'))
+                pool={r['index']:r['url'] for r in body_image_nodes(product.get('descriptionJson'))}
+                if ref['index'] not in pool:raise ValueError('description upload target missing')
+            elif ref['index'] >= len(pool):
                 raise ValueError('upload target missing')
             upload_paths.append(snapshot)
         if dry_run:
@@ -140,7 +145,12 @@ class ExecutorService:
         atomic_json(self.root/'expected_after.json',desired)
         if self.before_remote_write:self.before_remote_write()
         atomic_json(self.root/'save_attempt.json',{'site_save_calls':1,'state':'APPLY_UNKNOWN','expected_state_sha256':canonical_state_hash(desired)})
-        self.writer.save(plan['pid'],deepcopy(desired),expected_state_sha256=plan['precondition']['state_sha256'])
+        scope={}
+        if post.get('content_groups'):
+            from image_content_plan import save_scope
+            deleted,replaced=save_scope(before,plan,desired)
+            scope=dict(description_image_deletions=deleted,description_image_replacements=replaced)
+        self.writer.save(plan['pid'],deepcopy(desired),expected_state_sha256=plan['precondition']['state_sha256'],**scope)
         atomic_json(self.root/'save_attempt.json',{'site_save_calls':1,'state':'SAVED_RESPONSE_RECEIVED','expected_state_sha256':canonical_state_hash(desired)})
         after = self.writer.product(plan['pid'])
         if not saved_state_matches(desired,after,source=before):

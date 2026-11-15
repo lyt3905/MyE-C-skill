@@ -65,8 +65,8 @@ class ModelGatewayConfigTests(unittest.TestCase):
                 config = profile(); config['base_url'] = value
                 self.reject(config, 'base_url')
 
-    def test_models_require_two_distinct_safe_identifiers(self):
-        for value in ([], ['a'], ['a', 'b', 'c'], ['a', 'A'], ['a', ''],
+    def test_models_accept_single_or_legacy_distinct_safe_identifiers(self):
+        for value in ([], ['a', 'b', 'c'], ['a', 'A'], ['a', ''],[''],['has space'],
                       ['a', 'has space'], ['a', 'bad?key'], ['a', None],
                       ['a', '模型'], ('a', 'b'), 'a,b'):
             with self.subTest(models=value):
@@ -74,6 +74,8 @@ class ModelGatewayConfigTests(unittest.TestCase):
                 self.reject(config, 'models')
         config = profile(); config['models'] = ['Vendor/A_1.2:fast', 'vendor/b-2']
         self.assertEqual(validate_config(config)['models'], config['models'])
+        config['models']=['deepseek-v4.1-flash']
+        self.assertEqual(validate_config(config)['models'],config['models'])
 
     def test_integer_limits_exclude_boolean(self):
         for field, low, high in (('max_output_tokens', 1, 16384), ('retries', 0, 2), ('timeout', 1, 150)):

@@ -93,11 +93,11 @@ class FullAuditModelContinuationTests(unittest.TestCase):
                             choices=[dict(message=dict(content=payload))])
             def factory(*args,**kwargs):
                 self.assertTrue(kwargs['continue_model_errors'])
-                return JudgeClient(*args,transport=transport,**kwargs)
+                return JudgeClient(*args,models=('deepseek-v4.1-flash','mimo-v2.6-pro'),transport=transport,**kwargs)
             templates=root/'templates.json'
             atomic_json(templates,{'required_shop_ids':[],'no_applicable_shop_ids':[7],'templates':[]})
             with patch('ai_judge.JudgeClient',side_effect=factory):
-                report=run_full_audit(root/'jobs',1,7,Reader(),auditor=auditor,template_config=templates)
+                report=run_full_audit(root/'jobs',1,7,Reader(),auditor=auditor,template_config=templates,image_workflow='legacy')
             self.assertEqual(len(calls),12)
             self.assertEqual(report['image_and_reference_count'],7)
             self.assertFalse(report['audit_complete'])

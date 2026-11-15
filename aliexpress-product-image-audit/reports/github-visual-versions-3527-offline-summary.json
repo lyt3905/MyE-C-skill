@@ -1,0 +1,54 @@
+{
+  "unique_images": 25,
+  "references": 45,
+  "replacement_groups": 1,
+  "main1": {
+    "previous": "REMOVE_TEXT",
+    "without_clean_version": "DELETE",
+    "final": "REPLACE_TWIN",
+    "candidate": "DETAIL_001 / overview7",
+    "proof": {
+      "verified": true,
+      "algorithm_version": "same-photo-versions/v1",
+      "source_sha256": "3569febeac721325e9c4cf075d28861a0431f6a55867513cc023159bf2e9fea0",
+      "candidate_sha256": "fef25198d3ef5935b06a72fd5d7dec3c33f2f0354ed59388bb917e979257300c",
+      "matches": 992,
+      "inliers": 982,
+      "inlier_fraction": 0.9899193548387096,
+      "feature_coverage": 0.5546842772121767,
+      "visible_coverage": 1.0,
+      "mean_difference": 5.2171807289123535,
+      "pixel_agreement": 0.9756652396224131,
+      "center_agreement": 0.9937016369047619,
+      "center_mean_difference": 3.597517251968384,
+      "reason": "SAME_PHOTO_GEOMETRY_AND_PIXELS",
+      "homography": [
+        [
+          0.9997493461684417,
+          -5.466706883588732e-05,
+          0.06339403348805236
+        ],
+        [
+          -7.715158700839643e-05,
+          0.9998763708993981,
+          0.037264061857094
+        ],
+        [
+          -3.031430786477837e-07,
+          -8.483836438242125e-08,
+          0.9999999999999999
+        ]
+      ]
+    }
+  },
+  "overview11_rejected": {
+    "verified": false,
+    "algorithm_version": "same-photo-versions/v1",
+    "source_sha256": "3569febeac721325e9c4cf075d28861a0431f6a55867513cc023159bf2e9fea0",
+    "candidate_sha256": "8bd8091e251472fbfa98b8c9238511fc1b42aa75479f11603f35f14cbc1e8821",
+    "reason": "INSUFFICIENT_MATCHES"
+  },
+  "new_model_calls": 0,
+  "site_reads": 0,
+  "site_writes": 0
+}

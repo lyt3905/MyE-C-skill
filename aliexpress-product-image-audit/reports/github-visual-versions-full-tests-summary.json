@@ -1,0 +1,57 @@
+{
+  "tests": 931,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "coverage_exact": true,
+  "source_unchanged": true,
+  "source_files": 462,
+  "blocked_network_attempts": 0,
+  "real_model_calls": 0,
+  "site_reads": 0,
+  "production_writes": 0,
+  "shards": [
+    {
+      "run_id": "72f25b7a29ba4ae5b5f4789b53e82cb3",
+      "tests": 307,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "elapsed_seconds": 214.484,
+      "source_unchanged": true,
+      "source_files": 462,
+      "blocked_network_attempts": 0,
+      "real_model_calls": 0,
+      "production_writes": 0,
+      "exit_code": 0
+    },
+    {
+      "run_id": "98115c7de77b4a3f87b6545d929f235e",
+      "tests": 326,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "elapsed_seconds": 328.766,
+      "source_unchanged": true,
+      "source_files": 462,
+      "blocked_network_attempts": 0,
+      "real_model_calls": 0,
+      "production_writes": 0,
+      "exit_code": 0
+    },
+    {
+      "run_id": "0302dc0018a248fda55a8757165c8988",
+      "tests": 298,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "elapsed_seconds": 293.438,
+      "source_unchanged": true,
+      "source_files": 462,
+      "blocked_network_attempts": 0,
+      "real_model_calls": 0,
+      "production_writes": 0,
+      "exit_code": 0
+    }
+  ]
+}

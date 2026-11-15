@@ -48,10 +48,10 @@ def _url(value):
     return value.get('url') if isinstance(value,dict) else value
 
 
-def build_inventory(product,images):
+def build_inventory(product,images,*,include_description=False):
     by_url=defaultdict(list)
     for row in images:
-        if row.get('kind') not in IMAGE_POOLS or row.get('error'):continue
+        if row.get('kind') not in IMAGE_POOLS+(('description',) if include_description else ()) or row.get('error'):continue
         path=Path(row['file'])
         if not path.is_absolute():path=Path(__file__).parent/path
         if not path.is_file():continue
@@ -84,6 +84,10 @@ def build_inventory(product,images):
              'sku_name':row.get('skuName',row.get('name','')),
              'sku_row_sha256':hashlib.sha256(canonical_json(row).encode()).hexdigest()},
             row.get('skuImageUrl') or row.get('imageUrl') or row.get('image'))
+    if include_description:
+        from description_images import body_image_nodes
+        for row in body_image_nodes(product.get('descriptionJson')):
+            add(dict(id='DESCRIPTION_'+str(row['index']).zfill(3),target_type='description_image',pool='description',index=row['index']),row['url'])
     return {'occurrences':occurrences,'contents':contents}
 
 
@@ -303,7 +307,7 @@ def assemble_report(product,inventory,judgements,global_checks,queue=None):
             'read_only':True,'remediation_executed':False,'site_save_calls':0,'upload_calls':0,'translate_calls':0,'status_calls':0}
 
 
-def run_full_audit(root,pid,shop,reader,*,model_config=None,template_config=None,judge=None,auditor=None,manager=None,job=None,model_budget=None,image_workflow=None,image_options=None):
+def run_full_audit(root,pid,shop,reader,*,model_config=None,template_config=None,judge=None,auditor=None,manager=None,job=None,model_budget=None,image_workflow='v2',image_options=None):
     if job and job.get('image_workflow')=='v2':
         from job_manager import JobManager
         return run_unified_audit(manager or JobManager(root),job,reader,judge=judge,auditor=auditor)
@@ -318,7 +322,8 @@ def run_full_audit(root,pid,shop,reader,*,model_config=None,template_config=None
     account=reader.account_fingerprint()
     manager=manager or JobManager(root)
     limits={'ai_requests':40,'full_resolution_images':32,'total_tokens':500000,'site_save':0,'translate_title':0}
-    job=job or manager.create(pid,shop,limits,mode='audit',templates_required=template_config is not None and image_workflow!='v2',model_config=model_config,model_budget=model_budget,image_workflow=image_workflow,image_options=image_options)
+    if image_workflow=='v2' and model_budget is None:model_budget={'mode':'RECORD_ONLY','usage_source':'GATEWAY_REPORTED_UNVERIFIED'}
+    job=job or manager.create(pid,shop,limits,mode='audit',templates_required=template_config is not None and image_workflow!='v2',model_config=model_config,model_budget=model_budget,image_workflow=None if image_workflow=='legacy' else image_workflow,image_options=image_options)
     if manager.load(job['job_id'])!=job or (job['pid'],job['shop_id'])!=(pid,shop):raise ValueError('FULL_AUDIT_JOB_MISMATCH')
     if job.get('image_workflow')=='v2':return run_unified_audit(manager,job,reader,judge=judge,auditor=auditor)
     limits=job['budget']
@@ -414,7 +419,10 @@ def download_only(pid,shop,*,output_dir,site,downloader=None):
     from download_manager import download_unique
     if str(site.current_shop())!=str(shop):raise ValueError('SHOP_CONTEXT_UNVERIFIED')
     product=site.product(pid);directory=Path(output_dir);directory.mkdir(parents=True,exist_ok=True)
-    refs=_image_urls(product);downloads=download_unique((r['url'] for r in refs),directory/'audit_images',downloader=downloader)
+    refs=_image_urls(product)
+    from description_images import body_image_nodes
+    refs += [dict(kind='description',index=r['index'],url=r['url'],source='description_image_node') for r in body_image_nodes(product.get('descriptionJson'))]
+    downloads=download_unique((r['url'] for r in refs),directory/'audit_images',downloader=downloader)
     rows=[]
     for ref in refs:
         result=downloads[ref['url']];row=dict(ref)
@@ -437,7 +445,8 @@ def run_unified_audit(manager,job,reader,*,judge=None,auditor=None):
     from budget_manager import BudgetManager
     from ai_judge import JudgeClient
     from ai_judge.client import safe_payload
-    from ai_judge.image_action_decision import decide,SCHEMA_VERSION,PROMPT
+    from ai_judge.image_action_decision import decide,SCHEMA_VERSION,PROMPT,CONFIDENCE_POLICY
+    from model_config import review_models
     from product_state import canonical_state_hash
     if str(reader.current_shop())!=str(job['shop_id']):raise ValueError('SHOP_CONTEXT_UNVERIFIED')
     account=reader.account_fingerprint();job=manager.bind_full_audit(job['job_id'])
@@ -448,38 +457,45 @@ def run_unified_audit(manager,job,reader,*,judge=None,auditor=None):
     read=lambda n:json.loads((directory/n).read_text(encoding='utf-8'))
     product=read('audit_product.json');raw=read('audit_raw.json');job=manager.bind_input(job['job_id'],product)
     manager.transition(job['job_id'],'AUDITED')
-    inventory=build_inventory(product,raw['images']);atomic_json(directory/'full_inventory.json',inventory)
+    inventory=build_inventory(product,raw['images'],include_description=True);atomic_json(directory/'full_inventory.json',inventory)
     # No OCR/CV-derived fields are used, even if an injected legacy fixture contains them.
     queue=[]
     for digest,content in inventory['contents'].items():
         first=next(r for r in inventory['occurrences'] if r['sha256']==digest)
-        queue.append(dict(id='IMG_'+digest,task_type='image_action_decision',image_type=first.get('pool','sku').upper(),
+        queue.append(dict(id='IMG_'+digest,task_type='image_action_decision',image_type='DETAIL' if first.get('pool')=='description' else first.get('pool','sku').upper(),
                           local=content['file'],sha256=digest,dimensions=[content['width'],content['height']],evidence_ids=['SOURCE_'+digest]))
     atomic_json(directory/'full_ai_queue.json',{'schema':'ai-queue/v2','pid':job['pid'],'items':queue})
-    context=safe_payload({},dict(pid=job['pid'],shop=job['shop_id'],identityJson=product.get('identityJson'),brand=product.get('brand'),skus=product.get('skus',[])))['context']
+    context=safe_payload({},dict(product,pid=job['pid'],shop=job['shop_id']))['context']
     budget=BudgetManager(job['budget'],directory/'budget.sqlite')
     try:
         if 'model_budget' in job:budget.configure_model_budget(job['model_budget'],job['job_id'])
         judge=judge or JudgeClient(budget,directory/'judge_cache',continue_model_errors=True,**({'config':job['model_config']} if 'model_config' in job else {}))
         if judge.budget is not budget and 'model_budget' in job:judge.budget.configure_model_budget(job['model_budget'],job['job_id'])
         manager.transition(job['job_id'],'AI_PENDING')
+        models=review_models(judge.models)
         results={item['sha256']:decide(judge,item,context) for item in queue}
         atomic_json(directory/'full_ai_judgements.json',results);atomic_json(directory/'full_ai_metrics.json',judge.metrics)
+        from visual_versions import find_versions
+        visual_versions=find_versions(inventory,results)
+        atomic_json(directory/'full_visual_versions.json',visual_versions)
         fresh=reader.product(job['pid']);stable=canonical_state_hash(fresh)==job['input_state_sha256'] and reader.account_fingerprint()==account and str(reader.current_shop())==str(job['shop_id'])
         if not stable:raise ValueError('SOURCE_STATE_CHANGED')
         rows=[dict(r,decision=results.get(r['sha256'],{}).get('decision','REVIEW'),verdict='UNKNOWN' if results.get(r['sha256'],{}).get('decision','REVIEW')=='REVIEW' else 'PASS' if results[r['sha256']]['decision']=='KEEP' else 'FAIL') for r in inventory['occurrences']]
         unresolved=sum(r['decision']=='REVIEW' for r in rows)
-        report=dict(schema='full-product-audit/v2-unified',job_id=job['job_id'],pid=job['pid'],shop=job['shop_id'],models=list(judge.models),
+        report=dict(schema='full-product-audit/v2-unified',job_id=job['job_id'],pid=job['pid'],shop=job['shop_id'],models=list(models),
             audit_status='INCOMPLETE' if unresolved else 'COMPLETE',audit_complete=not unresolved,compliance_status='UNKNOWN' if unresolved else 'COMPLIANT' if all(r['decision']=='KEEP' for r in rows) else 'NON_COMPLIANT',
             image_and_reference_count=len(rows),unique_image_contents=len(inventory['contents']),unresolved_count=unresolved,occurrences=rows,global_checks=[],
             source_state_sha256=job['input_state_sha256'],source_unchanged=True,read_only=True,site_save_calls=0,upload_calls=0)
+        report['visual_version_replacements']=visual_versions['matches']
         atomic_json(directory/'full_audit_report.json',report)
         atomic_json(directory/'coverage_matrix.json',{'expected_positions':len(rows),'reported_positions':len(rows),'positions':rows})
-        atomic_json(directory/'full_audit_protocol.json',{'schema_version':SCHEMA_VERSION,'prompt_sha256':hashlib.sha256(PROMPT.encode()).hexdigest(),'threshold':MODEL_CONFIDENCE_MIN,'models':list(judge.models),'semantic_source':'AI_VISION_ONLY','excluded':['Description','images.ai','images.scene'],'source_state_sha256':job['input_state_sha256']})
-        names=['audit_product.json','audit_raw.json','audit_flags.json','audit_account.json','full_inventory.json','full_ai_queue.json','full_ai_judgements.json','full_ai_metrics.json','full_audit_report.json','coverage_matrix.json','full_audit_protocol.json']
+        atomic_json(directory/'full_audit_protocol.json',{'schema_version':SCHEMA_VERSION,'prompt_sha256':hashlib.sha256(PROMPT.encode()).hexdigest(),'threshold':None,'confidence_policy':CONFIDENCE_POLICY,'models':list(models),'semantic_source':'AI_VISION_ONLY','included':['images.main','images.detail','images.sku','skus.image_references','Description.body_image_nodes'],'excluded':['Description.text','Description.shopFooter','images.ai','images.scene'],'source_state_sha256':job['input_state_sha256']})
+        names=['audit_product.json','audit_raw.json','audit_flags.json','audit_account.json','full_inventory.json','full_ai_queue.json','full_ai_judgements.json','full_ai_metrics.json','full_visual_versions.json','full_audit_report.json','coverage_matrix.json','full_audit_protocol.json']
         names+=sorted({str(Path(c['file']).relative_to(directory)) for c in inventory['contents'].values()})
         atomic_json(directory/'full_audit_evidence_manifest.json',{'source_sha256':job['input_state_sha256'],'files':[dict(path=n,sha256=hashlib.sha256((directory/n).read_bytes()).hexdigest()) for n in names]})
         manager.transition(job['job_id'],'NEEDS_REVIEW' if unresolved else 'AI_RESOLVED')
+        from auto_workflow import report as write_report
+        write_report(directory,job,'REVIEW_REQUIRED',dict(read_only=True,remediation_status='NOT_RUN',site_save_calls=0,upload_calls=0,audit_status=report['audit_status']))
         return report
     finally:budget.close()
 
