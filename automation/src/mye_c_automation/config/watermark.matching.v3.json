@@ -1,0 +1,6 @@
+{
+  "schema": "watermark-region-matching/v3",
+  "min_iou": 0.5,
+  "validated_scope": "Fake geometry boundary and ambiguity tests only",
+  "automatic_action_release": false
+}

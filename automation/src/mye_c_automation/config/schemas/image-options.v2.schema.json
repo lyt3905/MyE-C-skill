@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rights", "max_mask_area"],
+  "properties": {
+    "rights": {"enum": ["OWNED_OR_LICENSED", "RIGHTS_UNKNOWN", "THIRD_PARTY_ATTRIBUTION"]},
+    "max_mask_area": {"type": "number", "exclusiveMinimum": 0, "maximum": 0.25},
+    "lama_model_path": {"type": "string"},
+    "lama_model_sha256": {"type": "string"},
+    "image_edit": {"type": "object"}
+  }
+}

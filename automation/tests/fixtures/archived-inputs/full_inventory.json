@@ -1,0 +1,852 @@
+{
+  "occurrences": [
+    {
+      "id": "MAIN_000",
+      "target_type": "image_slot",
+      "pool": "main",
+      "index": 0,
+      "url": "https://image-store-liu.oss-cn-beijing.aliyuncs.com/bc4ac877-eeed-4799-8f65-acaae8e77c93.jpg",
+      "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "MAIN_001",
+      "target_type": "image_slot",
+      "pool": "main",
+      "index": 1,
+      "url": "https://image-store-liu.oss-cn-beijing.aliyuncs.com/e4667e68-e2e7-4e77-bbf2-9f8a763566a3.jpg",
+      "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "MAIN_002",
+      "target_type": "image_slot",
+      "pool": "main",
+      "index": 2,
+      "url": "https://image-store-liu.oss-cn-beijing.aliyuncs.com/e742aee7-510d-490d-a62c-07bcdd143084.jpg",
+      "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "MAIN_003",
+      "target_type": "image_slot",
+      "pool": "main",
+      "index": 3,
+      "url": "https://image-store-liu.oss-cn-beijing.aliyuncs.com/f1760716-638f-4afd-b09f-57574d288c88.jpg",
+      "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "MAIN_004",
+      "target_type": "image_slot",
+      "pool": "main",
+      "index": 4,
+      "url": "https://image-store-liu.oss-cn-beijing.aliyuncs.com/681ab0b7-3d43-40cf-9ffa-ea2673f0d3bd.jpg",
+      "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "MAIN_005",
+      "target_type": "image_slot",
+      "pool": "main",
+      "index": 5,
+      "url": "https://image-store-liu.oss-cn-beijing.aliyuncs.com/0ada3eb0-55a4-4819-bc18-483f1da1bbc4.jpg",
+      "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "DETAIL_000",
+      "target_type": "image_slot",
+      "pool": "detail",
+      "index": 0,
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/S68aefc7ab59f42a48f91382e77a1d34f9.jpg",
+      "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "DETAIL_001",
+      "target_type": "image_slot",
+      "pool": "detail",
+      "index": 1,
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/S5d58654f909244ebb1ee2d6352608e3fT.jpg",
+      "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "DETAIL_002",
+      "target_type": "image_slot",
+      "pool": "detail",
+      "index": 2,
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/S82e5569ddc3640f1a402fa277170e5a0B.jpg",
+      "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "DETAIL_003",
+      "target_type": "image_slot",
+      "pool": "detail",
+      "index": 3,
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/S0cee4d5dbd9d4a12af4ee66e34ef6207v.jpg",
+      "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "DETAIL_004",
+      "target_type": "image_slot",
+      "pool": "detail",
+      "index": 4,
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/Scb3d7cd1fd16469db88d49e8a40cc1d8Y.jpg",
+      "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "DETAIL_005",
+      "target_type": "image_slot",
+      "pool": "detail",
+      "index": 5,
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/Sddf25f2990814363b3e2a62e26ab2153B.jpg",
+      "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "SKU_000",
+      "target_type": "image_slot",
+      "pool": "sku",
+      "index": 0,
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/Sddf25f2990814363b3e2a62e26ab2153B.jpg",
+      "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "SKU_001",
+      "target_type": "image_slot",
+      "pool": "sku",
+      "index": 1,
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/S0cee4d5dbd9d4a12af4ee66e34ef6207v.jpg",
+      "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "SKU_ROW_000",
+      "target_type": "sku_reference",
+      "sku_row_index": 0,
+      "sku_name": "no retail box",
+      "sku_row_sha256": "f70d6b343c774c5cf1dd2fe991f2b5b5816bc685713a245a39364e5c31f0b6a7",
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/S0cee4d5dbd9d4a12af4ee66e34ef6207v.jpg",
+      "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7",
+      "source_status": "VERIFIED_BYTES"
+    },
+    {
+      "id": "SKU_ROW_001",
+      "target_type": "sku_reference",
+      "sku_row_index": 1,
+      "sku_name": "with retail box",
+      "sku_row_sha256": "5e82e3c85cef82207872d3d29156e927a0b0fb3ca34e6c4c31070a2a6006dde9",
+      "url": "https://ae-pic-a1.aliexpress-media.com/kf/Sddf25f2990814363b3e2a62e26ab2153B.jpg",
+      "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+      "source_status": "VERIFIED_BYTES"
+    }
+  ],
+  "contents": {
+    "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82": {
+      "sha256": "20583cfb87a9ac7e0ccf022650a3b262f88d4c9b33eea83e990982d2f8c13b82",
+      "file": "@FIXTURE@/audit_images/main_00_493bacc5f7.bin",
+      "width": 800,
+      "height": 800,
+      "format": "WEBP",
+      "ocr": [
+        {
+          "text": "Mr.Li&#39;sStudioStore",
+          "score": 0.971,
+          "rect": [
+            256,
+            6,
+            544,
+            33
+          ],
+          "region": "full"
+        },
+        {
+          "text": "DW-ES09T",
+          "score": 0.996,
+          "rect": [
+            287,
+            47,
+            499,
+            87
+          ],
+          "region": "full"
+        },
+        {
+          "text": "AGES-I",
+          "score": 0.923,
+          "rect": [
+            402,
+            222,
+            445,
+            243
+          ],
+          "region": "full"
+        },
+        {
+          "text": "MECOMMANDEB",
+          "score": 0.887,
+          "rect": [
+            615,
+            520,
+            757,
+            536
+          ],
+          "region": "full"
+        },
+        {
+          "text": "OW-ESDOT",
+          "score": 0.776,
+          "rect": [
+            21,
+            551,
+            104,
+            575
+          ],
+          "region": "full"
+        },
+        {
+          "text": "EXTREME",
+          "score": 0.995,
+          "rect": [
+            124,
+            553,
+            291,
+            584
+          ],
+          "region": "full"
+        },
+        {
+          "text": "CW-ESOST",
+          "score": 0.872,
+          "rect": [
+            415,
+            548,
+            496,
+            572
+          ],
+          "region": "full"
+        },
+        {
+          "text": "EXTREME",
+          "score": 0.995,
+          "rect": [
+            518,
+            553,
+            681,
+            577
+          ],
+          "region": "full"
+        },
+        {
+          "text": "SQUAD",
+          "score": 0.978,
+          "rect": [
+            92,
+            575,
+            322,
+            653
+          ],
+          "region": "full"
+        },
+        {
+          "text": "SQUAD",
+          "score": 0.975,
+          "rect": [
+            485,
+            574,
+            711,
+            646
+          ],
+          "region": "full"
+        },
+        {
+          "text": "In stock",
+          "score": 0.953,
+          "rect": [
+            3,
+            730,
+            136,
+            767
+          ],
+          "region": "full"
+        },
+        {
+          "text": "Mr.Li&#39;sStudioStore",
+          "score": 0.97,
+          "rect": [
+            260,
+            8,
+            541,
+            30
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "DW-ES09T",
+          "score": 0.994,
+          "rect": [
+            286,
+            46,
+            501,
+            88
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "EXTREME",
+          "score": 0.914,
+          "rect": [
+            326,
+            178,
+            390,
+            198
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "ANDER",
+          "score": 0.809,
+          "rect": [
+            168,
+            202,
+            217,
+            220
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "SQUAD",
+          "score": 0.959,
+          "rect": [
+            88,
+            576,
+            318,
+            657
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "SQUAD",
+          "score": 0.959,
+          "rect": [
+            513,
+            579,
+            700,
+            645
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "Instock",
+          "score": 0.969,
+          "rect": [
+            5,
+            732,
+            132,
+            764
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "PRIMECOMMANDER",
+          "score": 0.948,
+          "rect": [
+            405,
+            448,
+            563,
+            470
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "Dr.Wu",
+          "score": 0.949,
+          "rect": [
+            705,
+            465,
+            734,
+            474
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "TERSION2.IIW&RRIOR",
+          "score": 0.761,
+          "rect": [
+            410,
+            470,
+            519,
+            488
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "THS IY ISSEMSNNL LEHURNNTION SSEESOHN USSH AHESSTCIFS",
+          "score": 0.508,
+          "rect": [
+            97,
+            427,
+            388,
+            500
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "PUNASE AWY SNISNDETU PUY HRSFIUY TI PPVEN DAUPEE N UNS",
+          "score": 0.629,
+          "rect": [
+            96,
+            440,
+            380,
+            510
+          ],
+          "region": "middle28_x2"
+        }
+      ],
+      "occurrence_ids": [
+        "MAIN_000",
+        "DETAIL_000"
+      ],
+      "urls": [
+        "https://image-store-liu.oss-cn-beijing.aliyuncs.com/bc4ac877-eeed-4799-8f65-acaae8e77c93.jpg",
+        "https://ae-pic-a1.aliexpress-media.com/kf/S68aefc7ab59f42a48f91382e77a1d34f9.jpg"
+      ]
+    },
+    "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6": {
+      "sha256": "f58ef0242d0737a4aa4d8c4997e72842049679a391df89c3c6d9179f4264bed6",
+      "file": "@FIXTURE@/audit_images/main_01_7bd099ea0f.bin",
+      "width": 800,
+      "height": 800,
+      "format": "WEBP",
+      "ocr": [
+        {
+          "text": "Man",
+          "score": 0.995,
+          "rect": [
+            757,
+            711,
+            799,
+            738
+          ],
+          "region": "full"
+        },
+        {
+          "text": "IMECOMMANDER",
+          "score": 0.995,
+          "rect": [
+            4,
+            730,
+            513,
+            779
+          ],
+          "region": "full"
+        },
+        {
+          "text": "Man",
+          "score": 0.998,
+          "rect": [
+            760,
+            714,
+            800,
+            735
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "IMECOMMANDER",
+          "score": 0.993,
+          "rect": [
+            0,
+            729,
+            518,
+            784
+          ],
+          "region": "bottom28_x2"
+        }
+      ],
+      "occurrence_ids": [
+        "MAIN_001",
+        "DETAIL_001"
+      ],
+      "urls": [
+        "https://image-store-liu.oss-cn-beijing.aliyuncs.com/e4667e68-e2e7-4e77-bbf2-9f8a763566a3.jpg",
+        "https://ae-pic-a1.aliexpress-media.com/kf/S5d58654f909244ebb1ee2d6352608e3fT.jpg"
+      ]
+    },
+    "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7": {
+      "sha256": "e9a1233b0d4e4282e657d83b75d9f3cdf2636b30dd5591733ded7201b65e0bc7",
+      "file": "@FIXTURE@/audit_images/main_02_d579ede603.bin",
+      "width": 800,
+      "height": 800,
+      "format": "WEBP",
+      "ocr": [
+        {
+          "text": "Man",
+          "score": 0.995,
+          "rect": [
+            757,
+            711,
+            799,
+            738
+          ],
+          "region": "full"
+        },
+        {
+          "text": "IMECOMMANDER",
+          "score": 0.994,
+          "rect": [
+            5,
+            733,
+            514,
+            779
+          ],
+          "region": "full"
+        },
+        {
+          "text": "Man",
+          "score": 0.998,
+          "rect": [
+            760,
+            714,
+            800,
+            735
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "IMECOMMANDER",
+          "score": 0.993,
+          "rect": [
+            0,
+            729,
+            518,
+            784
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "0",
+          "score": 0.609,
+          "rect": [
+            588,
+            340,
+            738,
+            446
+          ],
+          "region": "middle28_x2"
+        }
+      ],
+      "occurrence_ids": [
+        "MAIN_002",
+        "DETAIL_002"
+      ],
+      "urls": [
+        "https://image-store-liu.oss-cn-beijing.aliyuncs.com/e742aee7-510d-490d-a62c-07bcdd143084.jpg",
+        "https://ae-pic-a1.aliexpress-media.com/kf/S82e5569ddc3640f1a402fa277170e5a0B.jpg"
+      ]
+    },
+    "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7": {
+      "sha256": "4292661510e41155463451b49d871611c08827bdb1b6dd0701a484eb4c05e8b7",
+      "file": "@FIXTURE@/audit_images/main_03_83ed00b9e6.bin",
+      "width": 800,
+      "height": 800,
+      "format": "WEBP",
+      "ocr": [
+        {
+          "text": "SERVEDBYLANNOFIRESTLOIO",
+          "score": 0.851,
+          "rect": [
+            19,
+            386,
+            28,
+            510
+          ],
+          "region": "middle28_x2"
+        }
+      ],
+      "occurrence_ids": [
+        "MAIN_003",
+        "DETAIL_003",
+        "SKU_001",
+        "SKU_ROW_000"
+      ],
+      "urls": [
+        "https://image-store-liu.oss-cn-beijing.aliyuncs.com/f1760716-638f-4afd-b09f-57574d288c88.jpg",
+        "https://ae-pic-a1.aliexpress-media.com/kf/S0cee4d5dbd9d4a12af4ee66e34ef6207v.jpg"
+      ]
+    },
+    "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e": {
+      "sha256": "b001256f377830437d16b2f0b151cc6114d85ea7cdde5e697adf1d9f1c37b82e",
+      "file": "@FIXTURE@/audit_images/main_04_d011933446.bin",
+      "width": 800,
+      "height": 800,
+      "format": "WEBP",
+      "ocr": [
+        {
+          "text": "P",
+          "score": 0.763,
+          "rect": [
+            341,
+            82,
+            440,
+            183
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "O",
+          "score": 0.719,
+          "rect": [
+            555,
+            106,
+            628,
+            196
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "SERVEDBYLAMNCFIRESYUDO",
+          "score": 0.78,
+          "rect": [
+            19,
+            387,
+            28,
+            510
+          ],
+          "region": "middle28_x2"
+        }
+      ],
+      "occurrence_ids": [
+        "MAIN_004",
+        "DETAIL_004"
+      ],
+      "urls": [
+        "https://image-store-liu.oss-cn-beijing.aliyuncs.com/681ab0b7-3d43-40cf-9ffa-ea2673f0d3bd.jpg",
+        "https://ae-pic-a1.aliexpress-media.com/kf/Scb3d7cd1fd16469db88d49e8a40cc1d8Y.jpg"
+      ]
+    },
+    "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5": {
+      "sha256": "0fd90100f20a2edcdd286946646bce31346160d172810ddb5fe6a39ef87cc7a5",
+      "file": "@FIXTURE@/audit_images/main_05_fccbf6d754.bin",
+      "width": 800,
+      "height": 800,
+      "format": "WEBP",
+      "ocr": [
+        {
+          "text": "NSESI",
+          "score": 0.752,
+          "rect": [
+            200,
+            38,
+            248,
+            58
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "-MO",
+          "score": 0.595,
+          "rect": [
+            636,
+            66,
+            662,
+            86
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "LSnSa-MO",
+          "score": 0.581,
+          "rect": [
+            731,
+            69,
+            790,
+            92
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "EXT",
+          "score": 0.769,
+          "rect": [
+            243,
+            80,
+            373,
+            138
+          ],
+          "region": "top28_x2"
+        },
+        {
+          "text": "COMMANDE",
+          "score": 0.917,
+          "rect": [
+            620,
+            633,
+            724,
+            656
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "MANDER",
+          "score": 0.96,
+          "rect": [
+            737,
+            638,
+            798,
+            656
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "PRIME",
+          "score": 0.989,
+          "rect": [
+            626,
+            654,
+            704,
+            680
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "IME",
+          "score": 0.978,
+          "rect": [
+            750,
+            655,
+            800,
+            682
+          ],
+          "region": "bottom28_x2"
+        },
+        {
+          "text": "PRIME COMMANDER",
+          "score": 0.955,
+          "rect": [
+            206,
+            304,
+            384,
+            326
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "Dr.Wu",
+          "score": 0.979,
+          "rect": [
+            538,
+            304,
+            572,
+            318
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "CONMANDE",
+          "score": 0.907,
+          "rect": [
+            612,
+            320,
+            710,
+            342
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "ANDER",
+          "score": 0.983,
+          "rect": [
+            731,
+            324,
+            787,
+            344
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "VERSION Z.O WARRIOR",
+          "score": 0.903,
+          "rect": [
+            212,
+            332,
+            335,
+            350
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "PRIME",
+          "score": 0.979,
+          "rect": [
+            614,
+            342,
+            692,
+            368
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "PRMECOMMANDER",
+          "score": 0.992,
+          "rect": [
+            212,
+            398,
+            398,
+            422
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "EXTREME",
+          "score": 0.964,
+          "rect": [
+            522,
+            406,
+            600,
+            421
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "VERSION Z.O WARRIOR",
+          "score": 0.937,
+          "rect": [
+            220,
+            424,
+            354,
+            447
+          ],
+          "region": "middle28_x2"
+        },
+        {
+          "text": "18SQUAD",
+          "score": 0.961,
+          "rect": [
+            464,
+            418,
+            608,
+            452
+          ],
+          "region": "middle28_x2"
+        }
+      ],
+      "occurrence_ids": [
+        "MAIN_005",
+        "DETAIL_005",
+        "SKU_000",
+        "SKU_ROW_001"
+      ],
+      "urls": [
+        "https://image-store-liu.oss-cn-beijing.aliyuncs.com/0ada3eb0-55a4-4819-bc18-483f1da1bbc4.jpg",
+        "https://ae-pic-a1.aliexpress-media.com/kf/Sddf25f2990814363b3e2a62e26ab2153B.jpg"
+      ]
+    }
+  }
+}
