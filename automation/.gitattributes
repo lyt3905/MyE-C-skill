@@ -1,3 +1,0 @@
-# Fixtures include byte-bound source evidence. Preserve their exact contents
-# across Windows/Linux checkouts instead of normalizing embedded JSON newlines.
-tests/fixtures/** -text

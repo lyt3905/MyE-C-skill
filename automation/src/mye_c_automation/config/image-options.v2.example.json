@@ -1,8 +1,0 @@
-{
-  "rights": "OWNED_OR_LICENSED",
-  "max_mask_area": 0.25,
-  "watermark_processing": {
-    "protection_overlap_trial": true,
-    "ocr_fallback": true
-  }
-}

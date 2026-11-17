@@ -1,8 +1,0 @@
-{
-  "pid": 5173,
-  "original_main": 2,
-  "sha256": "a8105589e042be6331c3efa4d405478813021b57ecaa3975a1548efcc90e0bf3",
-  "source_job": "JOB_13f22fd345f74a258f933d57b005c22a",
-  "model_scope_job": "JOB_23af65cb18954f8482f150c325b18e77",
-  "purpose": "Pixel-only flat-window NCC regression; not a whole-image clean label."
-}
