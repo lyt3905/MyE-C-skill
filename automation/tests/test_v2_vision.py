@@ -9,6 +9,14 @@ from mye_c_automation.ai_judge.client import JudgeClient
 from mye_c_automation.budget_manager import BudgetManager
 
 
+def reply_for_prompt(value,text):
+    """HTTP fixtures obey the requested contract, preserving old assertions."""
+    if '\nOUTPUT_JSON_SCHEMA:\n' in text:
+        schema=json.loads(text.split('\nOUTPUT_JSON_SCHEMA:\n',1)[1].split('\n',1)[0])
+        if set(schema.get('required',[]))=={'decision','visual_class','retail_box_status','sku_suitability','abstain','reason'}:
+            return {k:value[k] for k in schema['required']}
+    return value
+
 def observation(item, decision='KEEP', **changes):
     result=dict(schema_version='image-action-decision.v2',task_type='image_action_decision',
         item_id=item['id'],image_id=item['id'],image_sha256=item['sha256'],image_type=item['image_type'],

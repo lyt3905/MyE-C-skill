@@ -14,7 +14,8 @@ from mye_c_automation.resources import validate_resource_json
 VERSION='watermark-processing.v1'
 DEFAULT_POLICY=dict(max_mask_area=.25,max_roi_area=.45,context_pixels=16,adjacency_pixels=8,dilation=2,
                     opencv_max_mask_area=.04,opencv_max_roi_area=.20,radius=3,
-                    auto_text_masks=True,tile_large_regions=True,tile_overlap_pixels=32)
+                    auto_text_masks=True,tile_large_regions=True,tile_overlap_pixels=32,
+                    prefer_repeated_glyphs=True,covered_print_policy='BOUNDED_RESTORE',protection_overlap_trial=False,ocr_fallback=True)
 
 
 def policy_options(value=None):
@@ -56,7 +57,16 @@ class WatermarkInputParser:
         if not isinstance(request,dict):raise ValueError('INVALID_INPUT')
         value=deepcopy(request);serial=deepcopy(value)
         if isinstance(serial.get('image_bytes'),bytes):serial['image_bytes']=base64.b64encode(serial['image_bytes']).decode('ascii')
-        validate_resource_json(serial,'watermark-processing-input.v1.schema.json')
+        staged=value.get('observation_protocol')=='image-review.staged-v1'
+        if staged:
+            from jsonschema import Draft202012Validator
+            schema=json.loads((Path(__file__).resolve().parents[1]/'config/schemas/watermark-processing-input.v1.schema.json').read_text(encoding='utf-8'))
+            schema['properties']['observation_protocol']={'const':'image-review.staged-v1'}
+            schema['required'].append('observation_protocol')
+            schema['properties']['watermarks']['items']['required']=['kind','action','owner','watermark_id','group_id','content_type']
+            errors=list(Draft202012Validator(schema).iter_errors(serial))
+            if errors:raise ValueError('STAGED_EXECUTION_CONTRACT:'+str(errors[0].validator))
+        else:validate_resource_json(serial,'watermark-processing-input.v1.schema.json')
         source=Path(value['image_path']).resolve() if 'image_path' in value else None
         if source is not None:data=source.read_bytes()
         else:
@@ -71,7 +81,7 @@ class WatermarkInputParser:
             if image.size!=(value['image_width'],value['image_height']):raise ValueError('IMAGE_SIZE_MISMATCH')
             if image.format not in {'PNG','JPEG','WEBP'} or image.mode not in {'RGB','RGBA','P','L','LA'}:raise ValueError('IMAGE_FORMAT')
             rgba=np.array(image.convert('RGBA'));pixels=rgba[:,:,:3].copy()
-        validate_watermarks(value['watermarks']);ids=set();instances=[]
+        validate_watermarks(value['watermarks'],allow_unscored=staged);ids=set();instances=[]
         for index,mark in enumerate(value['watermarks']):
             check_polygon(mark)
             identifier=mark.get('watermark_id','v2-instance-'+str(index))
@@ -88,7 +98,9 @@ def from_v2(source,observation,rights):
     """Adapt existing V2 output; never alter raw semantic fields."""
     source=Path(source)
     with Image.open(source) as image:width,height=image.size
-    return dict(schema_version=VERSION,image_path=str(source),image_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
+    value=dict(schema_version=VERSION,image_path=str(source),image_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
         image_width=width,image_height=height,decision=observation['decision'],authorization_status=rights,
         watermarks=deepcopy(observation['watermarks']),preserve_regions=deepcopy(observation['preserve_regions']),
         background_complexity=observation.get('background_complexity','UNKNOWN'))
+    if observation.get('schema_version')=='image-review.staged-v1':value['observation_protocol']='image-review.staged-v1'
+    return value

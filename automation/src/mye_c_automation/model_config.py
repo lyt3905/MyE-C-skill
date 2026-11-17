@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 
 _FIELDS = ('schema', 'base_url', 'models', 'max_output_tokens', 'retries', 'timeout')
-_OPTIONAL_FIELDS = ('reasoning_effort', 'image_concurrency', 'vision_retry_limit')
+_OPTIONAL_FIELDS = ('reasoning_effort', 'image_concurrency', 'vision_retry_limit', 'vision_protocol')
 _MODEL_ID = re.compile(r'[A-Za-z0-9_./:-]+', re.ASCII)
 MAX_IMAGE_CONCURRENCY = 10
 MAX_OUTPUT_TOKENS = 100000
@@ -63,10 +63,13 @@ def validate_config(config):
         _invalid('reasoning_effort')
     if 'image_concurrency' in config and (type(config['image_concurrency']) is not int or not 1<=config['image_concurrency']<=MAX_IMAGE_CONCURRENCY):
         _invalid('image_concurrency')
-    if 'vision_retry_limit' in config and (type(config['vision_retry_limit']) is not int or config['vision_retry_limit'] not in (0,1)):_invalid('vision_retry_limit')
+    if 'vision_retry_limit' in config and (type(config['vision_retry_limit']) is not int or not 0<=config['vision_retry_limit']<=3):_invalid('vision_retry_limit')
     normalized = {'schema': config['schema'], 'base_url': base_url.rstrip('/'),
             'models': list(models), 'max_output_tokens': config['max_output_tokens'],
             'retries': config['retries'], 'timeout': config['timeout']}
+    if 'vision_protocol' in config:
+        if config['vision_protocol'] not in ('staged-v1','legacy-v2'): _invalid('vision_protocol')
+        normalized['vision_protocol']=config['vision_protocol']
     if 'reasoning_effort' in config:normalized['reasoning_effort']=config['reasoning_effort']
     if 'image_concurrency' in config:normalized['image_concurrency']=config['image_concurrency']
     if 'vision_retry_limit' in config:normalized['vision_retry_limit']=config['vision_retry_limit']

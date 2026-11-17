@@ -88,7 +88,7 @@ def bright_print_pixels(image,roi):
     return filled
 
 
-def mask_for(size,observation,*,max_area=.25,dilation=2,image=None,geometry=None,inherited_mask=None,template_image=None,protection_geometry=None):
+def mask_for(size,observation,*,max_area=.25,dilation=2,image=None,geometry=None,inherited_mask=None,template_image=None,protection_geometry=None,allow_protected_overlap=False):
     width,height=size;mask=np.zeros((height,width),np.uint8);protected=mask.copy()
     if image is not None and image.shape[:2]!=(height,width):raise ValueError('MASK_IMAGE_SIZE')
     def fill(target,row):
@@ -101,7 +101,10 @@ def mask_for(size,observation,*,max_area=.25,dilation=2,image=None,geometry=None
         if mode=='BRIGHT_PRINT_GLYPHS':
             margin=max(1,round(.015*min(width,height)))
             part=cv2.dilate(part,np.ones((margin*2+1,margin*2+1),np.uint8))
-            part=bright_print_pixels(template_image if template_image is not None else image,part)
+            try:part=bright_print_pixels(template_image if template_image is not None else image,part)
+            except ValueError as exc:
+                if not allow_protected_overlap:raise
+                if protection_geometry is not None:protection_geometry.append(dict(kind=row['kind'],mode=mode,extraction_failure=str(exc),review_required=True))
             if protection_geometry is not None:protection_geometry.append(dict(kind=row['kind'],mode=mode,protected_pixels=int(np.count_nonzero(part))))
         elif mode=='PRINT_RESTORE':
             margin=max(1,round(.015*min(width,height)))
@@ -171,15 +174,23 @@ def mask_for(size,observation,*,max_area=.25,dilation=2,image=None,geometry=None
         if not isinstance(inherited_mask,np.ndarray) or inherited_mask.shape!=mask.shape or inherited_mask.dtype!=np.uint8 or not np.isin(inherited_mask,[0,255]).all():raise ValueError('INVALID_PRIOR_MASK')
         mask=np.maximum(mask,inherited_mask)
     for part,proof in restore_areas:
-        if np.any((fresh_mask>0)&(part>0)) and any(mark_disposition(m)=='REMOVABLE' and m.get('repair_mode')!='TEMPLATE_GLYPHS' for m in observation['watermarks']):raise ValueError('PRINT_RESTORE_REQUIRES_GLYPHS')
+        if np.any((fresh_mask>0)&(part>0)) and any(mark_disposition(m)=='REMOVABLE' and m.get('repair_mode')!='TEMPLATE_GLYPHS' for m in observation['watermarks']):
+            if not allow_protected_overlap:raise ValueError('PRINT_RESTORE_REQUIRES_GLYPHS')
+            proof['region_trial_requires_actual_review']=True
         count=int(np.count_nonzero((mask>0)&(part>0)))
         proof['restore_pixels']=count
-        if count>.10*np.count_nonzero(part):raise ValueError('PRINT_RESTORE_AREA')
-    if (template_mode or inherited_mask is not None) and np.any((mask>0)&(protected>0)):raise ValueError('PROTECTED_REGION_OVERLAP')
-    if glyph_mode:mask[protected>0]=0
+        proof['restore_fraction']=float(count/max(1,np.count_nonzero(part)))
+        if count>.10*np.count_nonzero(part):
+            if not allow_protected_overlap:raise ValueError('PRINT_RESTORE_AREA')
+            proof.update(preflight_limit_exceeded=True,review_required=True)
+    if (template_mode or inherited_mask is not None) and not allow_protected_overlap and np.any((mask>0)&(protected>0)):raise ValueError('PROTECTED_REGION_OVERLAP')
+    if glyph_mode and not allow_protected_overlap:mask[protected>0]=0
     ratio=float(np.count_nonzero(mask)/mask.size)
     if not 0<ratio<=max_area:raise ValueError('MASK_AREA')
-    if np.any((mask>0)&(protected>0)):raise ValueError('PROTECTED_REGION_OVERLAP')
+    if np.any((mask>0)&(protected>0)):
+        if not allow_protected_overlap:raise ValueError('PROTECTED_REGION_OVERLAP')
+        if protection_geometry is not None:protection_geometry.append(dict(kind='PROTECTED_REGIONS',mode='LOCAL_TRIAL_ONLY',
+            overlap_pixels=int(np.count_nonzero((mask>0)&(protected>0))),review_required=True))
     return mask,ratio
 
 def lama_torchscript(model_path,expected_sha256=None):
@@ -209,6 +220,22 @@ def lama_torchscript(model_path,expected_sha256=None):
 
 def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,max_area=.25,cache_dir=None,mask_source=None,prior_mask=None,processing_policy=None):
     if rights!='OWNED_OR_LICENSED':raise ValueError('RIGHTS_NOT_AUTHORIZED')
+    from mye_c_automation.watermark_processing.contracts import policy_options
+    from mye_c_automation.watermark_processing.text_masks import prepare_execution
+    options=policy_options(processing_policy);options['max_mask_area']=min(options['max_mask_area'],max_area)
+    if processing_policy is None or 'protection_overlap_trial' not in processing_policy:options['protection_overlap_trial']=True
+    max_area=options['max_mask_area']
+    source_observation=observation
+    observation,execution_plan=prepare_execution(pixels(source),observation,options)
+    root=Path(directory);root.mkdir(parents=True,exist_ok=True)
+    def reviewed_candidate(result):
+        result['protection_overlap_trial']=options['protection_overlap_trial']
+        if options['protection_overlap_trial']:
+            result['protected_region_comparison']=protected_region_comparison(source,result['output_path'],source_observation,result['mask_path'])
+            result['quality_status']='PENDING_AI_REVIEW'
+        return result
+    # Generic process requires an empty directory; persist this receipt after it
+    # finishes. Legacy mask failures still retain the derived planning evidence.
     # Explicit V2 instance geometry uses the reusable ROI module. Sealed older
     # glyph modes retain their original implementation and evidence contracts.
     removable=[m for m in observation['watermarks'] if mark_disposition(m)=='REMOVABLE']
@@ -216,7 +243,7 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
     if generic_parent and removable and all(m.get('repair_mode') in {None,'REGION'} for m in removable):
         from mye_c_automation.watermark_processing import process_watermarks,from_v2
         from mye_c_automation.watermark_processing.contracts import policy_options
-        configured=policy_options(processing_policy);configured['max_mask_area']=min(configured['max_mask_area'],max_area)
+        configured=dict(options)
         result=process_watermarks(from_v2(source,observation,rights),directory,lama=lama,algorithm=algorithm,
             policy=configured,mask_source=mask_source,prior_mask=prior_mask,cache_dir=cache_dir)
         if result['processing_status']!='PROCESSED':raise ValueError(result['failure_reason'] or result['processing_status'])
@@ -229,9 +256,12 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
             mask_ratio=ratio,module_result_path=str(Path(directory)/'processing-result.json'),module_result_sha256=sha(Path(directory)/'processing-result.json'),
             elapsed_ms=round(result['execution_time']*1000,3),cache_hit=False,cache_key=None,
             model_sha256=getattr(lama,'model_sha256',None),parameters=result['processing_parameters'])
-        return result
+        result['execution_plan']=execution_plan
+        atomic_json(root/'execution-plan.json',dict(execution_plan=execution_plan,execution_observation=result['execution_observation']))
+        return reviewed_candidate(result)
     root=Path(directory);root.mkdir(parents=True,exist_ok=True);source=Path(source)
     start=time.perf_counter();digest=sha(source);image=pixels(source);h,w=image.shape[:2]
+    atomic_json(root/'execution-plan.json',dict(input_sha256=digest,execution_plan=execution_plan,execution_observation=observation))
     geometry=[];print_protection=[];inherited=None;mask_image=image
     if (mask_source is None)!=(prior_mask is None):raise ValueError('RESIDUAL_INPUT_PAIR_REQUIRED')
     if prior_mask is not None:
@@ -239,13 +269,14 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
         with Image.open(prior_mask) as previous:inherited=np.array(previous.convert('L'))
         mask_image=pixels(mask_source)
     try:
-        mask,ratio=mask_for((w,h),observation,max_area=max_area,image=mask_image,geometry=geometry,inherited_mask=inherited,template_image=image,protection_geometry=print_protection)
+        mask,ratio=mask_for((w,h),observation,max_area=max_area,image=mask_image,geometry=geometry,inherited_mask=inherited,template_image=image,protection_geometry=print_protection,
+            allow_protected_overlap=options['protection_overlap_trial'])
     except ValueError as exc:
         atomic_json(root/'mask_geometry.json',dict(input_sha256=digest,geometry=geometry,print_protection=print_protection,status='BLOCKED',reason=str(exc)))
         raise
     template_mode=any(mark_disposition(row)=='REMOVABLE' and row.get('repair_mode')=='TEMPLATE_GLYPHS' for row in observation['watermarks'])
     if template_mode and algorithm not in (None,'LAMA_INPAINT'):raise ValueError('GLYPH_REQUIRES_LAMA')
-    algorithm=algorithm or ('OPENCV_TELEA' if not template_mode and ratio<=.04 and observation['background_complexity']=='SMOOTH' else 'LAMA_INPAINT')
+    algorithm=algorithm or ('OPENCV_TELEA' if not template_mode and ratio<=.04 and observation.get('background_complexity')=='SMOOTH' else 'LAMA_INPAINT')
     if algorithm not in {'LAMA_INPAINT','OPENCV_TELEA','OPENCV_NS'}:raise ValueError('UNKNOWN_INPAINT_ALGORITHM')
     mask_path=root/'mask.png';output_path=root/(algorithm+'.png')
     if source.resolve() in {mask_path.resolve(),output_path.resolve()}:raise ValueError('ORIGINAL_OVERWRITE_FORBIDDEN')
@@ -258,6 +289,8 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
         from mye_c_automation import template_glyphs
         binding=dict(source=digest,observation=observation,mask=sha(mask_path),algorithm=algorithm,backend=backend,
             max_area=max_area,implementation=sha(__file__),glyph_implementation=sha(template_glyphs.__file__),
+            protection_overlap_trial=options['protection_overlap_trial'],
+            execution_implementation=sha(Path(__file__).parent/'watermark_processing/text_masks.py'),
             mask_source=sha(mask_source) if mask_source else None)
         cache_key=hashlib.sha256(json.dumps(binding,sort_keys=True).encode()).hexdigest();cache=ResultCache(cache_dir)
         try:
@@ -267,8 +300,9 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
             if not deterministic_quality(source,output_path,mask_path)['ok']:raise ValueError('REPAIR_CACHE_INVALID')
             if sha(source)!=digest:raise ValueError('ORIGINAL_CHANGED')
             result=dict(receipt,input_path=str(source),output_path=str(output_path),mask_path=str(mask_path),
-                elapsed_ms=round((time.perf_counter()-start)*1000,3),cache_hit=True,cache_key=cache_key)
-            atomic_json(root/(algorithm+'.json'),result);return result
+                elapsed_ms=round((time.perf_counter()-start)*1000,3),cache_hit=True,cache_key=cache_key,
+                execution_plan=execution_plan,execution_observation=observation)
+            result=reviewed_candidate(result);atomic_json(root/(algorithm+'.json'),result);return result
         except (ValueError,KeyError,TypeError,OSError):pass
     if algorithm=='LAMA_INPAINT':
         if lama is None:raise ValueError('LAMA_UNAVAILABLE')
@@ -289,6 +323,7 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
     result=dict(algorithm=algorithm,parameters={'radius':3,'dilation':2,'max_area':max_area},mask_ratio=ratio,
                 input_sha256=digest,output_sha256=sha(output_path),mask_sha256=sha(mask_path),
                 input_path=str(source),output_path=str(output_path),mask_path=str(mask_path),elapsed_ms=round((time.perf_counter()-start)*1000,3))
+    result.update(execution_plan=execution_plan,execution_observation=observation)
     if geometry:result['template_geometry']=geometry
     if print_protection:result['print_protection']=print_protection
     if template_mode:result['uniform_background_components']=uniform_components
@@ -298,7 +333,35 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
     if cache is not None and deterministic_quality(source,output_path,mask_path)['ok']:
         import base64
         cache.put(cache_key,dict(receipt=result,png=base64.b64encode(output_path.read_bytes()).decode()),lambda value:None)
-    atomic_json(root/(algorithm+'.json'),result);return result
+    result=reviewed_candidate(result);atomic_json(root/(algorithm+'.json'),result);return result
+
+
+def protected_region_comparison(source,candidate,observation,mask=None):
+    """Bound pixel deltas to unchanged AI protection annotations, not semantics."""
+    import json
+    with Image.open(source) as im:before=np.array(im.convert('RGBA'))
+    with Image.open(candidate) as im:after=np.array(im.convert('RGBA'))
+    if before.shape!=after.shape:raise ValueError('PROTECTION_COMPARISON_SIZE')
+    h,w=before.shape[:2];changed=np.any(before!=after,axis=2);union=np.zeros((h,w),np.uint8)
+    selected=np.zeros((h,w),bool)
+    if mask is not None:
+        with Image.open(mask) as im:selected=np.array(im.convert('L'))>0
+        if selected.shape!=(h,w):raise ValueError('PROTECTION_COMPARISON_MASK_SIZE')
+    protected=[dict(source='watermarks',region=m) for m in (observation or {}).get('watermarks',[]) if mark_disposition(m)!='REMOVABLE']
+    protected += [dict(source='preserve_regions',region=r) for r in (observation or {}).get('preserve_regions',[])]
+    records=[]
+    for i,entry in enumerate(protected):
+        row=entry['region'];roi=np.zeros_like(union)
+        points=np.array([[min(w-1,int(x*w)),min(h-1,int(y*h))] for x,y in region(row)],np.int32);cv2.fillPoly(roi,[points],255)
+        inside=roi>0;union=np.maximum(union,roi);area=int(np.count_nonzero(inside))
+        records.append(dict(id='P'+str(i),source=entry['source'],annotation=row,region_pixels=area,
+            mask_overlap_pixels=int(np.count_nonzero(inside&selected)),changed_pixels=int(np.count_nonzero(inside&changed)),
+            changed_fraction=float(np.count_nonzero(inside&changed)/max(1,area))))
+    return dict(source_sha256=sha(source),candidate_sha256=sha(candidate),mask_sha256=sha(mask) if mask else None,
+        source_protection_sha256=hashlib.sha256(json.dumps(protected,sort_keys=True,ensure_ascii=False).encode()).hexdigest(),
+        regions=records,protected_pixels=int(np.count_nonzero(union)),changed_pixels=int(np.count_nonzero((union>0)&changed)),
+        mask_overlap_pixels=int(np.count_nonzero((union>0)&selected)),semantic_classification=False,
+        status='PENDING_ACTUAL_VISUAL_REVIEW')
 
 def deterministic_quality(source,candidate,mask=None):
     try:

@@ -36,7 +36,7 @@ class VisualQualityInspector:
         item['extra_images']=[dict(path=str(source),image_id='SOURCE',sha256=sha256(source))]
         item['evidence_ids'].append('SOURCE')
         if observation is not None:
-            item['repair_observation']={k:observation[k] for k in ('decision','watermarks','preserve_regions','background_complexity') if k in observation}
+            item['repair_observation']={k:observation[k] for k in ('schema_version','decision','watermarks','preserve_regions','background_complexity') if k in observation}
         if mask is not None:
             from PIL import Image
             from mye_c_automation.watermark_processing.regions import visualization
@@ -59,9 +59,36 @@ class VisualQualityInspector:
                     label='CANDIDATE_DETAIL_'+str(index);item['extra_images'].append(dict(path=str(path),image_id=label,sha256=sha256(path)))
                     item['evidence_ids'].append(label)
             item['reason']='Additional CANDIDATE_DETAIL crops show unchanged candidate pixels at numerical matches of the source-approved pattern. Verify them visually; the numerical match is not a new ownership/content label. Do not assume the image is clean because local repair ran.'
+        from mye_c_automation.image_repairs_v2 import protected_region_comparison
+        comparison=protected_region_comparison(source,candidate,observation,mask)
+        comparison_directory=self.evidence/'protection_comparisons';comparison_directory.mkdir(exist_ok=True)
+        comparison_path=comparison_directory/(item['id']+'.json')
+        atomic_json(comparison_path,comparison)
+        if comparison['regions'] and comparison['mask_overlap_pixels']:
+            from PIL import Image,ImageDraw
+            from mye_c_automation.ai_judge.image_action_decision import region
+            with Image.open(source) as photo:protected_preview=photo.convert('RGB')
+            draw=ImageDraw.Draw(protected_preview);w,h=protected_preview.size
+            for entry in comparison['regions']:
+                points=[(min(w-1,round(x*w)),min(h-1,round(y*h))) for x,y in region(entry['annotation'])]
+                draw.line(points+[points[0]],fill=(20,225,190),width=2)
+                draw.text(points[0],entry['id'],fill=(20,225,190))
+            protected_path=self.evidence/(item['id']+'-protected-regions.png');protected_preview.save(protected_path)
+            item['extra_images'].append(dict(path=str(protected_path),image_id='PROTECTED_REGIONS',sha256=sha256(protected_path)))
+            item['evidence_ids'].append('PROTECTED_REGIONS')
+        summary={k:comparison[k] for k in ('source_sha256','candidate_sha256','mask_sha256','source_protection_sha256','changed_pixels','mask_overlap_pixels')}
+        summary['regions']=[{k:r[k] for k in ('id','changed_pixels','changed_fraction','mask_overlap_pixels')} for r in comparison['regions']]
+        item['reason']=(item.get('reason') or '')+'\nprotected_region_comparison (pixel measurements, not a quality verdict): '+json.dumps(summary,sort_keys=True)
         from mye_c_automation.model_config import review_models
         models=review_models(self.judge.models)
-        result=self.judge.classify('image_quality_v2',item,safe_payload({},context)['context'],models=models,attempts=1)
+        staged=(observation or {}).get('schema_version')=='image-review.staged-v1'
+        if staged:
+            try:
+                response=self.judge.request_vision_phase('quality',item,safe_payload({},context)['context'])
+                row=dict(response['result'],task_type='image_quality_v2',item_id=item['id'],evidence_ids=item['evidence_ids'])
+                result=dict(status='CLEAN' if row['decision']=='MATCH' and not row['abstain'] else 'NEEDS_REVIEW',results=[row],models=list(models),staged_evidence=response)
+            except (ValueError,OSError,TypeError,KeyError) as exc:result=dict(status='NEEDS_REVIEW',results=[],models=list(models),error=str(exc))
+        else:result=self.judge.classify('image_quality_v2',item,safe_payload({},context)['context'],models=models,attempts=1)
         rows=result.get('results',[])
         ok=(result.get('status')=='CLEAN' and len(rows)==1 and result.get('models')==list(models) and all(r.get('decision')=='MATCH' and not r.get('abstain') and all(r['checks'].values()) for r in rows))
         status='PASS' if ok else 'FAIL_UNKNOWN'
@@ -73,7 +100,9 @@ class VisualQualityInspector:
             ok=False
             if status!='FAIL_IDENTITY':status='FAIL_WATERMARK_REMAINS'
         elif guard['status']=='UNRESOLVED':ok=False;status='FAIL_UNKNOWN'
-        output=dict(checked,ok=ok,quality_status=status,judgement=result,pixel_residual_guard=guard,confidence_policy='RECORD_ONLY',evidence_ids=item['evidence_ids'])
+        output=dict(checked,ok=ok,quality_status=status,judgement=result,pixel_residual_guard=guard,confidence_policy='NOT_REQUESTED' if staged else 'RECORD_ONLY',evidence_ids=item['evidence_ids'])
+        output.update(protected_region_comparison=comparison,protection_review_status='PASS' if ok else 'NOT_PASSED',
+            protection_comparison_path=str(comparison_path),protection_comparison_sha256=sha256(comparison_path))
         atomic_json(self.evidence/(item['id']+'.json'),output)
         return output
 

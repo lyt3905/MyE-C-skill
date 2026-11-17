@@ -52,6 +52,11 @@ def region(row):
     return points
 
 def validate(result,item):
+    if result.get('schema_version')=='image-review.staged-v1':
+        from .staged_vision import bind_initial,INITIAL
+        expected=bind_initial({k:result[k] for k in INITIAL},item)
+        if any(result.get(k)!=v for k,v in expected.items()):raise ValueError('STAGED_BINDING')
+        return deepcopy(result)
     required={'schema_version','task_type','item_id','image_id','image_sha256','image_type','evidence_ids','confidence','abstain','decision','visual_class','retail_box_status','retail_box_confidence','retail_box_bbox','box_relation','toy_present','toy_confidence','watermarks','product_identity','sku_suitability','subject_complete','clear','angle','background_complexity','preserve_regions','reason'}
     if not isinstance(result,dict) or not required<=result.keys() or result.keys()-required-{'decision_confidence','field_confidences','retail_box_bbox_note'}:raise ValueError('V2_FIELDS')
     r=deepcopy(result)
@@ -90,10 +95,11 @@ def validate(result,item):
     return r
 
 
-def validate_watermarks(marks):
+def validate_watermarks(marks,*,allow_unscored=False):
     if not isinstance(marks,list):raise ValueError('V2_REGIONS')
     for mark in marks:
-        if (not isinstance(mark,dict) or mark.get('kind') not in MARKS or not number(mark.get('confidence')) or mark.get('preserve_overlap_risk') not in {'LOW','MEDIUM','HIGH'}):raise ValueError('V2_MARK')
+        if (not isinstance(mark,dict) or mark.get('kind') not in MARKS or
+            (not allow_unscored and (not number(mark.get('confidence')) or mark.get('preserve_overlap_risk') not in {'LOW','MEDIUM','HIGH'}))):raise ValueError('V2_MARK')
         if 'owner' in mark and mark['owner'] not in OWNERS:raise ValueError('V2_MARK_OWNER')
         if 'action' in mark and mark['action'] not in {'KEEP','REMOVE_TEXT'}:raise ValueError('V2_MARK_ACTION')
         for key in ('watermark_id','group_id'):
@@ -243,6 +249,9 @@ def _business(row):
 
 def decide(client,item,context):
     """One DeepSeek observation; listing identity fields are recorded only."""
+    if getattr(client,'vision_protocol','legacy-v2')=='staged-v1':
+        from .staged_vision import decide as staged_decide
+        return staged_decide(client,item,context)
     from .client import safe_payload
     from mye_c_automation.model_config import review_models
     context=safe_payload({},context)['context']

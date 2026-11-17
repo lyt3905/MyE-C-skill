@@ -70,7 +70,9 @@ class V2WorkflowTests(unittest.TestCase):
                 if upload_fail:raise OSError('fake upload unavailable')
                 url='https://fake/upload'+str(self.uploads);assets[url]=Path(path).read_bytes();return url
         writer=Writer();manager=JobManager(Path(root)/'jobs')
-        options={'rights':rights};options.update(image_options or {})
+        # Existing scenarios retain explicit legacy retry coverage. The new
+        # fallback tests exercise the enabled/default production route separately.
+        options={'rights':rights,'watermark_processing':{'ocr_fallback':False}};options.update(image_options or {})
         job=manager.create(product_id,7,{'ai_requests':80,'full_resolution_images':40},mode=mode,image_workflow='v2',image_options=options,model_budget={'mode':'RECORD_ONLY','usage_source':'FAKE_TRANSPORT'})
         directory=manager.directory(job['job_id'])
         budget=BudgetManager(job['budget'],directory/'budget.sqlite')

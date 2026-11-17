@@ -509,6 +509,12 @@ def run_unified_audit(manager,job,reader,*,judge=None,auditor=None):
         atomic_json(directory/'full_audit_report.json',report)
         atomic_json(directory/'coverage_matrix.json',{'expected_positions':len(rows),'reported_positions':len(rows),'positions':rows})
         atomic_json(directory/'full_audit_protocol.json',{'schema_version':SCHEMA_VERSION,'prompt_sha256':hashlib.sha256(PROMPT.encode()).hexdigest(),'threshold':None,'confidence_policy':CONFIDENCE_POLICY,'models':list(models),'semantic_source':'AI_VISION_ONLY','decision_authority':'MODEL','program_role':'FIXED_RULES_AND_EXECUTION','included':['images.main','images.detail','images.sku','skus.image_references','Description.body_image_nodes'],'excluded':['Description.text','Description.shopFooter','images.ai','images.scene'],'source_state_sha256':job['input_state_sha256']})
+        if getattr(judge,'vision_protocol','legacy-v2')=='staged-v1':
+            from mye_c_automation.ai_judge.staged_vision import VERSION,phase_prompt
+            protocol=read('full_audit_protocol.json');protocol.update(schema_version=VERSION,confidence_policy='NOT_REQUESTED',
+                prompt_sha256=hashlib.sha256(phase_prompt('initial').encode()).hexdigest(),
+                phase_prompts={p:hashlib.sha256(phase_prompt(p).encode()).hexdigest() for p in ('initial','planning','quality')})
+            atomic_json(directory/'full_audit_protocol.json',protocol)
         names=['audit_product.json','audit_raw.json','audit_flags.json','audit_account.json','full_inventory.json','full_ai_queue.json','full_ai_judgements.json','full_ai_metrics.json','full_visual_versions.json','full_audit_report.json','coverage_matrix.json','full_audit_protocol.json']
         if (directory/'download_results.json').is_file():names.append('download_results.json')
         names+=sorted({str(Path(c['file']).relative_to(directory)) for c in inventory['contents'].values()})

@@ -28,7 +28,7 @@ class ProcessWorkflowTests(unittest.TestCase):
         policy['allow_actions']['TITLE_REWRITE'] = False
         model = dict(schema='model-gateway/v1', base_url='http://127.0.0.1:8788/v1',
                      models=['deepseek-v4.1-flash'], max_output_tokens=16384,
-                     retries=0, timeout=150, reasoning_effort='low', image_concurrency=10)
+                     retries=0, timeout=150, reasoning_effort='low', image_concurrency=10,vision_protocol='legacy-v2')
         values = {'site.local.json': site, 'automation.local.json': policy,
                   'model.local.json': model, 'image-options.local.json': dict(rights='OWNED_OR_LICENSED'),
                   'model-key.local.json': dict(VLM_API_KEY='fake-key-do-not-print'),

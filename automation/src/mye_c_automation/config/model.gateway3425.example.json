@@ -1,8 +1,11 @@
 {
   "schema": "model-gateway/v1",
   "base_url": "http://127.0.0.1:3425/v1",
-  "models": ["workbuddy/deepseek-v4.1-flash"],
+  "models": [
+    "workbuddy/deepseek-v4.1-flash"
+  ],
   "max_output_tokens": 4096,
   "retries": 0,
-  "timeout": 90
+  "timeout": 90,
+  "vision_protocol": "staged-v1"
 }

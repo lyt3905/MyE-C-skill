@@ -42,7 +42,8 @@ def process_watermarks(request,directory,*,lama=None,policy=None,algorithm=None,
             from .text_masks import execution_observation
             executed=execution_observation(parsed.request,result['mask_plans'])
             mask_for((parsed.pixels.shape[1],parsed.pixels.shape[0]),executed,image=parsed.pixels,
-                max_area=options['max_mask_area'],dilation=options['dilation'],inherited_mask=inherited)
+                max_area=options['max_mask_area'],dilation=options['dilation'],inherited_mask=inherited,
+                allow_protected_overlap=options['protection_overlap_trial'])
             # Previous masks may contain many distant components. Preserve their
             # independent geometry rather than turning them into one huge ROI.
             count,labels=cv2.connectedComponents((inherited>0).astype(np.uint8),8)

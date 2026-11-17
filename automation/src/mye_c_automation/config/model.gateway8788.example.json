@@ -8,5 +8,7 @@
   "retries": 0,
   "timeout": 150,
   "reasoning_effort": "low",
-  "image_concurrency": 2
+  "image_concurrency": 2,
+  "vision_retry_limit": 3,
+  "vision_protocol": "staged-v1"
 }

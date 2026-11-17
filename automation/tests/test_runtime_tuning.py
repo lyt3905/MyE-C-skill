@@ -200,7 +200,9 @@ class ImageAuditTuningTests(unittest.TestCase):
                 gate.wait(2)
                 try:
                     n = item['sha256'] == hashlib.sha256(assets['https://fake/2']).hexdigest()
-                    reply = {'choices': [{'finish_reason': 'length' if n else 'stop', 'message': {'content': '' if n else json.dumps(observation(item)), 'reasoning_content': 'PRIVATE_THINKING'}}]}
+                    from test_v2_vision import reply_for_prompt
+                    value=reply_for_prompt(observation(item),body['messages'][0]['content'][0]['text'])
+                    reply = {'choices': [{'finish_reason': 'length' if n else 'stop', 'message': {'content': '' if n else json.dumps(value), 'reasoning_content': 'PRIVATE_THINKING'}}]}
                     if item['sha256'] != hashlib.sha256(assets['https://fake/1']).hexdigest():
                         reply['usage'] = dict(prompt_tokens=2, completion_tokens=3, total_tokens=5)
                     return io.BytesIO(json.dumps(reply).encode())

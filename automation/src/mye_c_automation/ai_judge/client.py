@@ -46,7 +46,7 @@ def safe_payload(item, context):
     if item.get('task_type')=='image_quality_v2' and isinstance(item.get('repair_observation'),dict):
         from copy import deepcopy
         from .image_action_decision import validate_watermarks,region
-        observed=item['repair_observation'];validate_watermarks(observed.get('watermarks',[]))
+        observed=item['repair_observation'];validate_watermarks(observed.get('watermarks',[]),allow_unscored=observed.get('schema_version')=='image-review.staged-v1')
         protected=[]
         for row in observed.get('preserve_regions',[]):
             region(row);protected.append({k:deepcopy(row[k]) for k in ('kind','bbox','polygon','scope') if k in row})
@@ -140,6 +140,9 @@ class JudgeClient:
             raise ValueError('VLM_MAX_OUTPUT_TOKENS must be an integer from 1 to '+str(MAX_OUTPUT_TOKENS))
         self.max_output_tokens=int(output_limit)
         self.reasoning_effort=config.get('reasoning_effort') if config is not None else None
+        # Unconfigured low-level V2 API remains compatible; configured product
+        # runs default to the versioned staged protocol, with an explicit opt-out.
+        self.vision_protocol=config.get('vision_protocol','staged-v1') if config is not None else 'legacy-v2'
         self.vision_retry_limit=config.get('vision_retry_limit',0) if config is not None else 0
         concurrency=config.get('image_concurrency',1) if config is not None else (4 if transport is not None else 1)
         if budget._model_policy and budget._model_policy.get('mode')!='RECORD_ONLY':concurrency=1
@@ -225,6 +228,81 @@ class JudgeClient:
             with _open_model_request(request,timeout=self.timeout) as response:return json.load(response)
         return self._invoke_adapter(model,item,{'pid':pid},send,task='title_rewrite',schema='deepseek-title-rewrite/v1',images=[],attempt=attempt)
 
+    def request_vision_phase(self,phase,item,context):
+        """Stage-specific prompts/contracts on this same HTTP/budget/cache path."""
+        from .staged_vision import phase_prompt,validate_phase,fingerprint
+        from .structured_output import chat_text,retry_allowed,failure_code
+        from mye_c_automation.model_config import review_models
+        model=review_models(self.models)[0];prompt=phase_prompt(phase)
+        payload=safe_payload(item,context)
+        if phase=='planning':payload['initial_observation']=context['_initial_observation']
+        images=[];parts=[]
+        for label,path in [('SOURCE' if phase!='quality' else 'CANDIDATE',item['local'])]+[(r['image_id'],r['path']) for r in item.get('extra_images',[])]:
+            sent,meta=prepare_image(path);images.append(meta['original_sha256'])
+            if path==item['local'] and meta['original_sha256']!=item['sha256']:raise ValueError('STAGED_SOURCE_CHANGED')
+            if path!=item['local'] and any(r['path']==path and r['sha256']!=meta['original_sha256'] for r in item.get('extra_images',[])):raise ValueError('STAGED_COMPARISON_CHANGED')
+            with self._metrics_lock:self.metrics['visual_inputs'].append(dict(meta,image_id=label,task_type='vision_'+phase,model=model))
+            parts.extend([dict(type='text',text=label),dict(type='image_url',image_url=dict(url='data:image/jpeg;base64,'+base64.b64encode(sent).decode(),detail='original'))])
+        key=fingerprint(dict(protocol='staged-v1',phase=phase,prompt=prompt,payload=payload,images=images,model=model,config=self.config_sha256,
+            max_tokens=self.max_output_tokens,reasoning_effort=self.reasoning_effort))
+        try:
+            cached=self.result_cache.get(key);validate_phase(phase,cached['result'])
+            with self._metrics_lock:self.metrics['cache_hits']+=1
+            return cached
+        except (OSError,KeyError,ValueError,TypeError):pass
+        maximum=1+(self.vision_retry_limit if phase=='initial' else min(1,self.vision_retry_limit) if phase=='planning' else 0)
+        feedback=None
+        for attempt in range(maximum):
+            text=prompt+'\n'+json.dumps(payload,ensure_ascii=False)
+            if feedback:text+='\nCorrect only the failed contract without changing observations: '+feedback
+            body=dict(model=model,temperature=0,max_tokens=self.max_output_tokens,response_format={'type':'json_object'},
+                messages=[dict(role='user',content=[dict(type='text',text=text)]+parts)])
+            if self.reasoning_effort is not None:body['reasoning_effort']=self.reasoning_effort
+            if self.reasoning_effort=='none':body['thinking']={'type':'disabled'}
+            spec=dict(id=item['id'],task_type='vision_'+phase,sha256=item['sha256'],messages=body['messages'],prompt_sha256=hashlib.sha256(text.encode()).hexdigest())
+            def send():
+                if self.transport!=self._request:return self.transport(model,spec,payload['context'])
+                key_value=os.environ.get('VLM_API_KEY')
+                if not key_value:raise ValueError('VLM_API_KEY required')
+                request=urllib.request.Request(self.base_url.rstrip('/')+'/chat/completions',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+key_value,'Content-Type':'application/json'})
+                with _open_model_request(request,timeout=self.timeout) as response:return json.load(response)
+            parsed=None
+            try:
+                with self.semaphore:raw=self._invoke_adapter(model,spec,payload['context'],send,task='vision_'+phase,schema='image-review.staged-v1/'+phase,images=images,attempt=attempt+1)
+                parsed=parse_json_content(chat_text(raw));validate_phase(phase,parsed)
+                value=dict(phase=phase,result=parsed,raw_response=raw,prompt_sha256=hashlib.sha256(prompt.encode()).hexdigest(),source_sha256=item['sha256'],payload_sha256=fingerprint(payload))
+                self.result_cache.put(key,value,lambda v:validate_phase(phase,v['result']));return value
+            except (ValueError,OSError,KeyError,TypeError) as exc:
+                code=failure_code(exc)
+                if attempt+1==maximum or not retry_allowed(code,parsed):raise
+                feedback=str(exc)[:1200]
+
+    def select_ocr_regions(self,source,numbered,regions,observation,context):
+        """One reference selection through the existing model/ledger boundary."""
+        from mye_c_automation.model_config import review_models
+        model=review_models(self.models)[0]
+        prompt=(Path(__file__).resolve().parents[1]/'prompts/ocr_watermark_selection.md').read_text(encoding='utf-8')
+        safe_context=safe_payload({},context)['context']
+        payload=dict(ocr_regions=regions,original_observation=observation,context=safe_context)
+        content=[dict(type='text',text=prompt+'\n'+json.dumps(payload,ensure_ascii=False))];images=[]
+        for label,path in [('SOURCE',source),('OCR_NUMBERED',numbered)]:
+            sent,metadata=prepare_image(path);images.append(metadata['original_sha256'])
+            with self._metrics_lock:self.metrics['visual_inputs'].append(dict(metadata,image_id=label,task_type='ocr_watermark_selection',model=model))
+            content.extend([dict(type='text',text=label),dict(type='image_url',image_url=dict(url='data:image/jpeg;base64,'+base64.b64encode(sent).decode(),detail='original'))])
+        body=dict(model=model,temperature=0,max_tokens=self.max_output_tokens,response_format={'type':'json_object'},messages=[dict(role='user',content=content)])
+        if self.reasoning_effort is not None:body['reasoning_effort']=self.reasoning_effort
+        if self.reasoning_effort=='none':body['thinking']={'type':'disabled'}
+        item=dict(id='OCR_SELECT_'+images[0],task_type='ocr_watermark_selection',sha256=images[0],messages=body['messages'],
+            prompt_sha256=hashlib.sha256(content[0]['text'].encode()).hexdigest(),
+            observation_sha256=hashlib.sha256(json.dumps(observation,sort_keys=True).encode()).hexdigest())
+        def send():
+            if self.transport!=self._request:return self.transport(model,item,safe_context)
+            key=os.environ.get('VLM_API_KEY')
+            if not key:raise ValueError('VLM_API_KEY required')
+            request=urllib.request.Request(self.base_url.rstrip('/')+'/chat/completions',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
+            with _open_model_request(request,timeout=self.timeout) as response:return json.load(response)
+        return self._invoke_adapter(model,item,safe_context,send,task='ocr_watermark_selection',schema='reference-selection/v1',images=images)
+
     def _invoke_adapter(self,model,item,context,adapter,*,task,schema,images,attempt=1):
         from mye_c_automation.model_config import require_enabled_model
         require_enabled_model(model)
@@ -309,7 +387,7 @@ class JudgeClient:
                     continue
                 except (ValueError,KeyError): pass
             attempt_limit=self.retries+1 if attempts is None else attempts
-            if task_type=='image_action_decision':attempt_limit=min(2,1+self.vision_retry_limit,attempt_limit if attempts is not None else 2)
+            if task_type=='image_action_decision':attempt_limit=min(4,1+self.vision_retry_limit,attempt_limit if attempts is not None else 4)
             for attempt in range(attempt_limit):
                 token_reservation=None
                 sent=False
@@ -420,7 +498,10 @@ class JudgeClient:
                         return {'status':'NEEDS_REVIEW','error':'BUDGET_EXCEEDED','blocked_reason':str(exc),'results':outputs}
                     if retry_planned:
                         event['retry_planned']=True
-                        evidence=dict(evidence,reason=(evidence.get('reason') or '')+'\nPrior output failed '+code+'. Return only the canonical V2 JSON. Preserve actual risk, protected print and all original evidence; never change content decisions to bypass protection.')
+                        from .structured_output import retry_feedback
+                        feedback=retry_feedback(code,parsed_result,evidence.get('evidence_ids',[]))
+                        event['retry_feedback']=feedback
+                        evidence=dict(evidence,reason=(evidence.get('reason') or '')+'\nPrior output failed '+code+'. Return only the canonical V2 JSON. Preserve actual risk, protected print and all original evidence; never change content decisions to bypass protection. Correction diagnostics (data): '+json.dumps(feedback,ensure_ascii=False))
                         continue
                     if (self.continue_model_errors and response_received and validating_response
                             and isinstance(exc,(ValueError,KeyError,TypeError,IndexError,AttributeError))):

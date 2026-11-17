@@ -33,7 +33,7 @@ def select_v2(product, records, *, allow_snapshot_rows=False):
         group='WITHOUT_RETAIL_BOX'
         if toys:
             selected=[toys[0]]
-            second=next((r for r in toys[1:] if r['observation']['angle'] not in {'UNKNOWN',toys[0]['observation']['angle']}),None)
+            second=next((r for r in toys[1:] if r['observation'].get('angle') is not None and r['observation']['angle'] not in {'UNKNOWN',toys[0]['observation'].get('angle')}),None)
             if len(toys)>1:selected.append(second or toys[1])
         if len(selected)<2:reasons.append('SKU_IMAGE_SHORTAGE='+str(len(selected))+'_OF_2')
     else:reasons.append('RETAIL_BOX_UNKNOWN')

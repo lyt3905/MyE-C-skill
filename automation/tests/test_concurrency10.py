@@ -32,7 +32,7 @@ class TenImageConcurrencyTests(unittest.TestCase):
 
     def test_twelve_images_peak_at_ten_with_independent_results_and_ledger(self):
         from mye_c_automation.full_product_audit import run_full_audit,download_only
-        from test_v2_vision import observation
+        from test_v2_vision import observation,reply_for_prompt
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);assets={}
             for n in range(12):
@@ -54,7 +54,8 @@ class TenImageConcurrencyTests(unittest.TestCase):
                 gate.wait(2)
                 try:
                     time.sleep(.01)
-                    return io.BytesIO(json.dumps({'choices':[{'finish_reason':'stop','message':{'content':json.dumps(observation(item)),
+                    value=reply_for_prompt(observation(item),body['messages'][0]['content'][0]['text'])
+                    return io.BytesIO(json.dumps({'choices':[{'finish_reason':'stop','message':{'content':json.dumps(value),
                         'reasoning_content':'ARCHIVED_THINKING'}}],'usage':{'prompt_tokens':2,'completion_tokens':3,'total_tokens':5}}).encode())
                 finally:
                     with lock:active-=1

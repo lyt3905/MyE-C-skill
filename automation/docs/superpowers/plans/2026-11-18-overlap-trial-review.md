@@ -1,0 +1,13 @@
+# Trial overlapping watermark masks, then review actual protection
+
+User approved the five-step standalone flow: DeepSeek supplies action/protection, prefer glyph masks, allow local overlap trials while retaining protection, review actual source/candidate and at most one bounded supplement, route actual failures/unknowns to human. Single agent/main; preserve all existing0.2.35/36 working edits, raw evidence and history. No Git publication or online product access/write. No new semantic API calls in this development round; frozen real inputs/localLaMa and Fake reviewer suffice for implementation verification, with real semantic revalidation explicitly NOT_RUN.
+
+Design: existing remove_text defaults protection_overlap_trial=true. Low-level mask_for/process_watermarks remain strict unless explicitly opted in; policy flag false restores strict behavior. Trial skips only pre-execution protected-intersection/print-reconstruction gates; actual protected pixel deltas and10% restoration risk are recorded, not declared safe. Rights, Schema/AI ownership semantics, SHA, geometry, totalMask25%/smaller configured limit, original/alpha/outsideMask checks remain hard. Do not drop original KEEP/protection annotations or forge PRINT_RESTORE in trial mode. Existing old strict glyph/print modes remain available.
+
+Add source-bound protected-region comparison/visualization to existing actual quality review; use unchanged5checks, RECORD_ONLY, whole-image residual checks. Passing publication proof for a trial must bind original protected annotations, actual source/candidate/Mask and a successful review. Invalid/abstaining/negative review produces no approved asset/upload. Reuse existing single-supplemental residual loop; compare all candidates to original SOURCE, and stop at2 attempts.
+
+- [x] Red tests: local trial despite exact/unknown/print overlap, strict opt-out, deferred10% print gate, rights/area/semantic failures unchanged, original protection/raw bytes unchanged.
+- [x] Implement bounded trial flag through existing planner/mask builder/ROI and legacy repair; record overlap/deltas with actual candidate bindings. No third runner/client/writer.
+- [x] Update existing quality inspector/prompt and V2 proof verifier so actual protection is reviewed, not just deleted from planning; tests for successful Fake flow, negative/unknown review zero writes, tampered comparison rejection and one supplement max.
+- [x] Verify related/full offline suites without weakening strict-mode tests, independent installed wheel, stable current-source bindings and real local frozen pending-image candidate runs. Report new semantic/live NOT_RUN.
+- [x] Update docs/state/version/current environment and retain old failures. No add/commit/push.

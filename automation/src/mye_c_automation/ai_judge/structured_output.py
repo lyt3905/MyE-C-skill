@@ -133,6 +133,20 @@ def validate_v2_schema(row):
     return row
 
 
+def retry_feedback(code,row,evidence_ids):
+    """Bounded correction data; never repair or normalize a model response."""
+    details=[]
+    if code=='SCHEMA_VALIDATION_FAILED':
+        for error in list(Draft202012Validator(load_v2_schema()).iter_errors(row))[:8]:
+            detail=dict(path='/'.join(map(str,error.absolute_path)),validator=error.validator)
+            if error.validator=='required' and isinstance(error.instance,dict):
+                detail['missing_fields']=[k for k in error.validator_value if k not in error.instance]
+            if error.validator=='additionalProperties' and isinstance(error.instance,dict):
+                detail['unexpected_fields']=[str(k)[:128] for k in error.instance if k not in error.schema.get('properties',{})][:16]
+            details.append(detail)
+    return dict(failure_code=code,schema_errors=details,allowed_evidence_ids=list(evidence_ids))
+
+
 def protected_removal_conflict(row):
     if not isinstance(row,dict) or row.get('decision')!='REMOVE_TEXT':return False
     from .image_action_decision import mark_disposition,mark_owner

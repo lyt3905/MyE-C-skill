@@ -62,7 +62,7 @@ class RepairSkuTests(unittest.TestCase):
                 remove_text(source,obs,root/'unknown',rights='RIGHTS_UNKNOWN')
             obs['preserve_regions']=[dict(kind='PRODUCT_PRINT',bbox=mark['bbox'])]
             with self.assertRaisesRegex(ValueError,'PROTECTED'):
-                remove_text(source,obs,root/'protected',rights='OWNED_OR_LICENSED')
+                remove_text(source,obs,root/'protected',rights='OWNED_OR_LICENSED',processing_policy={'protection_overlap_trial':False})
 
     def test_large_complex_requires_configured_lama(self):
         from mye_c_automation.image_repairs_v2 import remove_text

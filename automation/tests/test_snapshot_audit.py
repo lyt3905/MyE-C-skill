@@ -4,7 +4,7 @@ from unittest.mock import patch
 from mye_c_automation.cli import main
 from mye_c_automation.fake import run_fake
 from test_auto_decision import CONFIG
-from test_v2_vision import observation
+from test_v2_vision import observation,reply_for_prompt
 
 
 class SnapshotAuditTests(unittest.TestCase):
@@ -31,7 +31,8 @@ class SnapshotAuditTests(unittest.TestCase):
             def model(request,timeout):
                 body=json.loads(request.data);text=body['messages'][0]['content'][0]['text']
                 item=json.loads(text[text.rfind('{"item":'):])['item']
-                return io.BytesIO(json.dumps(dict(choices=[dict(message=dict(content=json.dumps(observation(item))))],usage=dict(prompt_tokens=10,completion_tokens=10,total_tokens=20))).encode())
+                value=reply_for_prompt(observation(item),text)
+                return io.BytesIO(json.dumps(dict(choices=[dict(message=dict(content=json.dumps(value)))],usage=dict(prompt_tokens=10,completion_tokens=10,total_tokens=20))).encode())
             with patch('mye_c_automation.site_client.ReadOnlySiteClient.__init__',side_effect=AssertionError('no live login')),patch('mye_c_automation.ai_judge.client._open_model_request',side_effect=model) as transport:
                 code,result=self.invoke(source,cfg,root/'output')
             self.assertEqual(code,0,result);self.assertEqual(result['status'],'AUDITED')

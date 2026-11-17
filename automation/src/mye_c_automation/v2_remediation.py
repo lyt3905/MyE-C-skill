@@ -74,16 +74,27 @@ def prepare(directory,job,policy,gate):
                 if not policy.permits(action):raise ValueError('ACTION_NOT_AUTHORIZED')
                 if options['rights']!='OWNED_OR_LICENSED':raise ValueError('RIGHTS_NOT_AUTHORIZED')
                 if inspector is None:raise ValueError('CONTENT_VALIDATOR_UNAVAILABLE')
+                if action=='REMOVE_TEXT' and o.get('schema_version')=='image-review.staged-v1':
+                    from mye_c_automation.ai_judge.staged_vision import plan,effective
+                    folder=root/'v2_candidates'/digest/'planning'
+                    o=effective(root,digest,result) if (folder/'binding.json').exists() else plan(inspector.judge,content['file'],o,folder,product)
+                use_ocr=action=='REMOVE_TEXT' and options.get('watermark_processing',{}).get('ocr_fallback',True)
                 stages=['REMOVE_TEXT','REMOVE_TEXT'] if action=='REMOVE_TEXT' else ['AI_REGENERATE']
-                if action=='REMOVE_TEXT' and policy.permits('AI_REGENERATE') and (getattr(inspector,'image_edit_backend',None) is not None or options.get('image_edit')):
+                if action=='REMOVE_TEXT' and not use_ocr and policy.permits('AI_REGENERATE') and (getattr(inspector,'image_edit_backend',None) is not None or options.get('image_edit')):
                     stages.append('AI_REGENERATE')
                 local_failed=False
                 current_observation=o;mask_source=None;prior_mask=None
                 for attempt,attempt_action in enumerate(stages):
-                    if attempt_action=='REMOVE_TEXT' and local_failed:continue
+                    if attempt_action=='REMOVE_TEXT' and local_failed and not (use_ocr and attempt==1):continue
                     try:
                         dest=root/'v2_candidates'/digest/str(attempt);dest.mkdir(parents=True,exist_ok=True)
+                        ocr_ref=None
                         if attempt_action=='REMOVE_TEXT':
+                            if use_ocr and attempt==1:
+                                from mye_c_automation.watermark_processing.ocr_fallback import prepare_fallback
+                                current_observation,ocr_ref=prepare_fallback(content['file'],o,dest/'ocr-fallback',inspector.judge,product,
+                                    max_area=options['max_mask_area'],policy=options.get('watermark_processing'))
+                                mask_source=None;prior_mask=None
                             def local_lama(image,mask):
                                 nonlocal loaded_lama
                                 if loaded_lama is None:
@@ -94,7 +105,7 @@ def prepare(directory,job,policy,gate):
                                 return loaded_lama(image,mask)
                             local_lama.model_sha256=options.get('lama_model_sha256') or getattr(loaded_lama,'model_sha256',None)
                             repair=remove_text(content['file'],current_observation,dest,rights=options['rights'],
-                                algorithm='LAMA_INPAINT' if prior_mask else 'OPENCV_NS' if attempt else None,
+                                algorithm='LAMA_INPAINT' if prior_mask or ocr_ref else 'OPENCV_NS' if attempt else None,
                                 lama=local_lama,max_area=options['max_mask_area'],cache_dir=root.parent/'repair_cache',
                                 mask_source=mask_source,prior_mask=prior_mask,processing_policy=options.get('watermark_processing'))
                         else:
@@ -119,11 +130,17 @@ def prepare(directory,job,policy,gate):
                             if not path.is_relative_to(dest.resolve()) or path==Path(content['file']).resolve():raise ValueError('IMAGE_EDIT_OUTPUT_UNBOUND')
                             repair=dict(input_path=content['file'],input_sha256=digest,output_path=str(path),output_sha256=sha256(path),algorithm='CONFIGURED_IMAGE_EDIT',mask_path=None)
                             atomic_json(dest/'edit.json',repair)
+                        if ocr_ref:repair['ocr_fallback']=ocr_ref
                         executed=repair.get('execution_observation',o)
                         checked=inspector.inspect_v2(content['file'],repair['output_path'],product,attempt_action,repair.get('mask_path'),observation=executed)
                         quality.append(dict(checked,repair=repair,source_sha256=digest,action=attempt_action,attempt=attempt+1))
                         if checked.get('ok'):
                             asset=dict(path=str(Path(repair['output_path']).relative_to(root)),sha256=repair['output_sha256']);action=attempt_action;break
+                        if use_ocr and attempt==0:
+                            # Replacement attempt, never accumulate damage or add
+                            # a third residual/regeneration stage after OCR.
+                            current_observation=o;mask_source=None;prior_mask=None
+                            continue
                         if attempt==0 and attempt_action=='REMOVE_TEXT' and checked.get('quality_status')=='FAIL_WATERMARK_REMAINS':
                             from mye_c_automation.ai_judge.image_quality_v2 import residual_observation
                             feedback=residual_observation(executed,checked)
@@ -141,6 +158,9 @@ def prepare(directory,job,policy,gate):
                         quality.append(dict(ok=False,source_sha256=digest,action=attempt_action,attempt=attempt+1,error_type=type(exc).__name__,reason=str(exc)))
                         if sha256(content['file'])!=digest:raise ValueError('ORIGINAL_CHANGED') from exc
                         if attempt_action=='AI_REGENERATE':raise
+                        if use_ocr and attempt==0:
+                            from mye_c_automation.watermark_processing.ocr_fallback import eligible_failure
+                            if not eligible_failure(str(exc)):break
                         local_failed=True
                 if asset is None:raise ValueError('V2_QUALITY_REJECTED')
             except (ValueError,OSError,ImportError,KeyError,TypeError,RuntimeError,cv2.error) as exc:reason=str(exc);action='REVIEW'
@@ -201,7 +221,7 @@ def prepare(directory,job,policy,gate):
         selected_observation=deepcopy(o)
         if asset and action in {'REMOVE_TEXT','AI_REGENERATE'}:
             from mye_c_automation.ai_judge.image_action_decision import mark_disposition
-            selected_observation['watermarks']=[m for m in selected_observation['watermarks'] if mark_disposition(m)!='REMOVABLE']
+            selected_observation['watermarks']=[m for m in selected_observation.get('watermarks',[]) if mark_disposition(m)!='REMOVABLE']
         chosen=inventory['contents'][twin['candidate_sha256']] if twin else content
         if twin:selected_observation=deepcopy(judgements[twin['candidate_sha256']]['observation'])
         records.append(dict(sha256=twin['candidate_sha256'] if twin else asset['sha256'] if asset else digest,url=twin['replacement_url'] if twin else content['urls'][0],image_id=chosen['occurrence_ids'][0],observation=selected_observation,decision='KEEP' if twin or asset and action in {'REMOVE_TEXT','AI_REGENERATE'} else action,width=chosen['width'],height=chosen['height']))
@@ -349,7 +369,21 @@ def verify(root,row,product):
         checked=next((q for q in read('v2_quality.json')['items'] if q.get('ok') is True and q['source_sha256']==occ['sha256'] and q['candidate_sha256']==asset['sha256']),None)
         if not checked:raise ValueError('V2_QUALITY_UNBOUND')
         repair=checked['repair']
+        from mye_c_automation.ai_judge.staged_vision import effective
+        bound_observation=effective(root,occ['sha256'],results[occ['sha256']])
+        if repair.get('ocr_fallback'):
+            from mye_c_automation.watermark_processing.ocr_fallback import verify_fallback
+            verify_fallback(root,repair,source['file'],bound_observation)
         if repair.get('mask_path') and sha256(repair['mask_path'])!=repair['mask_sha256']:raise ValueError('V2_MASK_CHANGED')
+        if repair.get('protection_overlap_trial'):
+            from mye_c_automation.image_repairs_v2 import protected_region_comparison
+            actual=protected_region_comparison(source['file'],path,bound_observation,repair.get('mask_path'))
+            if (checked.get('protection_review_status')!='PASS' or checked.get('protected_region_comparison')!=actual or
+                repair.get('protected_region_comparison')!=actual):raise ValueError('V2_PROTECTION_COMPARISON_UNBOUND')
+            comparison_path=Path(checked.get('protection_comparison_path','')).resolve()
+            if (not comparison_path.is_relative_to(root.resolve()) or
+                sha256(comparison_path)!=checked.get('protection_comparison_sha256') or
+                json.loads(comparison_path.read_text(encoding='utf-8'))!=actual):raise ValueError('V2_PROTECTION_COMPARISON_CHANGED')
         if repair.get('module_result_path'):
             receipt=Path(repair['module_result_path']).resolve()
             if not receipt.is_relative_to(root.resolve()) or sha256(receipt)!=repair.get('module_result_sha256'):raise ValueError('V2_MODULE_RECEIPT_CHANGED')

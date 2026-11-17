@@ -1,3 +1,13 @@
+> 0.2.39：[分级视觉请求](docs/staged-vision.md)默认用于配置驱动的商品流程：六字段初审 → 有需要再规划去水印 → 实际候选复核。旧V2模式可显式保留。
+
+> 0.2.38：现有去水印失败后默认尝试一次[OCR编号备选](docs/ocr-watermark-fallback.md)，共享最多两轮本地尝试，实际质量复核通过才放行。
+
+0.2.38 已接入[先本地试修，再审核保护效果](docs/overlap-trial-review.md)：保护重叠不直接挡住候选，原标注保留用于实际质量复核，只有复核通过才允许保存。
+
+0.2.36 支持视觉初审最多3次受限重试，自动反馈缺字段/多字段原因并保留原响应；见 [视觉初审重试](docs/vision-retries.md)。
+
+0.2.35 默认优先复用旧成功方案的重复字形匹配与有限印刷重建；保留实际候选质量复核。见 [默认精细字形去水印](docs/default-precise-watermarks.md)。
+
 0.2.34 默认流程：主图超过六张时选原首图并同步删除同URL商品图片引用；默认启用DeepSeek标题改写和用户授予的图片修改授权，保留自动保存总开关。见 [完整工作流](docs/current-workflow.md)。
 
 # MyE-C Automation
@@ -14,7 +24,7 @@
 
 独立的 AliExpress 商品图片 V2 自动化软件，业务基准为 `68e168f1a08c6338cb0964dffbd021bb5e484556`。原 Skill 不参与安装或运行。
 
-当前本地版本 0.2.34，以命令行和运行配套为范围：配置初始化/离线检查、独立权重安装、部署审查、同照片替换权限和旧模板资源。图片下载与回读使用[统一完整请求标识](docs/image-http-profile.md)。同时支持[已知保存成功的部分任务续办](docs/verified-partial-followup.md)、[SKU图片按包装分别选择](docs/sku-image-selection.md)、[下载失败重试](docs/download-retries.md)及[七张主图预处理/宣传图规则](docs/seven-main-and-seller-posters.md)。图形界面按用户选择推迟到下一轮，草稿保存在 `experimental/desktop/`，不随当前软件安装。历史报告保留。
+当前本地版本 0.2.37，以命令行和运行配套为范围：配置初始化/离线检查、独立权重安装、部署审查、同照片替换权限和旧模板资源。图片下载与回读使用[统一完整请求标识](docs/image-http-profile.md)。同时支持[已知保存成功的部分任务续办](docs/verified-partial-followup.md)、[SKU图片按包装分别选择](docs/sku-image-selection.md)、[下载失败重试](docs/download-retries.md)及[七张主图预处理/宣传图规则](docs/seven-main-and-seller-posters.md)。图形界面按用户选择推迟到下一轮，草稿保存在 `experimental/desktop/`，不随当前软件安装。历史报告保留。
 
 上传地址支持后台地址末尾带斜杠。首次上传明确被拒绝、且尚未进入商品保存阶段的任务，可由受限续办接口建立新任务；保存结果未知时仍禁止盲重试。详见[上传失败与续办](docs/upload-recovery.md)。
 

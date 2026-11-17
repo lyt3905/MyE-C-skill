@@ -335,7 +335,7 @@ def compile_auto_plan(directory, job, candidates, policy):
             if (root/'v2_policy_reassessment.json').is_file():names.append('v2_policy_reassessment.json')
             names += [str(p.relative_to(root)) for p in sorted((root/'v2_candidates').rglob('*')) if p.is_file()]
         names += [n for n in ('full_audit_evidence_manifest.json','full_audit_report.json','full_inventory.json','full_ai_queue.json','full_ai_judgements.json','full_audit_protocol.json','coverage_matrix.json','audit_account.json','conditional_decisions.json','mye_c_automation.candidate_quality.json','box_validation.json','deletion_validation.json','main_cleanup.json','mye_c_automation.audit_coverage.json','semantic_validation.json','ai_queue.json','ai_judgements.json','audit_flags.json','audit_raw.json','evidence_manifest.json') if (root/n).exists()]
-        names += [str(p.relative_to(root)) for p in sorted((root/'quality_evidence').glob('*')) if p.is_file()]
+        names += [str(p.relative_to(root)) for p in sorted((root/'quality_evidence').rglob('*')) if p.is_file()]
         manifest_path=root/'evidence_manifest.json'
         if manifest_path.exists():
             for ref in json.loads(manifest_path.read_text(encoding='utf-8')).get('files',[]):

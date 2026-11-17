@@ -52,6 +52,22 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 256
+    },
+    "prefer_repeated_glyphs": {
+      "type": "boolean"
+    },
+    "covered_print_policy": {
+      "type": "string",
+      "enum": [
+        "EXACT",
+        "BOUNDED_RESTORE"
+      ]
+    },
+    "protection_overlap_trial": {
+      "type": "boolean"
+    },
+    "ocr_fallback": {
+      "type": "boolean"
     }
   }
 }

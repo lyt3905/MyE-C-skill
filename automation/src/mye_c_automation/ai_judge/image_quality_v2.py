@@ -16,7 +16,7 @@ def residual_observation(original,checked):
     if not marks and checked.get('pixel_residual_guard',{}).get('status')=='REMAINS':
         marks=[dict(m,glyph_template_source='ORIGINAL') for m in original['watermarks'] if m.get('action')=='REMOVE_TEXT' and m.get('repair_mode')=='TEMPLATE_GLYPHS' and m.get('glyph_search_scope')=='IMAGE']
     if not marks:return None
-    validate_watermarks(marks)
+    validate_watermarks(marks,allow_unscored=original.get('schema_version')=='image-review.staged-v1')
     result=deepcopy(original)
     result['watermarks']=[m for m in result['watermarks'] if mark_disposition(m)!='REMOVABLE']+deepcopy(marks)
     return result
