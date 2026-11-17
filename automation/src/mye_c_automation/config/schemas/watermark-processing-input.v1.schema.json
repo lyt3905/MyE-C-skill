@@ -1,0 +1,434 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "watermark-processing.v1"
+    },
+    "image_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "image_bytes": {
+      "type": "string",
+      "minLength": 1
+    },
+    "image_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "image_width": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "image_height": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "decision": {
+      "enum": [
+        "KEEP",
+        "DELETE",
+        "REMOVE_TEXT",
+        "AI_REGENERATE",
+        "REVIEW"
+      ]
+    },
+    "authorization_status": {
+      "enum": [
+        "OWNED_OR_LICENSED",
+        "RIGHTS_UNKNOWN",
+        "THIRD_PARTY_ATTRIBUTION"
+      ]
+    },
+    "watermarks": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "enum": [
+              "KEEP",
+              "REMOVE_TEXT"
+            ]
+          },
+          "kind": {
+            "enum": [
+              "CREATOR_CREDIT",
+              "MANUFACTURER_LOGO",
+              "PACKAGING_PRINT",
+              "PRODUCT_PRINT",
+              "PROMOTIONAL_TEXT",
+              "STORE_WATERMARK",
+              "UNKNOWN_TEXT",
+              "MODEL_TEXT",
+              "NORMAL_PHOTO_TEXT",
+              "TEXT_WATERMARK"
+            ]
+          },
+          "bbox": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "polygon": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 128,
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "preserve_overlap_risk": {
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "ownership_visual_guess": {
+            "type": "string"
+          },
+          "overlay_role": {
+            "enum": [
+              "OTHER_STORE_FRAME",
+              "SELLER_NOTICE",
+              "ADDED_WATERMARK",
+              "UNRESOLVED_TEXT"
+            ]
+          },
+          "repair_mode": {
+            "enum": [
+              "BACKGROUND_GLYPHS",
+              "REGION",
+              "TEMPLATE_GLYPHS"
+            ]
+          },
+          "glyph_template_bbox": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "glyph_search_scope": {
+            "enum": [
+              "REGION",
+              "IMAGE"
+            ]
+          },
+          "glyph_template_source": {
+            "enum": [
+              "CANDIDATE",
+              "ORIGINAL"
+            ]
+          },
+          "glyph_template_candidates": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "preserve_mode": {
+            "enum": [
+              "EXACT_REGION",
+              "BRIGHT_PRINT_GLYPHS",
+              "PRINT_RESTORE"
+            ]
+          },
+          "region_type": {
+            "enum": [
+              "BBOX",
+              "POLYGON"
+            ]
+          },
+          "owner": {
+            "enum": [
+              "OWN_STORE",
+              "THIRD_PARTY_STORE",
+              "MANUFACTURER",
+              "PRODUCT",
+              "PACKAGING",
+              "CREATOR",
+              "UNKNOWN"
+            ]
+          },
+          "watermark_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "group_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "arrangement": {
+            "enum": [
+              "SINGLE",
+              "REPEATED",
+              "DIAGONAL",
+              "HORIZONTAL",
+              "VERTICAL",
+              "GRID",
+              "SCATTERED",
+              "MIXED"
+            ]
+          },
+          "content_type": {
+            "enum": [
+              "TEXT",
+              "GRAPHIC",
+              "LOGO",
+              "TEXT_AND_GRAPHIC"
+            ]
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "subject_overlap": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "confidence",
+          "preserve_overlap_risk"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "bbox"
+            ]
+          },
+          {
+            "required": [
+              "polygon"
+            ]
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "repair_mode": {
+                  "const": "TEMPLATE_GLYPHS"
+                }
+              },
+              "required": [
+                "repair_mode"
+              ]
+            },
+            "then": {
+              "required": [
+                "glyph_template_bbox"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "glyph_template_bbox"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "glyph_search_scope": {
+                  "const": "IMAGE"
+                }
+              },
+              "required": [
+                "glyph_search_scope"
+              ]
+            },
+            "then": {
+              "properties": {
+                "repair_mode": {
+                  "const": "TEMPLATE_GLYPHS"
+                },
+                "action": {
+                  "const": "REMOVE_TEXT"
+                }
+              },
+              "required": [
+                "repair_mode",
+                "action"
+              ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "glyph_template_candidates"
+              ]
+            },
+            "then": {
+              "properties": {
+                "repair_mode": {
+                  "const": "TEMPLATE_GLYPHS"
+                },
+                "glyph_search_scope": {
+                  "const": "IMAGE"
+                }
+              },
+              "required": [
+                "repair_mode",
+                "glyph_search_scope"
+              ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "preserve_mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "action": {
+                  "const": "KEEP"
+                }
+              },
+              "required": [
+                "action"
+              ]
+            }
+          }
+        ],
+        "additionalProperties": false
+      }
+    },
+    "preserve_regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "EXACT_REGION",
+              "PRODUCT_FOREGROUND",
+              "BRIGHT_PRINT_GLYPHS",
+              "PRINT_RESTORE"
+            ]
+          },
+          "bbox": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "polygon": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 128,
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "bbox"
+            ]
+          },
+          {
+            "required": [
+              "polygon"
+            ]
+          }
+        ]
+      }
+    },
+    "background_complexity": {
+      "enum": [
+        "SMOOTH",
+        "COMPLEX",
+        "UNKNOWN"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "image_sha256",
+    "image_width",
+    "image_height",
+    "decision",
+    "authorization_status",
+    "watermarks",
+    "preserve_regions"
+  ],
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "required": [
+        "image_path"
+      ],
+      "not": {
+        "required": [
+          "image_bytes"
+        ]
+      }
+    },
+    {
+      "required": [
+        "image_bytes"
+      ],
+      "not": {
+        "required": [
+          "image_path"
+        ]
+      }
+    }
+  ]
+}

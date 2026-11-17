@@ -1,3 +1,10 @@
+# 2026-11-17 本地 DeepSeek 批量标题重写
+
+- HEAD：`68e168f1a08c6338cb0964dffbd021bb5e484556`；本轮新增本地脚本，不修改现有图片主流程或确定性标题生成器。用户要求调用 DeepSeek、多线程、失败重试，有结果即停止。
+- 按用户后续要求，整个工具已提取到 `title-rewriter/`：入口 `rewrite_titles_deepseek.py`、完整提示词 `prompt.md`、辅助模块、配置/商品示例、README及测试均位于该目录。仅依赖 Python 标准库，复制整个文件夹即可独立使用。当前 SOP 第1–4节与任务/输出要求已合并到提示词。输入/输出均为本地文件，成功结果支持断点复用。
+- 状态：IMPLEMENTED、FAKE_VERIFIED；新增14项，相关离线回归共49项通过，日志 `reports/deepseek-title-rewrite-20261117-tests.log`。真实模型/线上商品访问与写入 NOT_RUN，未声明 PRODUCTION_READY。无部署、无 commit/push，历史 Job/响应/账本不改。
+- 提取后独立性复验：复制到原项目之外、移除 PYTHONPATH、禁用 site-packages，CLI帮助及14项离线测试通过，日志 `title-rewriter/verification.log`。
+
 # 2026-11-16 同一原图不同版本：替换优先（本地实施）
 
 - 用户最新规则：已有审核KEEP且干净、尺寸格式可用的同一照片版本优先REPLACE_TWIN；没有可替换版本时，大面积店铺宣传边框整图DELETE，其余明确覆盖字局部修复。原始AI回复不改写，报告分别保留初审和最终整改动作。

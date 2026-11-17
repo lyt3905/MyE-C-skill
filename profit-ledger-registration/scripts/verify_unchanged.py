@@ -20,14 +20,20 @@ import openpyxl
 
 
 def cell_sig(cell, include_format=True):
-    """生成单元格签名（值+公式+格式）"""
-    parts = [repr(cell.value)]
+    """生成单元格签名（值+公式+格式）
+
+    ⚠️ 空串和 None 必须当同一个：备份里是 ''、openpyxl 重新保存后读出来是 None，
+    否则会误报一堆假差异（10 月表实测 R64C13/R65C13/R126C13）。
+    ⚠️ fill.fgColor.rgb 可能是非 str（ThemeColor/IndexedColor），f-string 会抛
+    `Values must be of type <class 'str'>`，必须 str() 包住。
+    """
+    parts = [repr(cell.value) if cell.value not in (None, "") else "EMPTY"]
     if include_format:
         f = cell.font
         fill = cell.fill
-        parts.append(f"{f.name}|{f.size}|{f.bold}|{f.color.rgb if f.color else None}")
+        parts.append(f"{f.name}|{f.size}|{f.bold}|{str(f.color.rgb) if f.color else None}")
         if fill and fill.fgColor:
-            parts.append(f"fill:{fill.fgColor.rgb}")
+            parts.append(f"fill:{str(fill.fgColor.rgb)}")
         b = cell.border
         parts.append(f"border:{b.left.style}|{b.right.style}|{b.top.style}|{b.bottom.style}")
         a = cell.alignment

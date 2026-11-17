@@ -1,0 +1,26 @@
+{
+  "source_job": "JOB_f11dd6d5f9b640e0948c20165986e8e7",
+  "original_main": 3,
+  "candidate_sha256": "c8fad770546f549e2b5fca833e7564ce241a78fde8382fc45011a60c3a6e92f2",
+  "raw_quality": {
+    "task_type": "image_quality_v2",
+    "item_id": "V2_QUALITY_c8fad770546f549e",
+    "decision": "MATCH",
+    "confidence": 0.74,
+    "abstain": false,
+    "evidence_ids": [
+      "V2_QUALITY_c8fad770546f549e",
+      "SOURCE"
+    ],
+    "checks": {
+      "identity_preserved": true,
+      "packaging_preserved": true,
+      "protected_print_preserved": true,
+      "overlay_removed": true,
+      "no_new_artifacts": true
+    },
+    "residual_watermarks": []
+  },
+  "review_status": "VISIBLE_RESIDUALS_DISPUTE_RAW_MODEL_PASS",
+  "note": "Original model reply retained; this fixture is explicitly NOT a clean ground truth."
+}

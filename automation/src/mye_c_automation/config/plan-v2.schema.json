@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:token-opt-plan:v2",
+  "title": "Token optimization v2 plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "workflow_version",
+    "job_id",
+    "policy_version",
+    "pid",
+    "shop",
+    "precondition",
+    "evidence_refs",
+    "ai_judgement_refs",
+    "desired",
+    "post_actions",
+    "review"
+  ],
+  "properties": {
+    "schema": {
+      "const": "token-opt-plan/v2"
+    },
+    "workflow_version": {
+      "const": "token-opt-v2"
+    },
+    "job_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "pid": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "shop": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "precondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_sha256"
+      ],
+      "properties": {
+        "state_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "account_fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?![/\\\\])(?!.*\\.\\.)(?!.*:).+$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "ai_judgement_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?![/\\\\])(?!.*\\.\\.)(?!.*:).+$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "desired": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "titleEn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "brandId": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "images": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "main": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "detail": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "sku": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "post_actions": {
+      "oneOf": [
+        {
+          "type": "array",
+          "maxItems": 0
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "uploads": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "sha256",
+                  "pool",
+                  "index"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^(?![/\\\\])(?!.*\\.\\.)(?!.*:).+$"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "pool": {
+                    "enum": [
+                      "main",
+                      "detail",
+                      "sku"
+                    ]
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "translate_title": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "review": {
+      "const": {
+        "status": "RESOLVED"
+      }
+    }
+  },
+  "$comment": "Runtime additionally rejects duplicate upload targets and targets missing from desired.images; validates evidence file hash and containment."
+}

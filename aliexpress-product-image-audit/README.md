@@ -92,6 +92,8 @@ Job位于work/v2/JOB_*，保留before/after、计划、上传回执、执行日�
 最新Description范围：[允许站点自动同步顶部生成标题，保留采集正文与图片引用](reports/v1.3-description-header-scope.md)。不新增Description审核或整改；418项完整回归通过，最新状态见reports/v1.3-current-delivery-status.md。
 
 最新标题策略：[不做模型复核，每次自动处理翻译一次](reports/v1.3-title-single-translation-scope.md)；[Shop7/PID3527真实1保存1翻译回读结果](reports/v1.3-single-translation-3527-result.md)。425项完整回归通过，其他图片不确定项继续暂缓。
+
+2026-11-17 新增：[本地 DeepSeek 批量标题重写工具](title-rewriter/README.md)。脚本、完整提示词、配置、示例及测试已集中在 `title-rewriter/`，整个文件夹可独立复制使用，只需 Python 标准库。按当前 SOP 调用模型，支持多线程、失败重试及成功结果断点复用；只读本地资料、只存本地结果，不改变现有图片主流程。
 # V2.0 本地开发入口（2026-11-15）
 
 标准 `scripts/workflow_runner.py run` 与 `full-audit` 默认使用统一视觉决策策略（`--image-workflow v2`），旧内部 Job 和 `--image-workflow legacy` 保持兼容。V2 处理主图、详情图、SKU 图、真实 SKU 图片引用及正文商品图片；正文文字不进入模型提示，shopFooter及之后的附加内容豁免。语义判断由DeepSeek完成，本地CV仅执行已确定目标的像素掩膜和修复。

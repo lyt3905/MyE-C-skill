@@ -1,0 +1,33 @@
+{
+  "schema": "automation-policy/v1",
+  "enabled": false,
+  "mode": "auto_apply",
+  "shop_allowlist": [
+    7
+  ],
+  "pid_allowlist": [
+    5017
+  ],
+  "max_products_per_run": 1,
+  "max_site_save_per_job": 1,
+  "max_uploads_per_job": 0,
+  "max_ai_requests_per_job": 45,
+  "allow_actions": {
+    "REPLACE_TWIN": true,
+    "REPLACE_LOCAL": false,
+    "CROP_BANNER": false,
+    "SKU_ASSIGN": false,
+    "TITLE_REWRITE": false,
+    "BRAND_CODE": false,
+    "ERASE_LOCAL": false,
+    "DELETE_REDUNDANT": false,
+    "WEB_SEARCH": false,
+    "BOX_NORMALIZE": false
+  },
+  "stop_on_global_integrity_error": true,
+  "preserve_product_status": true,
+  "require_live_dry_run": true,
+  "require_post_write_readback": true,
+  "require_content_validation": true,
+  "halt_batch_after_unknown_write": true
+}

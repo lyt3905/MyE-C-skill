@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rights",
+    "max_mask_area"
+  ],
+  "properties": {
+    "rights": {
+      "enum": [
+        "OWNED_OR_LICENSED",
+        "RIGHTS_UNKNOWN",
+        "THIRD_PARTY_ATTRIBUTION"
+      ]
+    },
+    "max_mask_area": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 0.25
+    },
+    "lama_model_path": {
+      "type": "string"
+    },
+    "lama_model_sha256": {
+      "type": "string"
+    },
+    "image_edit": {
+      "type": "object"
+    },
+    "watermark_processing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_mask_area": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.25
+        },
+        "max_roi_area": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "opencv_max_mask_area": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.25
+        },
+        "opencv_max_roi_area": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "context_pixels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "adjacency_pixels": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
+        },
+        "dilation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "radius": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      }
+    }
+  }
+}

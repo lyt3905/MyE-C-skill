@@ -1,0 +1,42 @@
+{
+  "positive": [
+    "framed",
+    "clean"
+  ],
+  "negative": [
+    "framed",
+    "different-pose"
+  ],
+  "source": "Session visual comparison; not a new model response",
+  "images": [
+    {
+      "number": 1,
+      "file": "framed.bin",
+      "sha256": "3569febeac721325e9c4cf075d28861a0431f6a55867513cc023159bf2e9fea0",
+      "references": [
+        "主图1"
+      ],
+      "source": "READ_ONLY_JOB_7e1ec9724d47493b8d8d900c46f90643"
+    },
+    {
+      "number": 7,
+      "file": "clean.bin",
+      "sha256": "fef25198d3ef5935b06a72fd5d7dec3c33f2f0354ed59388bb917e979257300c",
+      "references": [
+        "详情2",
+        "正文2"
+      ],
+      "source": "READ_ONLY_JOB_7e1ec9724d47493b8d8d900c46f90643"
+    },
+    {
+      "number": 11,
+      "file": "different-pose.bin",
+      "sha256": "8bd8091e251472fbfa98b8c9238511fc1b42aa75479f11603f35f14cbc1e8821",
+      "references": [
+        "详情6",
+        "正文6"
+      ],
+      "source": "READ_ONLY_JOB_7e1ec9724d47493b8d8d900c46f90643"
+    }
+  ]
+}

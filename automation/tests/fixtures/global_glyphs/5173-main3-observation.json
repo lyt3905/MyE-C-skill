@@ -1,0 +1,215 @@
+{
+  "source_job": "JOB_a78e5cf283944b3ca1d9403677c425d1",
+  "original_observation": {
+    "schema_version": "image-action-decision.v2",
+    "task_type": "image_action_decision",
+    "item_id": "IMG_75f3a6fccf7d41df54847f5929fa5b75caca0230c7415ec7ab668cdfd213290c",
+    "image_id": "IMG_75f3a6fccf7d41df54847f5929fa5b75caca0230c7415ec7ab668cdfd213290c",
+    "image_sha256": "75f3a6fccf7d41df54847f5929fa5b75caca0230c7415ec7ab668cdfd213290c",
+    "image_type": "MAIN",
+    "confidence": 0.88,
+    "abstain": false,
+    "decision": "REMOVE_TEXT",
+    "visual_class": "PRODUCT_MAIN",
+    "retail_box_status": "ABSENT",
+    "retail_box_confidence": 0.9,
+    "retail_box_bbox": null,
+    "box_relation": "UNRELATED",
+    "toy_present": true,
+    "toy_confidence": 0.98,
+    "subject_complete": true,
+    "clear": true,
+    "angle": "front three-quarter view from slightly above",
+    "background_complexity": "SMOOTH",
+    "reason": "The image is a usable main product photograph with repeated diagonal \"GCC Model Store\" added watermarks. A clean unobstructed watermark sample exists on the black background, so template-based local removal is executable while preserving manufacturer lettering and product print.",
+    "evidence_ids": [
+      "SOURCE_75f3a6fccf7d41df54847f5929fa5b75caca0230c7415ec7ab668cdfd213290c"
+    ],
+    "preserve_regions": [
+      {
+        "kind": "manufacturer_top_slogan",
+        "scope": "EXACT_REGION",
+        "bbox": [
+          0.025,
+          0.018,
+          0.525,
+          0.05
+        ]
+      },
+      {
+        "kind": "manufacturer_model_name_JEZZY",
+        "scope": "EXACT_REGION",
+        "bbox": [
+          0.38,
+          0.928,
+          0.63,
+          0.985
+        ]
+      },
+      {
+        "kind": "manufacturer_logo_INGTOYS",
+        "scope": "EXACT_REGION",
+        "bbox": [
+          0.0,
+          0.972,
+          0.08,
+          0.999
+        ]
+      },
+      {
+        "kind": "manufacturer_disclaimer_text",
+        "scope": "EXACT_REGION",
+        "bbox": [
+          0.67,
+          0.975,
+          0.999,
+          0.998
+        ]
+      },
+      {
+        "kind": "product_side_print_number_and_logo",
+        "scope": "EXACT_REGION",
+        "bbox": [
+          0.585,
+          0.5,
+          0.705,
+          0.568
+        ]
+      },
+      {
+        "kind": "product_hood_print_number",
+        "scope": "EXACT_REGION",
+        "bbox": [
+          0.285,
+          0.59,
+          0.335,
+          0.655
+        ]
+      }
+    ],
+    "watermarks": [
+      {
+        "action": "REMOVE_TEXT",
+        "kind": "STORE_WATERMARK",
+        "bbox": [
+          0.34,
+          0.095,
+          0.615,
+          0.205
+        ],
+        "confidence": 0.9,
+        "preserve_overlap_risk": "MEDIUM",
+        "ownership_visual_guess": "third-party model store watermark",
+        "overlay_role": "ADDED_WATERMARK",
+        "repair_mode": "TEMPLATE_GLYPHS",
+        "glyph_template_bbox": [
+          0.34,
+          0.095,
+          0.615,
+          0.205
+        ],
+        "glyph_search_scope": "IMAGE",
+        "glyph_template_source": "ORIGINAL",
+        "region_type": "BBOX",
+        "owner": "THIRD_PARTY_STORE"
+      },
+      {
+        "action": "KEEP",
+        "kind": "PROMOTIONAL_TEXT",
+        "bbox": [
+          0.025,
+          0.018,
+          0.525,
+          0.05
+        ],
+        "confidence": 0.85,
+        "preserve_overlap_risk": "LOW",
+        "owner": "MANUFACTURER"
+      },
+      {
+        "action": "KEEP",
+        "kind": "MODEL_TEXT",
+        "bbox": [
+          0.38,
+          0.928,
+          0.63,
+          0.985
+        ],
+        "confidence": 0.9,
+        "preserve_overlap_risk": "LOW",
+        "owner": "MANUFACTURER"
+      },
+      {
+        "action": "KEEP",
+        "kind": "MANUFACTURER_LOGO",
+        "bbox": [
+          0.0,
+          0.972,
+          0.08,
+          0.999
+        ],
+        "confidence": 0.85,
+        "preserve_overlap_risk": "LOW",
+        "owner": "MANUFACTURER"
+      },
+      {
+        "action": "KEEP",
+        "kind": "NORMAL_PHOTO_TEXT",
+        "bbox": [
+          0.67,
+          0.975,
+          0.999,
+          0.998
+        ],
+        "confidence": 0.8,
+        "preserve_overlap_risk": "LOW",
+        "owner": "MANUFACTURER"
+      },
+      {
+        "action": "KEEP",
+        "kind": "PRODUCT_PRINT",
+        "bbox": [
+          0.585,
+          0.5,
+          0.705,
+          0.568
+        ],
+        "confidence": 0.85,
+        "preserve_overlap_risk": "LOW",
+        "owner": "PRODUCT"
+      },
+      {
+        "action": "KEEP",
+        "kind": "PRODUCT_PRINT",
+        "bbox": [
+          0.285,
+          0.59,
+          0.335,
+          0.655
+        ],
+        "confidence": 0.85,
+        "preserve_overlap_risk": "LOW",
+        "owner": "PRODUCT"
+      }
+    ],
+    "product_identity": {
+      "same_product_as_context": "YES",
+      "model_visible": "NO",
+      "structure_match": "YES",
+      "color_match": "YES"
+    },
+    "sku_suitability": {
+      "is_toy_photo": true,
+      "is_retail_box_photo": false,
+      "recommended_group": "WITHOUT_RETAIL_BOX"
+    },
+    "field_confidences": {
+      "visual_class": 0.9,
+      "product_identity": 0.75,
+      "box_relation": 0.5,
+      "watermark_ownership": 0.85,
+      "sku_suitability": 0.9
+    }
+  },
+  "note": "Archived AI observation; not updated to new protection modes or a clean label."
+}

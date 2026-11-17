@@ -1,0 +1,431 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "remedy-candidate.v1.schema.json",
+  "type": "object",
+  "properties": {
+    "remedy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "item_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action": {
+      "enum": [
+        "BRAND_CODE",
+        "CROP_BANNER",
+        "DELETE_REDUNDANT",
+        "ERASE_LOCAL",
+        "REPLACE_LOCAL",
+        "REPLACE_TWIN",
+        "SKU_ASSIGN",
+        "TITLE_REWRITE",
+        "WEB_DEFER",
+        "KEEP",
+        "BOX_NORMALIZE",
+        "DELETE",
+        "REMOVE_TEXT",
+        "AI_REGENERATE"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "pool": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "image_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sku_row_index": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sku_row_indices": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "sku_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_occurrence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mask_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packaging_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "original_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "target_original_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "mask_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "crop_box": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "subject_box": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "erase_box": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "pool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retained_references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "pool": {
+                "enum": [
+                  "main",
+                  "detail",
+                  "sku"
+                ]
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "url": {
+                "type": "string",
+                "pattern": "^https?://"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "pool",
+              "index",
+              "url",
+              "sha256"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "sku_replacements": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^https?://"
+          }
+        },
+        "reference_deletions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sku_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sku_row_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "source_occurrence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "source_url": {
+                "type": "string",
+                "pattern": "^https?://"
+              }
+            },
+            "required": [
+              "sku_id",
+              "sku_row_index",
+              "source_occurrence_id",
+              "source_sha256",
+              "source_url"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "candidate_asset": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?![/\\\\])(?!.*:)(?!.*(?:^|[/\\\\])\\.\\.(?:[/\\\\]|$))(?!.*[/\\\\]{2}).+$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "pool": {
+              "enum": [
+                "main",
+                "detail",
+                "sku"
+              ]
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "path",
+            "sha256",
+            "pool",
+            "index"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "decision": {
+      "enum": [
+        "AUTO_SAFE",
+        "AUTO_CONDITIONAL",
+        "DEFERRED",
+        "BLOCKED_FATAL",
+        "KEEP"
+      ]
+    },
+    "automation_policy_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "is_box": {
+      "type": "boolean"
+    },
+    "row_assignments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https?://[^/\\s]+(?:/[^\\s]*)?$"
+          }
+        },
+        "required": [
+          "index",
+          "source_sha256",
+          "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "row_assignment_evidence": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "assignments": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^https?://[^/\\s]+(?:/[^\\s]*)?$"
+      }
+    },
+    "assignment_evidence": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "titleEn": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "modelCode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "brandId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "brand_field_verified": {
+      "type": "boolean"
+    },
+    "requires_remedy_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "validation_scope": {
+      "type": "object"
+    },
+    "v2_contract": {
+      "type": "boolean"
+    },
+    "sku_pool_urls": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^https?://"
+      },
+      "uniqueItems": true
+    },
+    "v2_append_sku": {
+      "type": "boolean"
+    },
+    "v2_source_occurrence_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "remedy_id",
+    "item_id",
+    "action",
+    "target",
+    "source",
+    "checks",
+    "evidence_ids"
+  ],
+  "additionalProperties": false
+}

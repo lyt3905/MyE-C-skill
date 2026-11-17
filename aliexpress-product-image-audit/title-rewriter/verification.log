@@ -1,0 +1,56 @@
+Copied folder outside repository. PYTHONPATH removed; site-packages disabled with -S. No real model requests.
+
+COMMAND: python -S rewrite_titles_deepseek.py --help
+EXIT: 0
+usage: rewrite_titles_deepseek.py [-h] --input INPUT --output OUTPUT
+                                  [--shop {4,7}] [--workers WORKERS]
+                                  [--retries RETRIES]
+                                  [--retry-delay RETRY_DELAY]
+                                  [--model-config MODEL_CONFIG]
+                                  [--base-url BASE_URL] [--model MODEL]
+                                  [--timeout TIMEOUT]
+                                  [--max-tokens MAX_TOKENS]
+                                  [--api-key-env API_KEY_ENV]
+
+DeepSeek 本地批量标题重写；结果增量保存，成功后不重复生成。
+
+options:
+  -h, --help            show this help message and exit
+  --input INPUT         商品 JSON / JSONL 文件
+  --output OUTPUT       结果 JSON；重跑时复用输入及配置未变的成功结果
+  --shop {4,7}          统一店铺；否则读取每件 shopId/shop
+  --workers WORKERS
+  --retries RETRIES     失败后的额外重试次数，默认2
+  --retry-delay RETRY_DELAY
+  --model-config MODEL_CONFIG
+                        复用项目 model-gateway/v1 JSON 配置
+  --base-url BASE_URL   兼容 API 地址，含 /v1
+  --model MODEL         项目已启用的 DeepSeek 型号
+  --timeout TIMEOUT     每次请求超时秒数，默认150
+  --max-tokens MAX_TOKENS
+                        最大输出 Token，默认4096
+  --api-key-env API_KEY_ENV
+                        密钥环境变量名；默认依次读取 DEEPSEEK_API_KEY、VLM_API_KEY
+
+
+COMMAND: python -S -m unittest discover -s tests -v
+EXIT: 0
+test_bad_local_input_does_not_call_api_or_block_other_items (test_deepseek_title_rewrite.DeepSeekTitleTests.test_bad_local_input_does_not_call_api_or_block_other_items) ... ok
+test_cli_file_transport_checkpoint_and_resume (test_deepseek_title_rewrite.DeepSeekTitleTests.test_cli_file_transport_checkpoint_and_resume) ... ok
+test_duplicate_input_calls_once_and_changed_source_is_not_cached (test_deepseek_title_rewrite.DeepSeekTitleTests.test_duplicate_input_calls_once_and_changed_source_is_not_cached) ... ok
+test_exhausted_retries_does_not_report_success (test_deepseek_title_rewrite.DeepSeekTitleTests.test_exhausted_retries_does_not_report_success) ... ok
+test_failed_items_retry_on_rerun_but_changed_settings_invalidate_success (test_deepseek_title_rewrite.DeepSeekTitleTests.test_failed_items_retry_on_rerun_but_changed_settings_invalidate_success) ... ok
+test_failed_request_or_invalid_output_retries_then_stops (test_deepseek_title_rewrite.DeepSeekTitleTests.test_failed_request_or_invalid_output_retries_then_stops) ... ok
+test_first_success_stops_without_quality_or_usage_gate (test_deepseek_title_rewrite.DeepSeekTitleTests.test_first_success_stops_without_quality_or_usage_gate) ... ok
+test_malformed_response_shape_is_retried (test_deepseek_title_rewrite.DeepSeekTitleTests.test_malformed_response_shape_is_retried) ... ok
+test_parallel_batch_preserves_order_and_reuses_success_on_resume (test_deepseek_title_rewrite.DeepSeekTitleTests.test_parallel_batch_preserves_order_and_reuses_success_on_resume) ... ok
+test_permanent_auth_error_is_not_retried (test_deepseek_title_rewrite.DeepSeekTitleTests.test_permanent_auth_error_is_not_retried) ... ok
+test_prompt_uses_current_sop_without_description_or_write_instructions (test_deepseek_title_rewrite.DeepSeekTitleTests.test_prompt_uses_current_sop_without_description_or_write_instructions) ... ok
+test_shop_four_prefix_and_jsonl_input (test_deepseek_title_rewrite.DeepSeekTitleTests.test_shop_four_prefix_and_jsonl_input) ... ok
+test_transport_uses_existing_deepseek_http_entry (test_deepseek_title_rewrite.DeepSeekTitleTests.test_transport_uses_existing_deepseek_http_entry) ... ok
+test_truncated_response_is_retried_and_warnings_are_preserved (test_deepseek_title_rewrite.DeepSeekTitleTests.test_truncated_response_is_retried_and_warnings_are_preserved) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.071s
+
+OK

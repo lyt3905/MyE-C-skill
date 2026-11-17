@@ -1,0 +1,10 @@
+{
+  "lama": {
+    "status": "EXTERNAL_DEPENDENCY",
+    "distributed": false,
+    "suggested_location": "models/lama/big-lama.pt",
+    "baseline_sha256": "7ba7aa7ac37a4d41fdbbeba3a2af7ead18058552997e3a3cd1a3b2210c9e6b4c",
+    "bytes": 205803670,
+    "licensing": "not established by this extraction; obtain authorized weights separately"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "max_mask_area": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 0.25
+    },
+    "max_roi_area": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "opencv_max_mask_area": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 0.25
+    },
+    "opencv_max_roi_area": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "context_pixels": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 256
+    },
+    "adjacency_pixels": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 128
+    },
+    "dilation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16
+    },
+    "radius": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    }
+  }
+}

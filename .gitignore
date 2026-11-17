@@ -26,3 +26,7 @@ cfg.local.json
 # ae-img-audit: 审核运行项目（14GB 运行数据：.venv/work/wheels/imgs 等），不推 GitHub；
 # 核心脚本与口径的正本已 tracked 在 aliexpress-product-image-audit/scripts 与 references（14/14 同步）
 /ae-img-audit/
+
+# Local backups and generated browser captures (existing tracked captures remain).
+/aliexpress-product-image-audit (3).zip
+/publish-aliexpress-product/shots/
