@@ -84,7 +84,9 @@ def validate(result,item):
         region(protected)
     if r['decision']=='REMOVE_TEXT':
         removable=[m for m in r['watermarks'] if mark_disposition(m)=='REMOVABLE']
-        if not removable or any(m['preserve_overlap_risk']!='LOW' and m.get('repair_mode') not in {'BACKGROUND_GLYPHS','TEMPLATE_GLYPHS'} for m in removable):raise ValueError('V2_NOT_REMOVABLE')
+        # Overlap is recorded, not a prediction-based veto. Fixed protection
+        # geometry and actual candidate quality are checked by the executor.
+        if not removable:raise ValueError('V2_NOT_REMOVABLE')
     return r
 
 
@@ -196,9 +198,9 @@ def apply_visual_rules(row):
     elif value['toy_present'] is False and value['retail_box_status']=='ABSENT' and any(m.get('overlay_role')=='SELLER_NOTICE' for m in editable):action='DELETE'
     elif action=='DELETE' and value['toy_present'] and value['clear'] and any(m.get('overlay_role')=='OTHER_STORE_FRAME' and mark_disposition(m)=='REMOVABLE' for m in editable):
         # A small shop badge is not a large surrounding promotional frame.
-        action='REMOVE_TEXT' if all(m['preserve_overlap_risk']=='LOW' or m.get('repair_mode')=='BACKGROUND_GLYPHS' for m in editable if mark_disposition(m)=='REMOVABLE') else 'REVIEW'
+        action='REMOVE_TEXT'
     elif action=='KEEP' and any(mark_disposition(m)=='REMOVABLE' for m in editable):
-        action='REMOVE_TEXT' if all(m['preserve_overlap_risk']=='LOW' or m.get('repair_mode')=='BACKGROUND_GLYPHS' for m in editable if mark_disposition(m)=='REMOVABLE') else 'REVIEW'
+        action='REMOVE_TEXT'
     if action!=value['decision']:
         changes.append(dict(rule='SELLER_PROMOTIONAL_COMPOSITE' if seller_poster else 'EXPLICIT_VISUAL_ROLE',raw_decision=value['decision'],decision=action))
         value['decision']=action

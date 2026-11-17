@@ -36,6 +36,8 @@ class ExecutorService:
                 raise ValueError('AUTOMATION_POLICY_CHANGED_OR_MISSING')
             if (plan.get('post_actions') or {}).get('sku_row_assignments') and policy.config.get('allow_snapshot_sku_rows') is not True:
                 raise ValueError('SNAPSHOT_SKU_ASSIGNMENT_NOT_AUTHORIZED')
+            if (plan.get('post_actions') or {}).get('main_reference_cleanup') and policy.config.get('trim_seven_main_before_audit') is not True:
+                raise ValueError('MAIN_PREFLIGHT_NOT_AUTHORIZED')
             policy.authorize(plan['pid'],plan['shop'],plan['automation']['actions'],uploads=planned_upload_count(plan))
         for ref in plan['evidence_refs'] + plan['ai_judgement_refs']:
             if set(ref) != {'path','sha256'}:
@@ -52,6 +54,14 @@ class ExecutorService:
         if plan['desired'] and not plan['evidence_refs']:
             raise ValueError('missing evidence')
         post = plan['post_actions'] or {}
+        if plan['precondition'].get('main_count_preflight'):
+            from mye_c_automation.main_preprocessing import verify_receipt
+            verify_receipt(self.root,plan)
+            if self.automation_policy is not None and self.automation_policy.config.get('trim_seven_main_before_audit') is not True:
+                raise ValueError('MAIN_PREFLIGHT_NOT_AUTHORIZED')
+        if post.get('main_reference_cleanup'):
+            from mye_c_automation.main_preprocessing import verify_evidence
+            verify_evidence(self.root,plan)
         if post.get('reviewed_detail_deletions'):
             from mye_c_automation.reviewed_images import verify_reviewed_evidence
             verify_reviewed_evidence(self.root,plan)
@@ -149,6 +159,11 @@ class ExecutorService:
         if self.before_remote_write:self.before_remote_write()
         atomic_json(self.root/'save_attempt.json',{'site_save_calls':1,'state':'APPLY_UNKNOWN','expected_state_sha256':canonical_state_hash(desired)})
         scope={}
+        if post.get('main_reference_cleanup'):
+            from mye_c_automation.description_images import body_image_nodes
+            target=post['main_reference_cleanup']['removed_url']
+            if any(r['url']==target for r in body_image_nodes(before.get('descriptionJson'))):
+                scope['description_image_deletions']=[target]
         if post.get('content_groups'):
             from mye_c_automation.image_content_plan import save_scope
             deleted,replaced=save_scope(before,plan,desired)

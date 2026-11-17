@@ -1,0 +1,15 @@
+# General text watermark execution
+
+User scope: one text watermark, multiple text watermarks, and large translucent text. Continue single agent on main; preserve current 0.2.32 edits, original Skill, historical jobs/replies/ledgers. Local implementation/offline acceptance; no new real semantic API calls, site access, Git commit/push or replacement business Schema.
+
+Design: extend the existing watermark_processing components, not a second runner. AI remains sole semantic classifier. Add a bounded pixel-geometry helper that automatically evaluates AI-provided TEXT regions as glyph references, reuses existing template_strokes and mask_for for precise text masks, and uses the original bounded REGION instruction when no reliable reference exists. Keep raw instructions separate from derived geometry. Single instances do not require repetition; compatible group members can share a sample, while different sizes/angles can use their own reference or region. Never relabel factory print or interpret arbitrary text. Existing explicit template/background modes remain supported by the public module and unchanged in the legacy executor.
+
+Large search/instance extents are not large filled rectangles: keep mask/ROI area controls, refine text strokes first, then subdivide oversized ROIs deterministically with overlap/context. Fuse only union-mask pixels, blend overlapping tile estimates, preserve alpha and source. If even minimum context cannot satisfy configured ROI area, reject explicitly. All candidates remain PENDING_AI_REVIEW until the existing workflow's actual candidate-versus-source review passes.
+
+Files: watermark_processing/text_masks.py (derived glyph geometry/trace), regions.py (auto masks and bounded tiling), engine.py (context masks/weighted fusion), contracts.py and existing policy Schema (optional internal strategy/tile settings only), __init__.py (trace receipts), prompts (existing V2 TEXT/group/coordinate/sample contract), tests (three-case fixtures, coverage, protected pixels, tiling/fusion and existing workflow), docs/report. Business V2 Schema fields/enums unchanged; fixed rights/SHA/coordinate/print/mask limits unchanged.
+
+- [x] Red regressions: single glyph mask, group sample reuse, mixed groups/angles, large translucent text, no-reference fallback, forced region compatibility, bounded tiles/seam fusion, forbidden pixels/alpha/rights, native workflow publication gate.
+- [x] Implement pixel-only automatic masks, record raw-vs-derived plan and all fallback reasons; no hardcoded words/fonts/colors/store names or hand-selected sample in production.
+- [x] Add bounded overlap tiling and exact masked-only fusion; retain meaningful ROI/mask limits and stop on unavailable backend.
+- [x] Update prompt and module documentation; demonstrate three cases with existing real local LaMa and known fixture masks/clean backgrounds, distinguish deterministic scores from real AI quality acceptance.
+- [x] Complete focused/full regressions, independent wheel installation and content binding; update state/report, preserve all old evidence. No new semantic model/site requests.

@@ -3,7 +3,31 @@
   "title": "automation.v1.schema.json",
   "type": "object",
   "properties": {
-    "title_rewrite": {"type":"object","properties":{"retries":{"type":"integer","minimum":0,"maximum":5},"retry_delay":{"type":"number","minimum":0,"maximum":30},"confirmed_facts":{"type":"array","maxItems":10,"items":{"type":"string","minLength":1,"maxLength":2000}}},"additionalProperties":false},
+    "title_rewrite": {
+      "type": "object",
+      "properties": {
+        "retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "retry_delay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "confirmed_facts": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "schema": {
       "const": "automation-policy/v1"
     },
@@ -17,7 +41,10 @@
     "delete_decorated_composites": {
       "type": "boolean"
     },
-    "trim_seven_main_before_audit": {"type": "boolean", "default": false},
+    "trim_seven_main_before_audit": {
+      "type": "boolean",
+      "default": true
+    },
     "mode": {
       "const": "auto_apply"
     },
@@ -53,9 +80,15 @@
     "allow_actions": {
       "type": "object",
       "properties": {
-        "DELETE": {"type": "boolean"},
-        "REMOVE_TEXT": {"type": "boolean"},
-        "AI_REGENERATE": {"type": "boolean"},
+        "DELETE": {
+          "type": "boolean"
+        },
+        "REMOVE_TEXT": {
+          "type": "boolean"
+        },
+        "AI_REGENERATE": {
+          "type": "boolean"
+        },
         "BRAND_CODE": {
           "type": "boolean"
         },

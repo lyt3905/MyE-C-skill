@@ -46,6 +46,8 @@ class MainPreflightTests(unittest.TestCase):
                 self.assertEqual(result['model_requests'],0)
                 self.assertEqual(events,['save','independent_readback'])
                 expected=copy.deepcopy(original);expected['images']['main']=urls[1:]
+                expected['images']['detail']=[urls[1]];expected['images']['sku']=[]
+                expected['skus'][0]['skuImageUrl']=None
                 self.assertEqual(writer.value,expected)
                 self.assertEqual(writer.saves,1)
                 again=run_main_count_preflight(manager,1,7,policy(),writer,lambda:Independent(),execution_ledger=ledger)
@@ -63,7 +65,8 @@ class MainPreflightTests(unittest.TestCase):
                 def account_fingerprint(self):return 'a'*64
                 def current_shop(self):return 7
             writer=Writer()
-            for count in (6,8):
+            # Keep the historical test ID; the new no-write boundary is <=6.
+            for count in (0,1,5,6):
                 writer.count=count
                 result=run_main_count_preflight(JobManager(Path(tmp)/'jobs'),1,7,policy(),writer,lambda:None)
                 self.assertEqual(result['status'],'NOT_NEEDED')

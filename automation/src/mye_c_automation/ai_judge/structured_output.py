@@ -140,7 +140,6 @@ def protected_removal_conflict(row):
         if not isinstance(mark,dict) or not mark.get('kind'):continue
         if mark_disposition(mark)!='REMOVABLE':continue
         if mark_owner(mark) in {'MANUFACTURER','PRODUCT','PACKAGING','CREATOR'} or mark['kind'] in {'MANUFACTURER_LOGO','PRODUCT_PRINT','PACKAGING_PRINT','MODEL_TEXT','CREATOR_CREDIT','NORMAL_PHOTO_TEXT'}:return True
-        if mark.get('preserve_overlap_risk')!='LOW' and mark.get('repair_mode') not in {'BACKGROUND_GLYPHS','TEMPLATE_GLYPHS'}:return True
     return False
 
 

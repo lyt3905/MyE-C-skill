@@ -149,10 +149,16 @@ class LocalExecutor:
             from mye_c_automation.check import verify_snapshot
             after = self.writer.product(plan['pid'])
             if self.checker:checked=self.checker(after)
+            elif (plan.get('post_actions') or {}).get('main_reference_cleanup'):
+                from mye_c_automation.main_preprocessing import verify_snapshot as verify_main_snapshot
+                checked=verify_main_snapshot(current,plan,after)
             elif (plan.get('post_actions') or {}).get('reviewed_detail_deletions'):
                 from mye_c_automation.reviewed_images import verify_reviewed_snapshot
                 checked=verify_reviewed_snapshot(self.root,plan,after)
-            else:checked=verify_snapshot(after,before=current)
+            else:
+                from mye_c_automation.main_preprocessing import count_exception,verify_receipt
+                if plan['precondition'].get('main_count_preflight'):verify_receipt(self.root,plan)
+                checked=verify_snapshot(after,before=current,allow_existing_main_excess=count_exception(current,plan))
             atomic_json(self.root / 'final_check.json', checked)
             if not checked['ok']:
                 raise ValueError('final check failed')

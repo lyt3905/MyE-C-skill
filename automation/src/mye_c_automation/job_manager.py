@@ -37,7 +37,7 @@ class JobManager:
         if model_budget is not None:job['model_budget']=json.loads(json.dumps(model_budget,allow_nan=False))
         if image_workflow is not None:
             if image_workflow!='v2':raise ValueError('UNKNOWN_IMAGE_WORKFLOW')
-            options={'rights':'RIGHTS_UNKNOWN','max_mask_area':.25}
+            options={'rights':'OWNED_OR_LICENSED' if image_workflow=='v2' else 'RIGHTS_UNKNOWN','max_mask_area':.25}
             options.update(image_options or {})
             if set(options)-{'rights','max_mask_area','lama_model_path','lama_model_sha256','image_edit','watermark_processing'} or options['rights'] not in {'OWNED_OR_LICENSED','RIGHTS_UNKNOWN','THIRD_PARTY_ATTRIBUTION'} or type(options['max_mask_area']) not in (int,float) or not 0<options['max_mask_area']<=.25:raise ValueError('INVALID_IMAGE_OPTIONS')
             if options.get('lama_model_path'):

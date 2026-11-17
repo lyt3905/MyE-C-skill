@@ -71,6 +71,17 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 10
+        },
+        "auto_text_masks": {
+          "type": "boolean"
+        },
+        "tile_large_regions": {
+          "type": "boolean"
+        },
+        "tile_overlap_pixels": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
         }
       }
     }

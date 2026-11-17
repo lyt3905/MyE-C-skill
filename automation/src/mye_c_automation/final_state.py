@@ -12,6 +12,9 @@ def upload_placeholders(plan,prefix='https://pending.invalid/validated-upload/')
 
 def simulate_final_snapshot(before_snapshot, plan, uploaded_urls=None):
  if 'descriptionJson' in plan.get('desired',{}):raise ValueError('DESCRIPTION_MUTATION_FORBIDDEN')
+ if 'main_reference_cleanup' in (plan.get('post_actions') or {}):
+  from mye_c_automation.main_preprocessing import expected
+  return expected(before_snapshot,plan)
  result=deepcopy(before_snapshot)
  result.update(deepcopy(plan['desired']))
  row_assignments=(plan.get('post_actions') or {}).get('sku_row_assignments',[])
@@ -67,15 +70,21 @@ def simulate_final_snapshot(before_snapshot, plan, uploaded_urls=None):
 
 def validate_final_snapshot(final_snapshot, policy=None, context=None):
  context=context or {}; before=context.get('before',{}); errors=[]; checked=[]; warnings=[]
+ if 'main_reference_cleanup' in (context.get('plan',{}).get('post_actions') or {}):
+  from mye_c_automation.main_preprocessing import verify_snapshot
+  return verify_snapshot(before,context['plan'],final_snapshot)
  def check(rule,path,actual,expected,ok):
   checked.append(rule)
   if not ok: errors.append(dict(rule_id=rule,field=path,actual=actual,expected=expected))
  images=final_snapshot.get('images') or {}
+ from mye_c_automation.main_preprocessing import count_exception
+ automatic=(count_exception(before,context.get('plan',{})) or context.get('allow_existing_main_excess') is True)
  check('IMAGES_REQUIRED','images',final_snapshot.get('images'),'mapping',isinstance(final_snapshot.get('images'),dict))
  if not isinstance(images,dict): images={}
  for pool in ('main','detail') + (('sku',) if final_snapshot.get('skus') else ()):
   urls=images.get(pool)
-  check('REQUIRED_POOL','images.'+pool,urls,'nonempty list',isinstance(urls,list) and bool(urls))
+  existing_empty_detail=(automatic and pool=='detail' and (before.get('images') or {}).get('detail')==[] and urls==[])
+  check('REQUIRED_POOL','images.'+pool,urls,'nonempty list or unchanged pre-existing empty detail',isinstance(urls,list) and (bool(urls) or existing_empty_detail))
  if images:
   for pool,urls in (before.get('images') or {}).items():
    if pool not in {'main','detail','sku'}:check('PROTECTED_IMAGE_POOL','images.'+pool,images.get(pool),urls,images.get(pool)==urls)
@@ -84,8 +93,10 @@ def validate_final_snapshot(final_snapshot, policy=None, context=None):
   if FIELD in (context.get('plan',{}).get('post_actions') or {}):check('REVIEWED_DETAIL_SCOPE','images',None,'exact user-reviewed detail removal',reviewed)
   prior_count=len((before.get('images') or {}).get('main',[]))
   unchanged_count=reviewed and prior_count>6 and images.get('main')==(before.get('images') or {}).get('main')
+  nonincreased_excess=automatic and prior_count>6 and 0<len(images.get('main',[]))<=prior_count
   if unchanged_count:warnings.append(dict(rule_id='EXISTING_MAIN_COUNT_UNCHANGED',actual=prior_count,scope='USER_REVIEWED_DETAIL_DELETION_ONLY',whole_product_verified=False))
-  check('MAIN_COUNT','images.main',len(images.get('main',[])),'1..6; unchanged existing excess only for bound reviewed detail deletion',1<=len(images.get('main',[]))<=6 or unchanged_count)
+  if nonincreased_excess:warnings.append(dict(rule_id='EXISTING_MAIN_EXCESS_NOT_INCREASED',actual=len(images['main']),prior=prior_count))
+  check('MAIN_COUNT','images.main',len(images.get('main',[])),'1..6 or non-increased existing excess in bound automatic flow',1<=len(images.get('main',[]))<=6 or unchanged_count or nonincreased_excess)
   for pool,urls in images.items():
    if pool not in {'main','detail','sku'}:continue
    if pool=='main' or (before.get('images') or {}).get(pool):

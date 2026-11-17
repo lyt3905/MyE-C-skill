@@ -162,13 +162,13 @@ class WatermarkModuleTests(unittest.TestCase):
     def test_protection_rights_and_ai_semantic_conflicts_stop(self):
         api=self.module()
         with tempfile.TemporaryDirectory() as d:
-            for n,mode in enumerate(['RIGHTS_UNKNOWN','THIRD_PARTY_ATTRIBUTION','protect','manufacturer','unknown','risk']):
+            for n,mode in enumerate(['RIGHTS_UNKNOWN','THIRD_PARTY_ATTRIBUTION','protect','manufacturer','unknown','invalid-risk']):
                 r=sample(Path(d)/str(n))
                 if mode in {'RIGHTS_UNKNOWN','THIRD_PARTY_ATTRIBUTION'}:r['authorization_status']=mode
                 elif mode=='protect':r['preserve_regions'].append(dict(kind='PACKAGING_PRINT',bbox=r['watermarks'][0]['bbox']))
                 elif mode=='manufacturer':r['watermarks'][0].update(kind='MANUFACTURER_LOGO',owner='MANUFACTURER')
                 elif mode=='unknown':r['watermarks'][0].update(kind='UNKNOWN_TEXT',owner='UNKNOWN',action='KEEP')
-                else:r['watermarks'][0]['preserve_overlap_risk']='HIGH'
+                else:r['watermarks'][0]['preserve_overlap_risk']='INVALID_RISK'
                 result=api.process_watermarks(r,Path(d)/('out'+str(n)),lama=lambda *_:self.fail('Guard bypass'))
                 self.assertEqual(result['processing_status'],'BLOCKED',result)
                 self.assertIsNone(result['output_path'])

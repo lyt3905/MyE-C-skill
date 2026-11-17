@@ -86,17 +86,17 @@ def compile_main_count_preflight(directory,job,product,policy):
     if policy.config.get('trim_seven_main_before_audit') is not True:raise ValueError('MAIN_PREFLIGHT_NOT_AUTHORIZED')
     policy.authorize(job['pid'],job['shop_id'],['DELETE'],execution=True)
     images=deepcopy(product.get('images') or {})
-    if len(images.get('main') or [])!=7:raise ValueError('MAIN_PREFLIGHT_REQUIRES_EXACT_SEVEN')
-    removed=images['main'].pop(0);root=Path(directory)
-    proof=dict(rule='USER_MAIN_COUNT_EXACT_SEVEN',source='EXPLICIT_USER_POLICY',removed_pool='main',removed_index=0,
-        removed_url=removed,before_count=7,after_count=6,state_sha256=canonical_state_hash(product),
-        policy_sha256=policy.sha256,model_requests=0,scope='main reference only; preserve detail/body/SKU')
+    from mye_c_automation.main_preprocessing import recipe,transformed,FIELD
+    cleanup=recipe(product);images=transformed(product,cleanup)['images'];removed=cleanup['removed_url'];root=Path(directory)
+    proof=dict(rule='USER_MAIN_COUNT_OVER_SIX',source='EXPLICIT_USER_POLICY',removed_pool='main',removed_index=0,
+        removed_url=removed,before_count=cleanup['before_count'],after_count=cleanup['after_count'],state_sha256=canonical_state_hash(product),
+        policy_sha256=policy.sha256,model_requests=0,recipe=cleanup,scope='matching main/detail/body/SKU URL references only')
     atomic_json(root/'main_count_user_rule.json',proof);atomic_json(root/'audit_product.json',product)
     refs=[dict(path=name,sha256=hashlib.sha256((root/name).read_bytes()).hexdigest()) for name in ('main_count_user_rule.json','audit_product.json')]
     plan=dict(schema='token-opt-plan/v3',job_id=job['job_id'],pid=job['pid'],shop=job['shop_id'],
         workflow_version=job['workflow_version'],policy_version=job['policy_version'],
         precondition=dict(state_sha256=canonical_state_hash(product),account_fingerprint=job['account_fingerprint']),
-        evidence_refs=refs,ai_judgement_refs=[],desired={'images':images},post_actions={},review={'status':'RESOLVED'},
+        evidence_refs=refs,ai_judgement_refs=[],desired={'images':images},post_actions={FIELD:cleanup},review={'status':'RESOLVED'},
         automation={'policy_sha256':policy.sha256,'actions':['DELETE']})
     plan=validate_plan(plan);checked=pre_apply_validate(product,plan)
     if not checked['ok']:raise ValueError('MAIN_PREFLIGHT_FINAL_STATE:'+repr(checked['errors']))
@@ -152,6 +152,13 @@ def compile_auto_plan(directory, job, candidates, policy):
               desired={},post_actions={},review={'status':'RESOLVED'},
               automation={'policy_sha256':policy.sha256,'actions':[r['action'] for r in safe]})
     if job.get('account_fingerprint'):plan['precondition']['account_fingerprint']=job['account_fingerprint']
+    invocation=root/'process_invocation.json'
+    if invocation.is_file() and policy.config.get('trim_seven_main_before_audit') is True:
+        prior=json.loads(invocation.read_text(encoding='utf-8')).get('main_count_preflight')
+        if prior and prior.get('status')=='AUTO_VERIFIED':
+            plan['precondition']['main_count_preflight']={'job_id':prior['job_id'],'main_count':prior['main_count_after']}
+            from mye_c_automation.main_preprocessing import verify_receipt
+            verify_receipt(root,plan)
     images=deepcopy(product.get('images') or {})
     protected_urls=set()
     for row in deferred:

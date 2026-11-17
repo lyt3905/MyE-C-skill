@@ -151,7 +151,7 @@ def process_product(url,*,config_dir=None,data_dir=None,shop=None,audit_only=Fal
                     nonlocal preflight_job
                     preflight_job=value
                     atomic_json(manager.directory(value['job_id'])/'process_invocation.json',dict(url=url,pid=pid,shop=shop,mode=mode,policy_sha256=policy.sha256,phase='main_count_preflight'))
-                    _progress(manager.directory(value['job_id']),'正在处理七张主图规则；随后继续图片审核。')
+                    _progress(manager.directory(value['job_id']),'正在处理超过六张主图的预处理；随后继续图片审核。')
                 try:preflight=run_main_count_preflight(manager,pid,shop,policy,_writer(config),independent,on_job_created=created)
                 except Exception:
                     if preflight_job:

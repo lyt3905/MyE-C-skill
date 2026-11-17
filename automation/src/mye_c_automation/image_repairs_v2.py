@@ -156,7 +156,6 @@ def mask_for(size,observation,*,max_area=.25,dilation=2,image=None,geometry=None
                 selected=(roi>0)&background&(low<254)
                 mask[selected]=255
             else:
-                if row['preserve_overlap_risk']!='LOW':raise ValueError('REGION_RISK')
                 fill(mask,row)
         else:protected=np.maximum(protected,protection(row,row.get('preserve_mode','EXACT_REGION')))
     for row in observation['preserve_regions']:
@@ -221,6 +220,8 @@ def remove_text(source,observation,directory,*,rights,algorithm=None,lama=None,m
         result=process_watermarks(from_v2(source,observation,rights),directory,lama=lama,algorithm=algorithm,
             policy=configured,mask_source=mask_source,prior_mask=prior_mask,cache_dir=cache_dir)
         if result['processing_status']!='PROCESSED':raise ValueError(result['failure_reason'] or result['processing_status'])
+        from mye_c_automation.watermark_processing.text_masks import execution_observation
+        result['execution_observation']=execution_observation(observation,result['mask_plans'])
         mask_path=result['mask_paths'][0]
         with Image.open(mask_path) as mask_image:ratio=float(np.count_nonzero(np.array(mask_image))/(mask_image.width*mask_image.height))
         result.update(input_path=str(source),mask_path=mask_path,mask_sha256_map=result['mask_sha256'],mask_sha256=sha(mask_path),

@@ -38,7 +38,7 @@ def initialize_config(directory=None):
 def load_image_options(path):
     path=Path(path).expanduser().resolve()
     value=json.loads(path.read_text(encoding='utf-8-sig'))
-    if isinstance(value,dict):value={'rights':'RIGHTS_UNKNOWN','max_mask_area':.25,**value}
+    if isinstance(value,dict):value={'rights':'OWNED_OR_LICENSED','max_mask_area':.25,**value}
     validate_resource_json(value,'image-options.v2.schema.json')
     if value.get('lama_model_path'):
         source=Path(value['lama_model_path']).expanduser()

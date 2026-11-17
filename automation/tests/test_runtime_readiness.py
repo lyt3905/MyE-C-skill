@@ -47,7 +47,7 @@ class RuntimeReadinessTests(unittest.TestCase):
             self.assertIn('site.local.json',result['preserved'])
             policy=json.loads((directory/'automation.local.json').read_text())
             self.assertFalse(policy['enabled']);self.assertTrue(policy['allow_actions']['REPLACE_TWIN'])
-            self.assertEqual(json.loads((directory/'image-options.local.json').read_text())['rights'],'RIGHTS_UNKNOWN')
+            self.assertEqual(json.loads((directory/'image-options.local.json').read_text())['rights'],'OWNED_OR_LICENSED')
             before={p.name:sha(p) for p in directory.iterdir() if p.is_file()}
             initialize_config(directory)
             self.assertEqual(before,{p.name:sha(p) for p in directory.iterdir() if p.is_file()})
@@ -108,7 +108,7 @@ class RuntimeReadinessTests(unittest.TestCase):
             model=Path(root)/'models/lama.pt';model.parent.mkdir();model.write_bytes(b'FAKE')
             bind_lama(config,model,sha(model))
             options=json.loads((config/'image-options.local.json').read_text())
-            self.assertEqual(options['rights'],'RIGHTS_UNKNOWN')
+            self.assertEqual(options['rights'],'OWNED_OR_LICENSED')
             self.assertEqual(options['lama_model_path'],str(model.resolve()))
             self.assertEqual(options['lama_model_sha256'],sha(model))
             model.write_bytes(b'changed')

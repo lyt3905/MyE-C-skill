@@ -280,16 +280,16 @@ def main(pid, quick=False, stable=6, fast=False):
 
 
 
-def verify_snapshot(product, *, before=None):
+def verify_snapshot(product, *, before=None, allow_existing_main_excess=False):
     """Pure post-save structural delivery check; no credentials or network access."""
     images = product.get('images') or {}
     checks = {'status_preserved_by_executor': True,
-              'main_count': 1 <= len(images.get('main') or []) <= 6,
-              'detail_present': bool(images.get('detail')),
+              'main_count': 1 <= len(images.get('main') or []) <= 6 or allow_existing_main_excess and len(images.get('main') or [])>6,
+              'detail_present': bool(images.get('detail')) or allow_existing_main_excess and images.get('detail')==[],
               'sku_pool_present': not product.get('skus') or bool(images.get('sku')),
               'sku_references': all((s.get('skuImageUrl') or s.get('imageUrl') or s.get('image')) in images.get('sku',[]) for s in product.get('skus') or [])}
     from mye_c_automation.final_state import validate_final_snapshot
-    validation=validate_final_snapshot(product,context={'before':product})
+    validation=validate_final_snapshot(product,context={'before':product,'allow_existing_main_excess':allow_existing_main_excess})
     # Keep this a structural check. Only SKU reference rules use the bound
     # pre-save snapshot; unrelated write protections belong to saved-state checks.
     reference_validation=validate_final_snapshot(product,context={'before':before or {}})
@@ -321,7 +321,9 @@ def check_saved_job(directory):
         if (plan.get('post_actions') or {}).get('translate_title'):
             expected['titleTranslationZh']=after.get('titleTranslationZh')
             normalized['titleTranslationZh']=before.get('titleTranslationZh')
-        checks={'structure':verify_snapshot(after,before=before)['ok'],
+        from mye_c_automation.main_preprocessing import count_exception,verify_receipt
+        if plan['precondition'].get('main_count_preflight'):verify_receipt(root,plan)
+        checks={'structure':verify_snapshot(after,before=before,allow_existing_main_excess=count_exception(before,plan))['ok'],
                 'protected_fields':validate_final_snapshot(normalized,context={'before':before,'plan':plan,'saved_readback':True})['ok'],
                 'expected_state':saved_state_matches(expected,after,source=before),
                 'content':content.get('ok') is True and bool(content.get('items'))}

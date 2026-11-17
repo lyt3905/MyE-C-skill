@@ -31,6 +31,7 @@ def process_watermarks(request,directory,*,lama=None,policy=None,algorithm=None,
         if parsed.request['decision']!='REMOVE_TEXT':result.update(processing_status='NOT_APPLICABLE');return result
         if parsed.request['authorization_status']!='OWNED_OR_LICENSED':raise ValueError('RIGHTS_NOT_AUTHORIZED')
         masks,union=WatermarkMaskBuilder().build(parsed,options)
+        result['mask_plans']=[row['mask_plan'] for row in masks]
         if (mask_source is None)!=(prior_mask is None):raise ValueError('RESIDUAL_INPUT_PAIR_REQUIRED')
         if prior_mask is not None:
             from mye_c_automation.image_repairs_v2 import deterministic_quality,mask_for
@@ -38,7 +39,9 @@ def process_watermarks(request,directory,*,lama=None,policy=None,algorithm=None,
             with Image.open(prior_mask) as previous:inherited=np.array(previous)
             if inherited.shape!=union.shape or inherited.dtype!=np.uint8 or not np.isin(inherited,[0,255]).all():raise ValueError('INVALID_PRIOR_MASK')
             # Revalidate all protected pixels and area constraints on the union.
-            mask_for((parsed.pixels.shape[1],parsed.pixels.shape[0]),parsed.request,image=parsed.pixels,
+            from .text_masks import execution_observation
+            executed=execution_observation(parsed.request,result['mask_plans'])
+            mask_for((parsed.pixels.shape[1],parsed.pixels.shape[0]),executed,image=parsed.pixels,
                 max_area=options['max_mask_area'],dilation=options['dilation'],inherited_mask=inherited)
             # Previous masks may contain many distant components. Preserve their
             # independent geometry rather than turning them into one huge ROI.
@@ -57,6 +60,10 @@ def process_watermarks(request,directory,*,lama=None,policy=None,algorithm=None,
         result['mask_sha256']={name:sha(name) for name in result['mask_paths']}
         preview=root/'mask-overlay.png';_new_image(preview,visualization(parsed.pixels,union));result['visualization_path']=str(preview)
         running=True;engine=InpaintingEngine();output,records=engine.run(parsed,regions,options,lama=lama,algorithm=algorithm,cache_dir=cache_dir)
+        glyph_masks=[row['mask'] for row in masks if row.get('mask_plan',{}).get('strategy')=='AUTO_TEXT_GLYPHS']
+        if glyph_masks:
+            from mye_c_automation.image_repairs_v2 import _uniform_background_cleanup
+            result['uniform_background_cleanup_components']=_uniform_background_cleanup(parsed.pixels,output,np.maximum.reduce(glyph_masks))
         if parsed.source_path and sha(parsed.source_path)!=parsed.sha256:raise ValueError('ORIGINAL_CHANGED')
         path=root/'repaired.png'
         _new_image(path,np.dstack([output,parsed.rgba[:,:,3]]) if np.any(parsed.rgba[:,:,3]!=255) else output)
@@ -67,7 +74,11 @@ def process_watermarks(request,directory,*,lama=None,policy=None,algorithm=None,
         result.update(processing_status='PROCESSED',quality_status='PENDING_AI_REVIEW')
     except (ValueError,OSError,RuntimeError,ImportError,KeyError,TypeError,cv2.error) as exc:
         if engine is not None:result['regions']=engine.records
-        completed={i for row in result['regions'] if row['status']=='PROCESSED' for i in row['instance_ids']}
+        counts={}
+        for row in result['regions']:
+            if row['status']=='PROCESSED':
+                for i in row['instance_ids']:counts[i]=counts.get(i,0)+1
+        completed={i for i,n in counts.items() if engine is not None and n==engine.expected_instances.get(i)}
         processed=sum(m['watermark_id'] in completed for m in parsed.instances) if parsed else 0
         result.update(processing_status='FAILED' if running else 'BLOCKED',quality_status='FAIL' if running else 'REVIEW',
             failure_reason=str(exc),error_type=type(exc).__name__,output_path=None,output_sha256=None,watermark_instances_processed=processed,

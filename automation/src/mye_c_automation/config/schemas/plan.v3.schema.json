@@ -37,6 +37,24 @@
         "account_fingerprint": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "main_count_preflight": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "type": "string",
+              "pattern": "^JOB_[A-Za-z0-9_]+$"
+            },
+            "main_count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "job_id",
+            "main_count"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

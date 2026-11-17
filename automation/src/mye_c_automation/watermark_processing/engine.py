@@ -51,25 +51,40 @@ class RepairRouter:
 
 
 class InpaintingEngine:
-    def __init__(self):self.records=[]
+    def __init__(self):self.records=[];self.expected_instances={}
 
     def run(self,parsed,regions,policy,*,lama=None,algorithm=None,cache_dir=None):
         output=parsed.pixels.copy();records=self.records;router=RepairRouter()
+        union=np.maximum.reduce([r['mask'] for r in regions])
+        summed=np.zeros_like(output,dtype=np.float32);weights=np.zeros(union.shape,np.float32)
+        for r in regions:
+            for instance in r['instance_ids']:self.expected_instances[instance]=self.expected_instances.get(instance,0)+1
         for region in regions:
             chosen,route=router.select(parsed,region,policy,algorithm)
             x0,y0,x1,y1=region['roi'];original=parsed.pixels[y0:y1,x0:x1].copy();mask=region['mask'][y0:y1,x0:x1].copy()
+            core_count=int(np.count_nonzero(mask))
+            if region.get('tiled'):mask=union[y0:y1,x0:x1].copy()
             # Every batch starts from original context. Backend changes outside
             # its local mask are discarded, including all future instances.
             record=dict(region_id=region['region_id'],group_id=region['group_id'],instance_ids=region['instance_ids'],
-                roi=region['roi'],algorithm=chosen,routing_reason=route,mask_pixels=int(np.count_nonzero(mask)),
+                roi=region['roi'],algorithm=chosen,routing_reason=route,mask_pixels=core_count,
+                context_mask_pixels=int(np.count_nonzero(mask)),tiled=bool(region.get('tiled')),
                 parameters=dict(radius=policy['radius'],context_pixels=policy['context_pixels']),
                 model_version=(getattr(lama,'model_sha256',None) or 'INJECTED_BACKEND') if chosen=='LAMA_INPAINT' else cv2.__version__,status='RUNNING')
             records.append(record)
             try:
                 candidate,hit,key=_local_inpaint(original,mask,chosen,policy,lama,cache_dir)
-                output[y0:y1,x0:x1][mask>0]=candidate[mask>0]
+                hh,ww=mask.shape;yy,xx=np.indices(mask.shape)
+                feather=np.minimum(np.minimum(xx+1,ww-xx),np.minimum(yy+1,hh-yy)).astype(np.float32)
+                feather=np.minimum(feather/max(1,policy['tile_overlap_pixels']),1) if region.get('tiled') else np.ones(mask.shape,np.float32)
+                feather[mask==0]=0
+                summed[y0:y1,x0:x1]+=candidate.astype(np.float32)*feather[:,:,None]
+                weights[y0:y1,x0:x1]+=feather
                 record.update(status='PROCESSED',cache_hit=hit,cache_key=key)
                 if chosen=='LAMA_INPAINT':record['model_version']=getattr(lama,'model_sha256',None) or 'INJECTED_BACKEND'
             except (ValueError,OSError,RuntimeError,ImportError,TypeError,cv2.error) as exc:
                 record.update(status='FAILED',failure_reason=str(exc),error_type=type(exc).__name__);raise
+        if np.any((union>0)&(weights==0)):raise ValueError('ROI_MASK_UNCOVERED')
+        selected=weights>0
+        output[selected]=np.clip(np.rint(summed[selected]/weights[selected,None]),0,255).astype(np.uint8)
         return output,records

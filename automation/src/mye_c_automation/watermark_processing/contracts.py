@@ -13,7 +13,8 @@ from mye_c_automation.resources import validate_resource_json
 
 VERSION='watermark-processing.v1'
 DEFAULT_POLICY=dict(max_mask_area=.25,max_roi_area=.45,context_pixels=16,adjacency_pixels=8,dilation=2,
-                    opencv_max_mask_area=.04,opencv_max_roi_area=.20,radius=3)
+                    opencv_max_mask_area=.04,opencv_max_roi_area=.20,radius=3,
+                    auto_text_masks=True,tile_large_regions=True,tile_overlap_pixels=32)
 
 
 def policy_options(value=None):
@@ -78,8 +79,6 @@ class WatermarkInputParser:
             ids.add(identifier)
             if mark_disposition(mark)=='REMOVABLE':
                 if mark_owner(mark) in {'MANUFACTURER','PRODUCT','PACKAGING','CREATOR'} or mark['kind'] in {'MANUFACTURER_LOGO','PRODUCT_PRINT','PACKAGING_PRINT','MODEL_TEXT','CREATOR_CREDIT','NORMAL_PHOTO_TEXT'}:raise ValueError('PROTECTED_SEMANTIC_CONFLICT')
-                if mark.get('repair_mode') not in {None,'REGION'}:raise ValueError('EXPLICIT_INSTANCE_REGIONS_REQUIRED')
-                if mark['preserve_overlap_risk']!='LOW':raise ValueError('REGION_RISK')
                 instances.append(dict(mark,watermark_id=identifier,group_id=mark.get('group_id','v2-group-'+str(index))))
         for protected in value['preserve_regions']:check_polygon(protected)
         return ParsedInput(value,source,data,digest,pixels,rgba,instances)

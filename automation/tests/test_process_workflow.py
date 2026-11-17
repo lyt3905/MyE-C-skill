@@ -23,6 +23,9 @@ class ProcessWorkflowTests(unittest.TestCase):
         policy.update(enabled=True, pid_allowlist=[1], trim_seven_main_before_audit=True,
                       allow_snapshot_sku_rows=True, delete_decorated_composites=True)
         policy['allow_actions']['AI_REGENERATE'] = False
+        # These fixtures mock image responses only; title integration has its
+        # own full HTTP fixture and default-flow regression.
+        policy['allow_actions']['TITLE_REWRITE'] = False
         model = dict(schema='model-gateway/v1', base_url='http://127.0.0.1:8788/v1',
                      models=['deepseek-v4.1-flash'], max_output_tokens=16384,
                      retries=0, timeout=150, reasoning_effort='low', image_concurrency=10)

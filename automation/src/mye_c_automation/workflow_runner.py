@@ -71,7 +71,7 @@ def prepare_partial_followup(source_directory,verification_directory,reader):
 
 
 def run_main_count_preflight(manager,pid,shop,policy,writer,independent_reader_factory,*,execution_ledger=None,on_job_created=None):
-    """Save the opt-in exact-seven rule before creating the semantic audit Job."""
+    """Remove the first main image and matching references once when count >6."""
     if policy.config.get('trim_seven_main_before_audit') is not True:return {'status':'NOT_NEEDED','model_requests':0}
     from mye_c_automation.account_coordination import account_lock
     from mye_c_automation.execution_ledger import ExecutionLedger,operation_digest
@@ -83,7 +83,7 @@ def run_main_count_preflight(manager,pid,shop,policy,writer,independent_reader_f
     with account_lock(account):
         if str(writer.current_shop())!=str(shop):raise ValueError('SHOP_CONTEXT_UNVERIFIED')
         product=writer.product(pid)
-        if len((product.get('images') or {}).get('main') or [])!=7:return {'status':'NOT_NEEDED','model_requests':0}
+        if len((product.get('images') or {}).get('main') or [])<=6:return {'status':'NOT_NEEDED','model_requests':0}
         job=manager.create(pid,shop,{'site_save':1,'uploads':0,'translate_title':0},mode='auto_apply')
         job=manager.bind_account(job['job_id'],account);job=manager.bind_input(job['job_id'],product)
         root=manager.directory(job['job_id'])
@@ -106,11 +106,11 @@ def run_main_count_preflight(manager,pid,shop,policy,writer,independent_reader_f
                 result=deepcopy(value);result.pop('updatedAt',None);return result
             ok=protected(after)==protected(expected)
             atomic_json(root/'independent_after.json',after)
-            atomic_json(root/'independent_preflight_verification.json',{'ok':ok,'model_requests':0,'scope':'EXACT_MAIN_REFERENCE_REMOVAL_ALL_OTHER_FIELDS_PRESERVED'})
+            atomic_json(root/'independent_preflight_verification.json',{'ok':ok,'model_requests':0,'scope':'FIRST_MAIN_MATCHING_PRODUCT_REFERENCES_REMOVED_OTHER_FIELDS_PRESERVED'})
             if not ok:raise ValueError('MAIN_PREFLIGHT_INDEPENDENT_READBACK_MISMATCH')
             ledger.finish(account,shop,pid,job['job_id'],'AUTO_VERIFIED');manager.finish_automatic(job['job_id'],'AUTO_VERIFIED')
             return dict(status='AUTO_VERIFIED',job_id=job['job_id'],model_requests=0,site_save_calls=1,upload_calls=0,
-                main_count_before=7,main_count_after=6,removed_url=product['images']['main'][0])
+                main_count_before=len(product['images']['main']),main_count_after=len(after['images']['main']),removed_url=product['images']['main'][0])
         except Exception:
             state=ledger.state(account,shop,pid,job['job_id'])
             if state=='RESERVED':ledger.prewrite_failed(account,shop,pid,job['job_id'])
@@ -121,7 +121,7 @@ def run_main_count_preflight(manager,pid,shop,policy,writer,independent_reader_f
 
 
 def resume_main_count_preflight(manager,job_id,reader):
-    """Reconcile the exact-seven save with no repeat PUT or model call."""
+    """Reconcile the bound preflight save with no repeat PUT or model call."""
     from mye_c_automation.account_coordination import account_lock
     from mye_c_automation.execution_ledger import ExecutionLedger
     from mye_c_automation.executor.local import LocalExecutor
@@ -141,7 +141,8 @@ def resume_main_count_preflight(manager,job_id,reader):
         try:ledger.finish(job['account_fingerprint'],job['shop_id'],job['pid'],job_id,'AUTO_VERIFIED')
         finally:ledger.close()
         manager.finish_automatic(job_id,'AUTO_VERIFIED')
-        result.update(status='AUTO_VERIFIED',job_id=job_id,model_requests=0,main_count_before=7,main_count_after=6)
+        proof=json.loads((root/'main_count_user_rule.json').read_text(encoding='utf-8'))
+        result.update(status='AUTO_VERIFIED',job_id=job_id,model_requests=0,main_count_before=proof['before_count'],main_count_after=proof['after_count'])
         atomic_json(root/'preflight_recovery_verification.json',result)
         return result
 
@@ -650,6 +651,9 @@ def main(argv=None):
                 image_options=load_image_options(args.image_options) if args.image_options else None
                 image_kwargs={'image_workflow':'v2','image_options':image_options} if args.image_workflow=='v2' else {}
                 job=manager.create(pid,shop,limits,args.mode,templates_required=args.image_workflow=='legacy',**model_options,**image_kwargs)
+                if preflight:
+                    atomic_json(manager.directory(job['job_id'])/'process_invocation.json',
+                        dict(main_count_preflight=preflight,policy_sha256=policy.sha256,pid=pid,shop=shop))
                 if args.template_config:
                     from mye_c_automation.template_applicability import snapshot
                     snapshot(args.template_config,manager.directory(job['job_id']))

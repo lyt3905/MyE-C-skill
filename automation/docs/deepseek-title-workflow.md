@@ -1,3 +1,5 @@
+> 0.2.34 起标题改写已加入默认流程。新建配置和当前活动本地策略默认 TITLE_REWRITE=true；明确设false仍可跳过。自动保存总开关不随之开启。下方“默认关闭”的说明属于旧版本。
+
 # 商品流程中的 DeepSeek 标题修改
 
 业务规则仅参考 `aliexpress-product-image-audit/title-rewriter/`。软件自带完整提示词，运行时不读取该目录。通过现有模型客户端、网关和 Job 账本调用 DeepSeek，不使用旧的本地固定词表生成器。

@@ -1,3 +1,5 @@
+0.2.34 默认流程：主图超过六张时选原首图并同步删除同URL商品图片引用；默认启用DeepSeek标题改写和用户授予的图片修改授权，保留自动保存总开关。见 [完整工作流](docs/current-workflow.md)。
+
 # MyE-C Automation
 
 0.2.21新增[历史原图只读重审](docs/snapshot-reaudit.md)，用当前提示词重审已封存、包括线上已删的原图；复用既有V2审核器，输出新Job，不自动恢复或写商品。
@@ -12,7 +14,7 @@
 
 独立的 AliExpress 商品图片 V2 自动化软件，业务基准为 `68e168f1a08c6338cb0964dffbd021bb5e484556`。原 Skill 不参与安装或运行。
 
-当前交付版本 0.2.21，以命令行和运行配套为范围：配置初始化/离线检查、独立权重安装、部署审查、同照片替换权限和旧模板资源。图片下载与回读使用[统一完整请求标识](docs/image-http-profile.md)。同时支持[已知保存成功的部分任务续办](docs/verified-partial-followup.md)、[SKU图片按包装分别选择](docs/sku-image-selection.md)、[下载失败重试](docs/download-retries.md)及[七张主图预处理/宣传图规则](docs/seven-main-and-seller-posters.md)。图形界面按用户选择推迟到下一轮，草稿保存在 `experimental/desktop/`，不随当前软件安装。历史报告保留。
+当前本地版本 0.2.34，以命令行和运行配套为范围：配置初始化/离线检查、独立权重安装、部署审查、同照片替换权限和旧模板资源。图片下载与回读使用[统一完整请求标识](docs/image-http-profile.md)。同时支持[已知保存成功的部分任务续办](docs/verified-partial-followup.md)、[SKU图片按包装分别选择](docs/sku-image-selection.md)、[下载失败重试](docs/download-retries.md)及[七张主图预处理/宣传图规则](docs/seven-main-and-seller-posters.md)。图形界面按用户选择推迟到下一轮，草稿保存在 `experimental/desktop/`，不随当前软件安装。历史报告保留。
 
 上传地址支持后台地址末尾带斜杠。首次上传明确被拒绝、且尚未进入商品保存阶段的任务，可由受限续办接口建立新任务；保存结果未知时仍禁止盲重试。详见[上传失败与续办](docs/upload-recovery.md)。
 
@@ -78,3 +80,5 @@ Prompt、Schema 和配置随包安装在 `mye_c_automation/config`、`mye_c_auto
 Git 仅保留程序、文档及必要固定测试资源。`local/`、运行数据、模型权重、构建产物和现场运行报告留在本机；报告中的本机证据链接用于对应运行环境，克隆仓库后需自行运行测试生成。保留的迁移报告是历史阶段记录，当前版本与限制以本说明和 `docs/PROJECT_STATE.md` 为准。
 
 只读保留的旧双模型验收兼容模块仅用于历史回归，不是当前 V2 策略。V2 仅 DeepSeek、置信度 RECORD_ONLY、未知 usage 为 null；正文商品图片纳入审核，正文文字/footer/样式及非图片字段保护。
+
+文字水印模块新增单处、多处和大面积半透明文字处理，自动选择区域内字形样本并支持重叠分块 LaMa；原始模型结论与执行计划分开保留，仍须审核实际候选。[配置和能力说明](docs/general-text-watermarks.md)。

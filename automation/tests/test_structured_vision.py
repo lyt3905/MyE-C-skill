@@ -124,10 +124,13 @@ class StructuredVisionTests(unittest.TestCase):
 
     def test_business_conflicts_never_qualify_for_structural_retry(self):
         api=self.api();item=self.item()
-        for changes in [dict(kind='PRODUCT_PRINT',preserve_overlap_risk='LOW'),dict(kind='STORE_WATERMARK',preserve_overlap_risk='HIGH')]:
+        for changes in [dict(kind='PRODUCT_PRINT',preserve_overlap_risk='LOW'),dict(kind='MANUFACTURER_LOGO',preserve_overlap_risk='HIGH')]:
             row=observation(item,'REMOVE_TEXT',watermarks=[dict(changes,action='REMOVE_TEXT',repair_mode='REGION',bbox=[.1,.1,.2,.2],confidence=.9)])
             self.assertFalse(api.retry_allowed('SCHEMA_VALIDATION_FAILED',row))
         self.assertTrue(api.retry_allowed('SCHEMA_VALIDATION_FAILED',observation(item)))
+        trial=observation(item,'REMOVE_TEXT',watermarks=[dict(kind='STORE_WATERMARK',action='REMOVE_TEXT',repair_mode='REGION',
+            bbox=[.1,.1,.2,.2],confidence=.9,preserve_overlap_risk='HIGH')])
+        self.assertTrue(api.retry_allowed('SCHEMA_VALIDATION_FAILED',trial))
         self.assertFalse(api.retry_allowed('BUSINESS_VALIDATION_FAILED',observation(item)))
 
     def test_existing_validator_must_execute_full_schema_for_fresh_observations(self):

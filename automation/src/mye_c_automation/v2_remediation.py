@@ -119,13 +119,14 @@ def prepare(directory,job,policy,gate):
                             if not path.is_relative_to(dest.resolve()) or path==Path(content['file']).resolve():raise ValueError('IMAGE_EDIT_OUTPUT_UNBOUND')
                             repair=dict(input_path=content['file'],input_sha256=digest,output_path=str(path),output_sha256=sha256(path),algorithm='CONFIGURED_IMAGE_EDIT',mask_path=None)
                             atomic_json(dest/'edit.json',repair)
-                        checked=inspector.inspect_v2(content['file'],repair['output_path'],product,attempt_action,repair.get('mask_path'),observation=o)
+                        executed=repair.get('execution_observation',o)
+                        checked=inspector.inspect_v2(content['file'],repair['output_path'],product,attempt_action,repair.get('mask_path'),observation=executed)
                         quality.append(dict(checked,repair=repair,source_sha256=digest,action=attempt_action,attempt=attempt+1))
                         if checked.get('ok'):
                             asset=dict(path=str(Path(repair['output_path']).relative_to(root)),sha256=repair['output_sha256']);action=attempt_action;break
                         if attempt==0 and attempt_action=='REMOVE_TEXT' and checked.get('quality_status')=='FAIL_WATERMARK_REMAINS':
                             from mye_c_automation.ai_judge.image_quality_v2 import residual_observation
-                            feedback=residual_observation(o,checked)
+                            feedback=residual_observation(executed,checked)
                             if feedback is not None:
                                 atomic_json(dest/'residual_feedback.json',dict(original_observation=o,
                                     quality=checked,derived_execution_observation=feedback,maximum_supplemental_rounds=1,
@@ -231,6 +232,20 @@ def prepare(directory,job,policy,gate):
         else:row.update(action='WEB_DEFER',reason_codes=['SKU_REFERENCE_REQUIRES_REPLACEMENT'])
     unresolved=[]
     for row in candidates:
+        if sku_candidate and policy.permits('SKU_ASSIGN') and row.get('reason_codes')==['SOURCE_UNAVAILABLE']:
+            occurrence=next((r for r in inventory['occurrences'] if r['id']==row.get('target',{}).get('image_id')),None)
+            if occurrence and occurrence['target_type']=='sku_reference' and not occurrence.get('url'):
+                index=occurrence['sku_row_index'];sku=product['skus'][index];sku_id=sku.get('skuId',sku.get('id'))
+                replacement=selection['assignments'].get(str(sku_id))
+                if replacement is None:
+                    replacement=next((r['url'] for r in selection['row_assignments'] if r['index']==index),None)
+                if replacement:
+                    # An absent old reference is resolved by an independently
+                    # selected, source-bound replacement. A failed nonempty
+                    # image URL is never treated as reviewed by this branch.
+                    sku_candidate['source'].setdefault('resolved_missing_references',[]).append(dict(
+                        source_occurrence_id=occurrence['id'],sku_row_index=index,replacement_url=replacement))
+                    continue
         if (sku_candidate and policy.permits('DELETE') and policy.permits('SKU_ASSIGN') and row['action']=='WEB_DEFER' and
             row.get('reason_codes')==['SKU_REFERENCE_UNRESOLVED'] and judgements.get(row.get('source',{}).get('sha256'),{}).get('decision')=='DELETE'):
             index=row['target']['sku_row_index'];sku=product['skus'][index];sku_id=sku.get('skuId',sku.get('id'))

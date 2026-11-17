@@ -30,8 +30,11 @@ def validate_plan(plan):
     if plan['review'] != {'status': 'RESOLVED'}:
         raise ValueError('NEEDS_REVIEW')
     pre = plan['precondition']
-    if type(pre) is not dict or not {'state_sha256'}<=set(pre) or set(pre)-{'state_sha256','account_fingerprint'} or not _digest(pre['state_sha256']) or ('account_fingerprint' in pre and not _digest(pre['account_fingerprint'])):
+    if type(pre) is not dict or not {'state_sha256'}<=set(pre) or set(pre)-({'state_sha256','account_fingerprint'}|({'main_count_preflight'} if automatic else set())) or not _digest(pre['state_sha256']) or ('account_fingerprint' in pre and not _digest(pre['account_fingerprint'])):
         raise ValueError('invalid state digest')
+    if 'main_count_preflight' in pre:
+        from mye_c_automation.main_preprocessing import validate_receipt
+        validate_receipt(pre['main_count_preflight'])
     desired = plan['desired']
     allowed_desired={'titleEn','images','brandId'}|({'identityJson'} if automatic else set())
     if type(desired) is not dict or set(desired) - allowed_desired:
@@ -57,13 +60,17 @@ def validate_plan(plan):
     post = plan['post_actions']
     if post == []:  # Legacy empty representation, accepted only when empty.
         post = {}
-    allowed_post={'uploads','translate_title'} | ({'url_replacements','sku_assignments','sku_row_assignments','preserve_reference_urls','target_positions','content_groups','reviewed_detail_deletions'} if automatic else set())
+    allowed_post={'uploads','translate_title'} | ({'url_replacements','sku_assignments','sku_row_assignments','preserve_reference_urls','target_positions','content_groups','reviewed_detail_deletions','main_reference_cleanup'} if automatic else set())
     if type(post) is not dict or set(post) - allowed_post or type(post.get('translate_title',False)) is not bool or type(post.get('uploads',[])) is not list:
         raise ValueError('invalid post actions')
     if 'reviewed_detail_deletions' in post:
         from mye_c_automation.reviewed_images import validate_targets
         validate_targets(post['reviewed_detail_deletions'])
         if set(post)!={'reviewed_detail_deletions'} or plan['automation']['actions']!=['DELETE'] or set(desired)!={'images'}:raise ValueError('REVIEWED_DELETION_SCOPE_ONLY')
+    if 'main_reference_cleanup' in post:
+        from mye_c_automation.main_preprocessing import validate_recipe
+        validate_recipe(post['main_reference_cleanup'])
+        if set(post)!={'main_reference_cleanup'} or plan['automation']['actions']!=['DELETE'] or set(desired)!={'images'}:raise ValueError('MAIN_REFERENCE_SCOPE_ONLY')
     if 'url_replacements' in post:
         if not set(plan['automation']['actions'])&{'REPLACE_TWIN','REPLACE_LOCAL','CROP_BANNER','BOX_NORMALIZE','ERASE_LOCAL'}:
             raise ValueError('UNAUTHORIZED_POST_ACTION_SCOPE')
